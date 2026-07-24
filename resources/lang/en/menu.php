@@ -1,0 +1,32 @@
+<?php
+
+return [
+    'dashboard' => 'Dashboard',
+    'applications' => 'Application Management',
+    'employees' => 'Employee Management',
+    'uniform_products' => 'Uniform Products',
+    'contracts' => 'Contract Management',
+    'contract_info' => 'Contract Information',
+    'billing' => 'Billing Data',
+    'master_data' => 'Master Data',
+    'institutions' => 'Medical Institutions',
+    'departments' => 'Departments',
+    'job_types' => 'Job Types',
+    'delivery_locations' => 'Delivery Locations',
+    'department_admins' => 'Department Admin Management',
+    'all_employees' => 'All Employees',
+    'admin_users_management' => 'Admin Users Management',
+    'notifications' => 'Notifications',
+    'logout' => 'Logout',
+    'help_support' => 'Help & Support',
+    'menu_overview' => 'Overview',
+    'menu_applications' => 'Applications',
+    'menu_employees' => 'Employees',
+    'menu_master_data' => 'Master Data',
+    'menu_products' => 'Products',
+    'menu_contract' => 'Contract',
+    'menu_contract_billing' => 'Contract & Billing',
+    'menu_billing' => 'Billing',
+    'menu_admin_users' => 'Admin Users',
+];
+

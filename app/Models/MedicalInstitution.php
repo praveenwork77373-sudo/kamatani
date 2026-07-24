@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
+class MedicalInstitution extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'code',
+        'billing_model',
+        'notification_email',
+        'per_person_loan_limit',
+        'point_unit_price',
+    ];
+
+    public function departments(): HasMany
+    {
+        return $this->hasMany(Department::class);
+    }
+
+    public function jobTypes(): HasMany
+    {
+        return $this->hasMany(JobType::class);
+    }
+
+    public function deliveryLocations(): HasMany
+    {
+        return $this->hasMany(DeliveryLocation::class);
+    }
+
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class);
+    }
+
+    public function contracts(): HasMany
+    {
+        return $this->hasMany(Contract::class);
+    }
+
+    public function institutionAdmin(): HasOne
+    {
+        return $this->hasOne(CustomerUser::class)
+            ->where('role', 'institution_admin')
+            ->whereNull('department_id');
+    }
+}
+
+

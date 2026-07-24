@@ -1,0 +1,32 @@
+<?php
+
+return [
+    'dashboard' => 'ダッシュボード',
+    'applications' => '申請管理',
+    'employees' => '職員管理',
+    'uniform_products' => 'ユニフォーム商品',
+    'contracts' => '契約管理',
+    'contract_info' => '契約情報',
+    'billing' => '請求データ',
+    'master_data' => 'マスタデータ',
+    'institutions' => '医療機関マスタ',
+    'departments' => '部署管理',
+    'job_types' => '職種管理',
+    'delivery_locations' => '納品場所',
+    'department_admins' => '部署管理者管理',
+    'all_employees' => '全職員管理',
+    'admin_users_management' => '管理者ユーザー管理',
+    'notifications' => '通知',
+    'logout' => 'ログアウト',
+    'help_support' => 'Help & Support',
+    'menu_overview' => '概要',
+    'menu_applications' => '申請',
+    'menu_employees' => '職員',
+    'menu_master_data' => 'マスタデータ',
+    'menu_products' => '商品',
+    'menu_contract' => '契約',
+    'menu_contract_billing' => '契約・請求',
+    'menu_billing' => '請求',
+    'menu_admin_users' => '管理者ユーザー',
+];
+

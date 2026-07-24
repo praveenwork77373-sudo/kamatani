@@ -1,0 +1,550 @@
+@extends('layouts.app')
+
+@section('title', __('pages.uniform_management') . ' | ' . __('auth.system_title'))
+@section('page_title', __('pages.uniform_management'))
+
+@section('content')
+    {{-- Low Stock Alert Banner --}}
+    @if(isset($lowStockWarnings) && count($lowStockWarnings) > 0)
+        @php
+            $veryLowStock = array_filter($lowStockWarnings, fn($w) => $w['is_very_low']);
+            $lowStock = array_filter($lowStockWarnings, fn($w) => !$w['is_very_low']);
+        @endphp
+        
+        @if(count($veryLowStock) > 0)
+            <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
+                <div class="flex items-start gap-3">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"></i>
+                    <div class="flex-1">
+                        <h3 class="text-[14px] font-semibold text-red-900 mb-2">{{ __('pages.urgent_restock_needed') }}</h3>
+                        <div class="space-y-1.5">
+                            @foreach(array_slice($veryLowStock, 0, 5) as $warning)
+                                <p class="text-[13px] text-red-800">
+                                    <span class="font-semibold">{{ $warning['product_name'] }}</span> 
+                                    (<span class="font-mono text-[12px]">{{ $warning['product_code'] }}</span>): 
+                                    <span class="font-bold">{{ $warning['size'] }}</span> {{ __('pages.stock_is_needed') }}! 
+                                    <span class="text-red-600">({{ $warning['stock'] }} {{ __('pages.items') }})</span>
+                                </p>
+                            @endforeach
+                            @if(count($veryLowStock) > 5)
+                                <p class="text-[12px] text-red-700 italic">
+                                    + {{ count($veryLowStock) - 5 }} {{ __('pages.more_items') }}
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @elseif(count($lowStock) > 0)
+            <div class="mb-6 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-lg shadow-sm">
+                <div class="flex items-start gap-3">
+                    <i data-lucide="alert-circle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
+                    <div class="flex-1">
+                        <h3 class="text-[14px] font-semibold text-amber-900 mb-2">{{ __('pages.restock_recommended') }}</h3>
+                        <div class="space-y-1.5">
+                            @foreach(array_slice($lowStock, 0, 5) as $warning)
+                                <p class="text-[13px] text-amber-800">
+                                    <span class="font-semibold">{{ $warning['product_name'] }}</span> 
+                                    (<span class="font-mono text-[12px]">{{ $warning['product_code'] }}</span>): 
+                                    <span class="font-bold">{{ $warning['size'] }}</span> {{ __('pages.stock_is_needed') }}! 
+                                    <span class="text-amber-600">({{ $warning['stock'] }} {{ __('pages.items') }})</span>
+                                </p>
+                            @endforeach
+                            @if(count($lowStock) > 5)
+                                <p class="text-[12px] text-amber-700 italic">
+                                    + {{ count($lowStock) - 5 }} {{ __('pages.more_items') }}
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endif
+
+    {{-- Header --}}
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.uniform_product_list') }}</h1>
+            <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.uniform_management_description') }}</p>
+        </div>
+        <a href="{{ route('admin.uniform-products.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all">
+            <i class="ph ph-plus text-base"></i>
+            {{ __('pages.new_registration') }}
+        </a>
+    </div>
+
+    {{-- Statistics Cards --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {{-- Total Products --}}
+        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 border border-blue-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
+            <div class="relative z-10">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                        <i data-lucide="package" class="w-5 h-5 text-blue-600"></i>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 text-[10px] font-semibold">{{ __('pages.total') }}</span>
+                </div>
+                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['total_products'] ?? 0) }}</p>
+                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.total_products') }}</p>
+            </div>
+        </div>
+
+        {{-- Total Stock --}}
+        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
+            <div class="relative z-10">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                        <i data-lucide="layers" class="w-5 h-5 text-emerald-600"></i>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-semibold">在庫</span>
+                </div>
+                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['total_stock'] ?? 0) }}</p>
+                <p class="text-slate-600 text-[13px] font-medium">総在庫数</p>
+            </div>
+        </div>
+
+        {{-- In Stock Products --}}
+        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border border-green-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
+            <div class="relative z-10">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full bg-green-500/10 text-green-700 text-[10px] font-semibold">{{ __('pages.in_stock') }}</span>
+                </div>
+                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['in_stock_products'] ?? 0) }}</p>
+                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.in_stock_products') }}</p>
+            </div>
+        </div>
+
+        {{-- Out of Stock Products --}}
+        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-50 via-rose-50 to-pink-50 border border-red-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
+            <div class="relative z-10">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                        <i data-lucide="x-circle" class="w-5 h-5 text-red-600"></i>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full bg-red-500/10 text-red-700 text-[10px] font-semibold">{{ __('pages.out_of_stock') }}</span>
+                </div>
+                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['out_of_stock_products'] ?? 0) }}</p>
+                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.out_of_stock_products') }}</p>
+            </div>
+        </div>
+    </div>
+
+    {{-- Main Layout: Sidebar + Products Grid --}}
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {{-- Left Sidebar: Filters --}}
+        <div class="lg:col-span-1">
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden sticky top-6">
+                <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-blue-50">
+                    <h2 class="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="filter" class="w-4 h-4 text-primary-600"></i>
+                        {{ __('pages.filters') }}
+                    </h2>
+                </div>
+
+                <form method="GET" action="{{ route('admin.uniform-products.index') }}" id="filter-form" class="p-4 space-y-4">
+                    {{-- Search --}}
+                    <div>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
+                            {{ __('pages.search') }}
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                            <input type="text" name="search" value="{{ $searchQuery }}" 
+                                   placeholder="{{ __('pages.search_product') }}"
+                                   class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20">
+                        </div>
+                    </div>
+
+                    {{-- Medical Institution --}}
+                    <div>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
+                            {{ __('pages.medical_institution') }}
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="building-2" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                            <select name="medical_institution_id" id="medical-institution-select"
+                                    class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+                                <option value="">{{ __('pages.all') }}</option>
+                                @foreach($medicalInstitutions as $institution)
+                                    <option value="{{ $institution->id }}" @selected($selectedInstitutionId == $institution->id)>
+                                        {{ $institution->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Department --}}
+                    <div>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
+                            {{ __('pages.department') }}
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="briefcase" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                            <select name="department_id" id="department-select"
+                                    class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+                                <option value="">{{ __('pages.all') }}</option>
+                                @foreach($departments as $department)
+                                    <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>
+                                        {{ $department->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Status --}}
+                    <div>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
+                            {{ __('pages.status') }}
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="package-check" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                            <select name="status" class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+                                <option value="">{{ __('pages.all') }}</option>
+                                <option value="in_stock" @selected($selectedStatus === 'in_stock')>{{ __('pages.in_stock') }}</option>
+                                <option value="out_of_stock" @selected($selectedStatus === 'out_of_stock')>{{ __('pages.out_of_stock') }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                
+
+                    {{-- Gender --}}
+                    <div>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
+                            {{ __('pages.gender') }}
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="users" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                            <select name="gender" class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+                                <option value="">{{ __('pages.all') }}</option>
+                                <option value="male" @selected($selectedGender === 'male')>{{ __('pages.male') }}</option>
+                                <option value="female" @selected($selectedGender === 'female')>{{ __('pages.female') }}</option>
+                                <option value="unisex" @selected($selectedGender === 'unisex')>{{ __('pages.unisex') }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Hidden category field --}}
+                    <input type="hidden" name="category" id="category-filter" value="{{ $selectedCategory }}">
+
+                    {{-- Filter Buttons --}}
+                    <div class="flex gap-2 pt-2">
+                        <button type="submit" class="flex-1 px-3 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[13px] font-medium transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="filter" class="w-4 h-4"></i>
+                            {{ __('pages.apply_filters') }}
+                        </button>
+                        <a href="{{ route('admin.uniform-products.index') }}" class="px-3 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] font-medium transition-all flex items-center justify-center">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- Right Side: Products Grid --}}
+        <div class="lg:col-span-4">
+            {{-- Category Tabs --}}
+            <div class="sticky top-0 z-10 bg-white mb-6 pt-3 pb-3 border-b-2 border-slate-200 shadow-sm">
+                <div class="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ !$selectedCategory ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}" 
+                            data-category="">
+                        <i data-lucide="grid" class="w-4 h-4"></i>
+                        {{ __('pages.all_categories') }}
+                    </button>
+                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'top' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}" 
+                            data-category="top">
+                        <i data-lucide="shirt" class="w-4 h-4"></i>
+                        {{ __('pages.category_top') }}
+                    </button>
+                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'bottom' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}" 
+                            data-category="bottom">
+                        <i data-lucide="package" class="w-4 h-4"></i>
+                        {{ __('pages.category_bottom') }}
+                    </button>
+                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'shoe' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}" 
+                            data-category="shoe">
+                        <i data-lucide="footprints" class="w-4 h-4"></i>
+                        {{ __('pages.category_shoe') }}
+                    </button>
+                  
+                </div>
+            </div>
+
+            {{-- Products Grid --}}
+            <div id="products-container">
+                @if($products->count() > 0)
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        @foreach($products as $product)
+                            @php
+                                $isOutOfStock = !$product['has_stock'];
+                                $isLowStock = $product['total_stock'] > 0 && $product['total_stock'] <= 10;
+                                $isVeryLowStock = $product['total_stock'] > 0 && $product['total_stock'] <= 5;
+                            @endphp
+                            <div class="group border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 {{ $isOutOfStock ? 'border-red-300 opacity-60' : ($isVeryLowStock ? 'border-amber-400' : ($isLowStock ? 'border-amber-300' : 'border-slate-200 hover:border-primary-300')) }}" data-category="{{ $product['category'] }}">
+                                {{-- Product Image --}}
+                                <div class="relative h-48 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
+                                    @if($product['image_path'])
+                                        <img src="{{ $product['image_path'] }}" alt="{{ $product['name'] }}" 
+                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                    @else
+                                        <div class="w-full h-full flex items-center justify-center">
+                                            <i data-lucide="shirt" class="w-16 h-16 text-slate-300"></i>
+                                        </div>
+                                    @endif
+                                    
+                                    {{-- Stock Status Badge --}}
+                                    @if($isOutOfStock)
+                                        <div class="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-[11px] font-semibold rounded-md shadow-md">
+                                            <i data-lucide="x-circle" class="w-3 h-3 inline-block mr-1"></i>
+                                            {{ __('pages.out_of_stock') }}
+                                        </div>
+                                    @elseif($isVeryLowStock)
+                                        <div class="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-[11px] font-semibold rounded-md shadow-md">
+                                            <i data-lucide="alert-triangle" class="w-3 h-3 inline-block mr-1"></i>
+                                            {{ __('pages.very_low_stock') }}
+                                        </div>
+                                    @elseif($isLowStock)
+                                        <div class="absolute top-2 right-2 px-2 py-1 bg-amber-500 text-white text-[11px] font-semibold rounded-md shadow-md">
+                                            <i data-lucide="alert-circle" class="w-3 h-3 inline-block mr-1"></i>
+                                            {{ __('pages.low_stock') }}
+                                        </div>
+                                    @endif
+                                </div>
+                                
+                                {{-- Product Info --}}
+                                <div class="p-5 space-y-3">
+                                    <div>
+                                        <h3 class="font-semibold text-slate-900 text-[15px] mb-1 line-clamp-2 leading-tight">{{ $product['name'] }}</h3>
+                                        <p class="text-[11px] text-slate-500 font-mono">{{ $product['base_product_code'] }}</p>
+                                    </div>
+                                    
+                                    {{-- Sizes List --}}
+                                    <div>
+                                        <label class="block text-[12px] font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                                            <i data-lucide="ruler" class="w-3.5 h-3.5 text-primary-600"></i>
+                                            {{ __('pages.available_sizes') }}
+                                        </label>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            @foreach($product['sizes'] as $sizeInfo)
+                                                @php
+                                                    $sizeStock = $sizeInfo['stock_quantity'];
+                                                    $sizeIsLow = $sizeStock > 0 && $sizeStock <= 5;
+                                                    $sizeIsVeryLow = $sizeStock > 0 && $sizeStock <= 2;
+                                                @endphp
+                                                <span class="px-2 py-1 text-[11px] rounded-md font-medium {{ $sizeStock <= 0 ? 'bg-slate-100 text-slate-500 border border-slate-300' : ($sizeIsVeryLow ? 'bg-red-100 text-red-700 border border-red-300' : ($sizeIsLow ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-primary-100 text-primary-700 border border-primary-300')) }}">
+                                                    {{ $sizeInfo['size'] }} ({{ $sizeStock }})
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    
+                                    {{-- Product Meta --}}
+                                    <div class="flex items-center justify-between text-[12px] text-slate-600 pt-2 border-t border-slate-200">
+                                        <div class="flex items-center gap-1.5">
+                                            <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+                                            <span>
+                                                @if($product['gender'] === 'male')
+                                                    {{ __('pages.male') }}
+                                                @elseif($product['gender'] === 'female')
+                                                    {{ __('pages.female') }}
+                                                @else
+                                                    {{ __('pages.unisex') }}
+                                                @endif
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <i data-lucide="package" class="w-3.5 h-3.5"></i>
+                                            <span class="font-semibold {{ $isVeryLowStock ? 'text-red-600' : ($isLowStock ? 'text-amber-600' : 'text-slate-900') }}">
+                                                {{ $product['total_stock'] }}
+                                                @if($isVeryLowStock)
+                                                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5 inline-block ml-1 text-red-500"></i>
+                                                @elseif($isLowStock)
+                                                    <i data-lucide="alert-circle" class="w-3.5 h-3.5 inline-block ml-1 text-amber-500"></i>
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    {{-- Low Stock Warning Message --}}
+                                    @php
+                                        $lowStockSizes = [];
+                                        $veryLowStockSizes = [];
+                                        foreach ($product['sizes'] as $sizeInfo) {
+                                            $sizeStock = $sizeInfo['stock_quantity'];
+                                            $size = $sizeInfo['size'];
+                                            if ($sizeStock > 0 && $sizeStock <= 2) {
+                                                $veryLowStockSizes[] = $size;
+                                            } elseif ($sizeStock > 0 && $sizeStock <= 5) {
+                                                $lowStockSizes[] = $size;
+                                            }
+                                        }
+                                    @endphp
+                                    
+                                    @if(count($veryLowStockSizes) > 0)
+                                        <div class="mt-2 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
+                                            <div class="flex items-start gap-2">
+                                                <i data-lucide="alert-triangle" class="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5"></i>
+                                                <div class="flex-1">
+                                                    <p class="text-[12px] font-semibold text-red-800 mb-1">{{ __('pages.urgent_restock_needed') }}</p>
+                                                    <p class="text-[11px] text-red-700 leading-relaxed">
+                                                        @foreach($veryLowStockSizes as $size)
+                                                            <span class="inline-block mr-2">
+                                                                <span class="font-bold">{{ $size }}</span> {{ __('pages.stock_is_needed') }}!
+                                                            </span>
+                                                        @endforeach
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @elseif(count($lowStockSizes) > 0)
+                                        <div class="mt-2 p-3 bg-amber-50 border-l-4 border-amber-500 rounded-lg shadow-sm">
+                                            <div class="flex items-start gap-2">
+                                                <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"></i>
+                                                <div class="flex-1">
+                                                    <p class="text-[12px] font-semibold text-amber-800 mb-1">{{ __('pages.restock_recommended') }}</p>
+                                                    <p class="text-[11px] text-amber-700 leading-relaxed">
+                                                        @foreach($lowStockSizes as $size)
+                                                            <span class="inline-block mr-2">
+                                                                <span class="font-bold">{{ $size }}</span> {{ __('pages.stock_is_needed') }}!
+                                                            </span>
+                                                        @endforeach
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @elseif($isVeryLowStock)
+                                        <div class="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                                            <p class="text-[11px] text-red-700 font-medium flex items-center gap-1.5">
+                                                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-red-600"></i>
+                                                {{ __('pages.very_low_stock_warning') }}
+                                            </p>
+                                        </div>
+                                    @elseif($isLowStock)
+                                        <div class="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                            <p class="text-[11px] text-amber-700 font-medium flex items-center gap-1.5">
+                                                <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-600"></i>
+                                                {{ __('pages.low_stock_warning') }}
+                                            </p>
+                                        </div>
+                                    @endif
+
+                                    {{-- Actions --}}
+                                    @if(count($product['sizes']) > 0)
+                                    <div class="flex items-center gap-2 pt-2 border-t border-slate-200">
+                                        <a href="{{ route('admin.uniform-products.edit', $product['sizes'][0]['id']) }}" 
+                                           class="flex-1 text-center px-3 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 text-[12px] font-medium transition-all flex items-center justify-center gap-1.5">
+                                            <i data-lucide="edit" class="w-3.5 h-3.5"></i>
+                                            {{ __('pages.edit') }}
+                                        </a>
+                                        <form method="POST" action="{{ route('admin.uniform-products.destroy', $product['sizes'][0]['id']) }}" 
+                                              class="inline" 
+                                              onsubmit="return confirm('{{ __('pages.confirm_delete_product') }}')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="px-3 py-2 rounded-lg border border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 text-[12px] font-medium transition-all flex items-center justify-center">
+                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-12 bg-white border border-slate-200 rounded-xl">
+                        <i data-lucide="package" class="w-16 h-16 mx-auto mb-4 text-slate-300"></i>
+                        <p class="text-slate-500 text-[14px]">{{ __('pages.no_products_found') }}</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Lucide icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+            // Category tabs
+            const categoryTabs = document.querySelectorAll('.category-tab');
+            const categoryFilter = document.getElementById('category-filter');
+            
+            categoryTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    categoryTabs.forEach(t => {
+                        t.classList.remove('border-primary-600', 'text-primary-600');
+                        t.classList.add('border-transparent', 'text-slate-700');
+                    });
+                    this.classList.add('border-primary-600', 'text-primary-600');
+                    this.classList.remove('border-transparent', 'text-slate-700');
+                    
+                    const category = this.dataset.category;
+                    categoryFilter.value = category;
+                    
+                    // Submit form to apply filter
+                    document.getElementById('filter-form').submit();
+                });
+            });
+
+            // Dynamic department loading
+            const institutionSelect = document.getElementById('medical-institution-select');
+            const departmentSelect = document.getElementById('department-select');
+            
+            if (institutionSelect) {
+                institutionSelect.addEventListener('change', function() {
+                    const institutionId = this.value;
+                    
+                    // Clear department options
+                    departmentSelect.innerHTML = '<option value="">{{ __('pages.all') }}</option>';
+                    
+                    if (institutionId) {
+                        // Fetch departments
+                        fetch(`{{ route('api.departments') }}?medical_institution_id=${institutionId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                data.forEach(dept => {
+                                    const option = document.createElement('option');
+                                    option.value = dept.id;
+                                    option.textContent = dept.name;
+                                    departmentSelect.appendChild(option);
+                                });
+                            })
+                            .catch(error => {
+                                console.error('Error fetching departments:', error);
+                            });
+                    }
+                });
+            }
+
+            // Filter products by category on page load
+            const currentCategory = '{{ $selectedCategory }}';
+            if (currentCategory) {
+                filterProductsByCategory(currentCategory);
+            }
+
+            function filterProductsByCategory(category) {
+                // Only select product cards within the products container, not the tab buttons
+                const products = document.querySelectorAll('#products-container [data-category]');
+                products.forEach(product => {
+                    const productCategory = product.dataset.category;
+                    if (category === '' || productCategory === category || (category === 'other' && !['top', 'bottom', 'shoe'].includes(productCategory))) {
+                        product.style.display = '';
+                    } else {
+                        product.style.display = 'none';
+                    }
+                });
+            }
+        });
+    </script>
+    @endpush
+@endsection
