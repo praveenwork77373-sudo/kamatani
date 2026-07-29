@@ -16,6 +16,7 @@ return [
     'department_admins' => 'Department Admin Management',
     'all_employees' => 'All Employees',
     'admin_users_management' => 'Admin Users Management',
+    'account_locks' => 'Account Lock Management',
     'database_management' => 'Database Management',
     'notifications' => 'Notifications',
     'logout' => 'Logout',

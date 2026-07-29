@@ -18,6 +18,10 @@
     </div>
 
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+        <div class="mb-6 p-4 rounded-lg bg-slate-50 border border-slate-200">
+            <p class="text-[13px] text-slate-700 leading-relaxed">{{ __('pages.admin_user_password_policy_hint') }}</p>
+        </div>
+
         <form action="{{ route('admin.admin-users.store') }}" method="POST">
             @csrf
             
@@ -44,28 +48,6 @@
                     @error('email')
                         <p class="mt-1.5 text-[13px] text-red-600">{{ $message }}</p>
                     @enderror
-                </div>
-
-                {{-- Password --}}
-                <div>
-                    <label for="password" class="block text-[13px] font-semibold text-slate-700 mb-2">
-                        {{ __('pages.password') }} <span class="text-red-500">*</span>
-                    </label>
-                    <input type="password" id="password" name="password" required
-                           class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 @error('password') border-red-300 @enderror">
-                    <p class="mt-1.5 text-[13px] text-slate-500">{{ __('pages.password_min_length') }}</p>
-                    @error('password')
-                        <p class="mt-1.5 text-[13px] text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Password Confirmation --}}
-                <div>
-                    <label for="password_confirmation" class="block text-[13px] font-semibold text-slate-700 mb-2">
-                        {{ __('pages.password_confirmation') }} <span class="text-red-500">*</span>
-                    </label>
-                    <input type="password" id="password_confirmation" name="password_confirmation" required
-                           class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20">
                 </div>
 
                 {{-- Role --}}
@@ -106,5 +88,3 @@
         }
     </script>
 @endsection
-
-

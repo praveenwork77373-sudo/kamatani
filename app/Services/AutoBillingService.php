@@ -126,22 +126,15 @@ class AutoBillingService
     }
 
     /**
-     * Generate billing snapshot for a specific department
-     * 
-     * Implements billing requirements:
-     * 1. Reproducing Past Events: Checks employee employment status and loan status 
-     *    as of the 1st of the target month (reference date)
-     * 2. Responding to Contract Types:
-     *    - Fixed rate based on number of people: Billing = registered employees × fixed_unit_price
-     *    - Point-based rate (usage-based): Billing = rented items (return points) × point_unit_price
+     * 部署ごとの請求スナップショットを生成する。
+     * 基準日（対象月1日）時点の在籍・貸出状態で計算する。
+     * 定額（人数×単価）またはポイント制（返却ポイント×単価）。
      */
     private static function generateBillingSnapshot(MedicalInstitution $institution, Department $department, string $targetDate, Contract $contract, int $userId, ?BillingSnapshot $existingSnapshot = null): void
     {
         $targetDateCarbon = Carbon::parse($targetDate);
         
-        // Use the 1st of the target month as the reference date for billing
-        // This ensures we reproduce employee status and loan status "as of the 1st of a specific month"
-        // Requirement 4.3(1): Reproducing Past Events
+        // 対象月1日を基準日として在籍・貸出状態を再現する
         $referenceDate = $targetDateCarbon->copy()->startOfMonth()->format('Y-m-d');
         $referenceDateCarbon = Carbon::parse($referenceDate);
         $monthStart = $targetDateCarbon->copy()->startOfMonth();
@@ -160,8 +153,7 @@ class AutoBillingService
             ->with('primaryDepartment')
             ->get();
 
-        // Reproduce employee status as of reference date (1st of month) using history
-        // This implements "Reproducing Past Events" requirement
+        // 基準日時点の職員状態を履歴から再現
         $employeesAsOfDate = [];
         $hasStatusHistoryTable = false;
         try {

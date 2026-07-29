@@ -438,6 +438,14 @@
                             <span class="font-medium">{{ __('menu.admin_users_management') }}</span>
                         </a>
 
+                        <a href="{{ route('admin.account-locks.index') }}"
+                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/account-locks*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/account-locks*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
+                                <i data-lucide="lock-keyhole" class="w-4 h-4"></i>
+                            </div>
+                            <span class="font-medium">{{ __('menu.account_locks') }}</span>
+                        </a>
+
                         {{-- Database Management --}}
                         <a href="{{ route('admin.database-backups.index') }}"
                            class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/database-backups*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">

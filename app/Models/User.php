@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -40,7 +41,7 @@ class User extends Authenticatable
     /**
      * Get the attributes that should be cast.
      *
-     * @return array<string, string>
+     * @return array<string, mixed>
      */
     protected function casts(): array
     {
@@ -49,6 +50,22 @@ class User extends Authenticatable
             'password' => 'hashed',
             'locked_until' => 'datetime',
         ];
+    }
+
+    /**
+     * パスワード再設定通知（有効期限 24 時間を明記）
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new class($token) extends ResetPassword {
+            public function toMail($notifiable)
+            {
+                $mail = parent::toMail($notifiable);
+                $mail->line('このリンクの有効期限は 24 時間です。期限切れ、または一度使用したリンクは無効になります。');
+
+                return $mail;
+            }
+        });
     }
 
     public function customerUser(): HasOne
@@ -64,5 +81,10 @@ class User extends Authenticatable
     public function loginAttempts(): HasMany
     {
         return $this->hasMany(LoginAttempt::class);
+    }
+
+    public function isTemporarilyLocked(): bool
+    {
+        return $this->locked_until !== null && $this->locked_until->isFuture();
     }
 }
