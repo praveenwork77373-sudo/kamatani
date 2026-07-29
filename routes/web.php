@@ -47,7 +47,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/uniforms-by-dept-job', [ApplicationController::class, 'getUniformsByDeptJob'])->name('api.uniforms_by_dept_job');
     Route::get('/api/employees-by-department', [ApplicationController::class, 'getEmployeesByDepartment'])->name('api.employees_by_department');
     Route::get('/api/employees/search', [ApplicationController::class, 'searchEmployees'])->name('api.employees.search');
-    Route::get('/api/institution/{institution}/departments-job-types', [EmployeeController::class, 'getDepartmentsAndJobTypes'])->name('api.institution.departments_job_types');
+    Route::get('/api/employees/{employee}/loans', [ApplicationController::class, 'getEmployeeLoans'])->name('api.employees.loans');
     Route::get('/api/institution/{institution}/departments-job-types', [InstitutionLookupController::class, 'departmentsJobTypes'])
         ->name('api.institution.departments_job_types');
     Route::get('/api/departments', function(\Illuminate\Http\Request $request) {
@@ -100,20 +100,22 @@ Route::middleware('auth')->group(function () {
 // 鎌谷側 管理ポータル
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth'])
+    ->middleware(['auth', 'admin'])
     ->group(function () {
-        Route::get('/applications', [ApplicationApprovalController::class, 'index'])->name('applications.index');
-        Route::get('/applications/export', [ApplicationApprovalController::class, 'exportCsv'])->name('applications.export');
-        Route::get('/applications/{application}', [ApplicationApprovalController::class, 'show'])->name('applications.show');
-        Route::post('/applications/{application}/approve', [ApplicationApprovalController::class, 'approve'])->name('applications.approve');
-        Route::post('/applications/{application}/reject', [ApplicationApprovalController::class, 'reject'])->name('applications.reject');
-        Route::post('/applications/{application}/cancel-approve', [ApplicationApprovalController::class, 'approveCancel'])->name('applications.cancel_approve');
-        Route::post('/applications/{application}/cancel-reject', [ApplicationApprovalController::class, 'rejectCancel'])->name('applications.cancel_reject');
-        
-        Route::resource('uniform-products', UniformProductController::class);
+        Route::middleware('admin.role:system_admin,operation')->group(function () {
+            Route::get('/applications', [ApplicationApprovalController::class, 'index'])->name('applications.index');
+            Route::get('/applications/export', [ApplicationApprovalController::class, 'exportCsv'])->name('applications.export');
+            Route::get('/applications/{application}', [ApplicationApprovalController::class, 'show'])->name('applications.show');
+            Route::post('/applications/{application}/approve', [ApplicationApprovalController::class, 'approve'])->name('applications.approve');
+            Route::post('/applications/{application}/reject', [ApplicationApprovalController::class, 'reject'])->name('applications.reject');
+            Route::post('/applications/{application}/cancel-approve', [ApplicationApprovalController::class, 'approveCancel'])->name('applications.cancel_approve');
+            Route::post('/applications/{application}/cancel-reject', [ApplicationApprovalController::class, 'rejectCancel'])->name('applications.cancel_reject');
+
+            Route::resource('uniform-products', UniformProductController::class);
+        });
         
         // 管理者ユーザー管理 (System Admin Only)
-        Route::prefix('admin-users')->name('admin-users.')->group(function () {
+        Route::prefix('admin-users')->name('admin-users.')->middleware('admin.role:system_admin')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\AdminUserController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\Admin\AdminUserController::class, 'create'])->name('create');
             Route::post('/', [\App\Http\Controllers\Admin\AdminUserController::class, 'store'])->name('store');
@@ -126,7 +128,7 @@ Route::prefix('admin')
         });
         
         // マスタ管理
-        Route::prefix('masters')->name('masters.')->group(function () {
+        Route::prefix('masters')->name('masters.')->middleware('admin.role:system_admin')->group(function () {
             Route::get('/institutions', [\App\Http\Controllers\Admin\MasterController::class, 'institutions'])->name('institutions');
             Route::get('/institutions/create', [\App\Http\Controllers\Admin\MasterController::class, 'institutionCreate'])->name('institutions.create');
             Route::post('/institutions', [\App\Http\Controllers\Admin\MasterController::class, 'institutionStore'])->name('institutions.store');
@@ -157,11 +159,13 @@ Route::prefix('admin')
         });
         
         // 契約管理
-        Route::resource('contracts', \App\Http\Controllers\Admin\ContractController::class)->except(['show']);
-        Route::get('/contracts/{contract}', [\App\Http\Controllers\Admin\ContractController::class, 'show'])->name('contracts.show');
+        Route::middleware('admin.role:system_admin,operation,sales')->group(function () {
+            Route::resource('contracts', \App\Http\Controllers\Admin\ContractController::class)->except(['show']);
+            Route::get('/contracts/{contract}', [\App\Http\Controllers\Admin\ContractController::class, 'show'])->name('contracts.show');
+        });
         
         // 請求データ
-        Route::prefix('billing')->name('billing.')->group(function () {
+        Route::prefix('billing')->name('billing.')->middleware('admin.role:system_admin,operation,accounting,sales')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\Admin\BillingController::class, 'create'])->name('create');
             Route::post('/generate', [\App\Http\Controllers\Admin\BillingController::class, 'generate'])->name('generate');
@@ -170,9 +174,19 @@ Route::prefix('admin')
         });
         
         // システム管理者: 全職員管理
-        Route::prefix('employees')->name('employees.')->group(function () {
+        Route::prefix('employees')->name('employees.')->middleware('admin.role:system_admin')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'index'])->name('index');
             Route::get('/{employee}', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'show'])->name('show');
+        });
+
+        // システム管理者: データベースバックアップ
+        Route::prefix('database-backups')->name('database-backups.')->middleware('admin.role:system_admin')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'store'])->name('store');
+            Route::post('/schedule', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'updateSchedule'])->name('schedule');
+            Route::get('/{databaseBackup}/download', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'download'])->name('download');
+            Route::post('/{databaseBackup}/restore', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'restore'])->name('restore');
+            Route::delete('/{databaseBackup}', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'destroy'])->name('destroy');
         });
     });
 

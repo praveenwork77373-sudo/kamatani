@@ -258,23 +258,10 @@ class EmployeeController extends Controller
 
     public function show(Employee $employee): View
     {
+        $this->authorize('view', $employee);
+
         $user = request()->user();
-        /** @var CustomerUser|null $customer */
         $customer = $user->customerUser;
-
-        if (!$customer) {
-            abort(403);
-        }
-
-        // 医療機関を跨いだ参照は禁止
-        if ($employee->medical_institution_id !== $customer->medical_institution_id) {
-            abort(403);
-        }
-
-        // 部署管理者は自部署の職員のみ参照可能
-        if ($customer->role === 'department_admin' && $customer->department_id && $employee->primary_department_id !== $customer->department_id) {
-            abort(403);
-        }
 
         $employee->load(['primaryDepartment', 'positions.department', 'positions.jobType']);
 
@@ -286,17 +273,10 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee): View
     {
+        $this->authorize('update', $employee);
+
         $user = request()->user();
         $customer = $user->customerUser;
-
-        if (!$customer) {
-            abort(403);
-        }
-
-        // 部署管理者は自部署の職員のみ編集可能
-        if ($customer->role === 'department_admin' && $employee->primary_department_id !== $customer->department_id) {
-            abort(403);
-        }
 
         return view('employees.edit', [
             'employee' => $employee,
@@ -315,8 +295,12 @@ class EmployeeController extends Controller
             abort(403);
         }
 
+        if ((int) $employee->medical_institution_id !== (int) $customer->medical_institution_id) {
+            abort(403);
+        }
+
         // 部署管理者は自部署の職員のみ編集可能
-        if ($customer->role === 'department_admin' && $employee->primary_department_id !== $customer->department_id) {
+        if ($customer->role === 'department_admin' && (int) $employee->primary_department_id !== (int) $customer->department_id) {
             abort(403);
         }
 
@@ -386,17 +370,13 @@ class EmployeeController extends Controller
         }
 
         // 医療機関を跨いだ削除は禁止
-        if ($employee->medical_institution_id !== $customer->medical_institution_id) {
+        if ((int) $employee->medical_institution_id !== (int) $customer->medical_institution_id) {
             abort(403);
         }
 
         // 部署管理者は自部署の職員のみ削除可能
-        if ($customer->role === 'department_admin' && $customer->department_id && $employee->primary_department_id !== $customer->department_id) {
-            abort(403);
-        }
-
-        // 部署管理者は自部署の職員のみ削除可能
-        if ($customer->role === 'department_admin' && $employee->primary_department_id !== $customer->department_id) {
+        if ($customer->role === 'department_admin' && $customer->department_id
+            && (int) $employee->primary_department_id !== (int) $customer->department_id) {
             abort(403);
         }
 

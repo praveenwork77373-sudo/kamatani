@@ -5,24 +5,29 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AdminUser;
 use App\Models\Application;
-use App\Models\ApplicationItem;
 use App\Models\MedicalInstitution;
 use App\Models\EmployeeLoan;
 use App\Models\UniformProduct;
-use App\Models\BillingSnapshot;
-use App\Models\Contract;
-use App\Models\Employee;
-use App\Models\EmployeeStatusHistory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
-use Carbon\Carbon;
 
 class ApplicationApprovalController extends Controller
 {
+    private function ensureApprover(Request $request): AdminUser
+    {
+        $admin = $request->user()->adminUser;
+
+        if (!$admin || !in_array($admin->role, ['system_admin', 'operation'], true)) {
+            abort(403, '承認権限がありません。');
+        }
+
+        return $admin;
+    }
+
     public function index(Request $request): View
     {
         $query = Application::with(['employee', 'department', 'medicalInstitution']);
@@ -67,7 +72,7 @@ class ApplicationApprovalController extends Controller
             'department',
             'deliveryLocation',
             'medicalInstitution',
-            'requestedBy'
+            'requestedBy',
         ]);
 
         return view('admin.applications.show', [
@@ -77,14 +82,9 @@ class ApplicationApprovalController extends Controller
 
     public function approve(Request $request, Application $application): RedirectResponse
     {
-        /** @var AdminUser|null $admin */
-        $admin = $request->user()->adminUser;
+        $this->ensureApprover($request);
 
-        if (!$admin || !in_array($admin->role, ['system_admin', 'operation'])) {
-            abort(403, '承認権限がありません。');
-        }
-
-        if (!in_array($application->status, ['pending', 'waiting_special_approval'])) {
+        if (!in_array($application->status, ['pending', 'waiting_special_approval'], true)) {
             return back()->with('error', 'この申請は承認できません。');
         }
 
@@ -92,81 +92,50 @@ class ApplicationApprovalController extends Controller
         $applicationId = $application->id;
 
         try {
-            DB::transaction(function () use ($applicationId, $admin, $userId) {
-            // Reload application with lock to prevent race conditions
-            $application = Application::lockForUpdate()->with('items.uniformProduct')->findOrFail($applicationId);
-            
-            // Check if application has special approval - if so, allow approval even with insufficient stock
-            $hasSpecialApproval = !empty($application->special_approval_reason);
-            
-            // 在庫チェック (only if no special approval)
-            if (!$hasSpecialApproval) {
-                foreach ($application->items as $item) {
-                    // Lock the product row to prevent concurrent modifications
-                    $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
-                    if ($product && $product->stock_quantity < $item->quantity) {
-                        throw new \Exception("在庫不足: {$product->name} (在庫: {$product->stock_quantity}, 必要: {$item->quantity})");
-                    }
-                }
-            } else {
-                // Log that special approval is being used for insufficient stock
-                Log::info('Application approved with special approval despite insufficient stock', [
-                    'application_id' => $application->id,
-                    'special_approval_reason' => $application->special_approval_reason,
-                ]);
-            }
+            DB::transaction(function () use ($applicationId, $userId) {
+                $application = Application::lockForUpdate()
+                    ->with('items.uniformProduct')
+                    ->findOrFail($applicationId);
 
-            // 在庫を減らす (only if product exists and has stock, or if special approval)
-            foreach ($application->items as $item) {
-                $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
-                if ($product) {
-                    // If special approval, allow negative stock (backorder scenario)
-                    if ($hasSpecialApproval) {
-                        // Allow stock to go negative for special approval cases
-                        $product->stock_quantity = max(0, $product->stock_quantity - $item->quantity);
-                        $product->save();
-                    } else {
-                        // Normal case: decrement stock (already validated above)
-                        $product->decrement('stock_quantity', $item->quantity);
-                    }
+                if (!in_array($application->status, ['pending', 'waiting_special_approval'], true)) {
+                    throw new \Exception('この申請は承認できません。');
                 }
 
-                // 貸与記録を作成/更新
-                $loan = EmployeeLoan::firstOrNew([
-                    'employee_id' => $application->employee_id,
-                    'uniform_product_id' => $item->uniform_product_id,
-                ]);
+                $hasSpecialApproval = !empty($application->special_approval_reason);
 
-                $loan->quantity = ($loan->quantity ?? 0) + $item->quantity;
-                $loan->status = 'in_use';
-                $loan->application_id = $application->id;
-                $loan->loan_start_date = $application->start_date ?? now();
-                // loan_end_date is left null (ongoing loan)
-                $loan->save();
-            }
+                match ($application->type) {
+                    'return' => $this->processReturnApproval($application),
+                    'exchange', 'resize' => $this->processExchangeOrResizeApproval($application, $hasSpecialApproval),
+                    'transfer' => $this->processTransferApproval($application, $hasSpecialApproval),
+                    default => $this->processNewLoanApproval($application, $hasSpecialApproval),
+                };
 
-            $application->status = 'approved';
-            $application->approved_at = now();
-            $application->approved_by_admin_user_id = $userId;
-            
-            // Set billing_status if column exists
-            if (Schema::hasColumn('applications', 'billing_status')) {
-                $application->billing_status = 'waiting';
-            }
-            
-            $application->save();
-            
-            // Reload application to ensure we have latest data
-            $application->refresh();
-            $application->load(['medicalInstitution', 'items']);
+                $application->status = 'approved';
+                $application->approved_at = now();
+                $application->approved_by_admin_user_id = $userId;
 
-            // 通知を送信
-            \App\Services\NotificationService::notifyApplicationApproved($application);
-            
-                // 自動的に請求データを生成（月次で、まだ生成されていない場合）
-                // Note: This is called inside transaction, but errors are caught and logged
-                \App\Services\AutoBillingService::generateBillingForApprovedApplication($application, $userId);
+                if ($application->type === 'return') {
+                    $application->return_date = $application->return_date ?? ($application->end_date ?? now()->toDateString());
+                }
+
+                if (Schema::hasColumn('applications', 'billing_status')) {
+                    $application->billing_status = 'waiting';
+                }
+
+                $application->save();
             });
+
+            // 請求はコミット後に実行（失敗しても承認は維持）
+            try {
+                $approved = Application::with(['medicalInstitution', 'department', 'items'])->findOrFail($applicationId);
+                \App\Services\NotificationService::notifyApplicationApproved($approved);
+                \App\Services\AutoBillingService::generateBillingForApprovedApplication($approved, $userId);
+            } catch (\Exception $e) {
+                Log::error('Post-approval notification/billing failed', [
+                    'application_id' => $applicationId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         } catch (\Exception $e) {
             Log::error('Application approval failed', [
                 'application_id' => $applicationId,
@@ -179,16 +148,187 @@ class ApplicationApprovalController extends Controller
         return back()->with('status', '申請を承認しました。');
     }
 
-    public function reject(Request $request, Application $application): RedirectResponse
+    /**
+     * 新規貸与: 在庫減算 + 貸与加算
+     */
+    private function processNewLoanApproval(Application $application, bool $hasSpecialApproval): void
     {
-        /** @var AdminUser|null $admin */
-        $admin = $request->user()->adminUser;
+        $this->assertStockForOutboundItems($application, $hasSpecialApproval);
 
-        if (!$admin || !in_array($admin->role, ['system_admin', 'operation'])) {
-            abort(403);
+        foreach ($application->items as $item) {
+            $action = $item->action ?: 'loan';
+            if (!in_array($action, ['loan', 'exchange_in', 'transfer_change'], true)) {
+                continue;
+            }
+            $this->applyLoanOutbound($application, $item, $hasSpecialApproval);
+        }
+    }
+
+    /**
+     * 返却: 貸与減算 + 在庫戻し
+     */
+    private function processReturnApproval(Application $application): void
+    {
+        foreach ($application->items as $item) {
+            $this->applyLoanReturn($application, $item);
+        }
+    }
+
+    /**
+     * 交換／サイズ変更: exchange_out/return は返却、loan/exchange_in は新規貸与
+     * 明細に outbound のみの場合は選定商品を新品として貸与
+     */
+    private function processExchangeOrResizeApproval(Application $application, bool $hasSpecialApproval): void
+    {
+        $hasOutbound = $application->items->contains(fn ($i) => in_array($i->action, ['loan', 'exchange_in'], true) || empty($i->action));
+        $hasInbound = $application->items->contains(fn ($i) => in_array($i->action, ['return', 'exchange_out'], true));
+
+        if ($hasOutbound) {
+            $this->assertStockForOutboundItems($application, $hasSpecialApproval);
         }
 
-        if (!in_array($application->status, ['pending', 'waiting_special_approval'])) {
+        foreach ($application->items as $item) {
+            $action = $item->action ?: 'loan';
+
+            if (in_array($action, ['return', 'exchange_out'], true)) {
+                $this->applyLoanReturn($application, $item);
+                continue;
+            }
+
+            if (in_array($action, ['loan', 'exchange_in'], true)) {
+                $this->applyLoanOutbound($application, $item, $hasSpecialApproval);
+            }
+        }
+
+        // 旧品明細がなく新品のみの場合でも貸与処理済み（上記ループ）
+        unset($hasInbound);
+    }
+
+    /**
+     * 移管: 申請元職員の貸与を移管先へ移動（在庫変動なし）
+     */
+    private function processTransferApproval(Application $application, bool $hasSpecialApproval): void
+    {
+        $toEmployeeId = $application->transfer_to_employee_id;
+        if (!$toEmployeeId) {
+            throw new \Exception('移管先職員が指定されていません。');
+        }
+
+        foreach ($application->items as $item) {
+            $action = $item->action ?: 'transfer_change';
+            if (!in_array($action, ['loan', 'transfer_change'], true)) {
+                continue;
+            }
+
+            $fromLoan = EmployeeLoan::lockForUpdate()
+                ->where('employee_id', $application->employee_id)
+                ->where('uniform_product_id', $item->uniform_product_id)
+                ->where('status', 'in_use')
+                ->first();
+
+            if (!$fromLoan || $fromLoan->quantity < $item->quantity) {
+                throw new \Exception('移管元に十分な貸与がありません。');
+            }
+
+            $fromLoan->quantity = $fromLoan->quantity - $item->quantity;
+            if ($fromLoan->quantity <= 0) {
+                $fromLoan->quantity = 0;
+                $fromLoan->status = 'returned';
+                $fromLoan->loan_end_date = now();
+            }
+            $fromLoan->save();
+
+            $toLoan = EmployeeLoan::lockForUpdate()->firstOrNew([
+                'employee_id' => $toEmployeeId,
+                'uniform_product_id' => $item->uniform_product_id,
+            ]);
+            $toLoan->quantity = ($toLoan->quantity ?? 0) + $item->quantity;
+            $toLoan->status = 'in_use';
+            $toLoan->application_id = $application->id;
+            $toLoan->loan_start_date = $application->start_date ?? now();
+            $toLoan->loan_end_date = null;
+            $toLoan->save();
+        }
+    }
+
+    private function assertStockForOutboundItems(Application $application, bool $hasSpecialApproval): void
+    {
+        if ($hasSpecialApproval) {
+            Log::info('Application approved with special approval; stock may go negative', [
+                'application_id' => $application->id,
+                'special_approval_reason' => $application->special_approval_reason,
+            ]);
+            return;
+        }
+
+        foreach ($application->items as $item) {
+            $action = $item->action ?: 'loan';
+            if (!in_array($action, ['loan', 'exchange_in', 'transfer_change'], true)) {
+                continue;
+            }
+
+            $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
+            if ($product && $product->stock_quantity < $item->quantity) {
+                throw new \Exception("在庫不足: {$product->name} (在庫: {$product->stock_quantity}, 必要: {$item->quantity})");
+            }
+        }
+    }
+
+    private function applyLoanOutbound(Application $application, $item, bool $hasSpecialApproval): void
+    {
+        $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
+        if ($product) {
+            // 特別承認時は負の在庫を許可（バックオーダー）
+            $product->stock_quantity = $product->stock_quantity - $item->quantity;
+            if (!$hasSpecialApproval && $product->stock_quantity < 0) {
+                throw new \Exception("在庫不足: {$product->name}");
+            }
+            $product->save();
+        }
+
+        $loan = EmployeeLoan::lockForUpdate()->firstOrNew([
+            'employee_id' => $application->employee_id,
+            'uniform_product_id' => $item->uniform_product_id,
+        ]);
+
+        $loan->quantity = ($loan->quantity ?? 0) + $item->quantity;
+        $loan->status = 'in_use';
+        $loan->application_id = $application->id;
+        $loan->loan_start_date = $application->start_date ?? now();
+        $loan->loan_end_date = null;
+        $loan->save();
+    }
+
+    private function applyLoanReturn(Application $application, $item): void
+    {
+        $loan = EmployeeLoan::lockForUpdate()
+            ->where('employee_id', $application->employee_id)
+            ->where('uniform_product_id', $item->uniform_product_id)
+            ->where('status', 'in_use')
+            ->first();
+
+        if ($loan) {
+            $loan->quantity = max(0, ($loan->quantity ?? 0) - $item->quantity);
+            if ($loan->quantity <= 0) {
+                $loan->quantity = 0;
+                $loan->status = 'returned';
+                $loan->loan_end_date = $application->end_date ?? $application->return_date ?? now();
+            }
+            $loan->application_id = $application->id;
+            $loan->save();
+        }
+
+        $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
+        if ($product) {
+            $product->increment('stock_quantity', $item->quantity);
+        }
+    }
+
+    public function reject(Request $request, Application $application): RedirectResponse
+    {
+        $this->ensureApprover($request);
+
+        if (!in_array($application->status, ['pending', 'waiting_special_approval'], true)) {
             return back()->with('error', 'この申請は却下できません。');
         }
 
@@ -198,7 +338,6 @@ class ApplicationApprovalController extends Controller
         $application->rejection_reason = $request->input('rejection_reason');
         $application->save();
 
-        // 通知を送信
         \App\Services\NotificationService::notifyApplicationRejected($application);
 
         return back()->with('status', '申請を却下しました。');
@@ -206,42 +345,47 @@ class ApplicationApprovalController extends Controller
 
     public function approveCancel(Request $request, Application $application): RedirectResponse
     {
-        /** @var AdminUser|null $admin */
-        $admin = $request->user()->adminUser;
-
-        if (!$admin || !in_array($admin->role, ['system_admin', 'operation'])) {
-            abort(403);
-        }
+        $this->ensureApprover($request);
 
         if ($application->status !== 'cancel_request') {
             return back()->with('error', 'キャンセル申請がありません。');
         }
 
-        DB::transaction(function () use ($application, $admin) {
-            // 貸与記録を返却状態に
+        $userId = $request->user()->id;
+
+        DB::transaction(function () use ($application, $userId) {
+            $application->loadMissing('items');
+
             foreach ($application->items as $item) {
-                $loan = EmployeeLoan::where('employee_id', $application->employee_id)
-                    ->where('uniform_product_id', $item->uniform_product_id)
-                    ->first();
+                $action = $item->action ?: 'loan';
 
-                if ($loan) {
-                    $loan->quantity = max(0, ($loan->quantity ?? 0) - $item->quantity);
-                    if ($loan->quantity <= 0) {
-                        $loan->status = 'returned';
+                // 元が貸与系なら、キャンセル承認で貸与を戻し在庫を復元
+                if (in_array($action, ['loan', 'exchange_in', 'transfer_change'], true)) {
+                    $loan = EmployeeLoan::lockForUpdate()
+                        ->where('employee_id', $application->employee_id)
+                        ->where('uniform_product_id', $item->uniform_product_id)
+                        ->first();
+
+                    if ($loan) {
+                        $loan->quantity = max(0, ($loan->quantity ?? 0) - $item->quantity);
+                        if ($loan->quantity <= 0) {
+                            $loan->quantity = 0;
+                            $loan->status = 'returned';
+                            $loan->loan_end_date = now();
+                        }
+                        $loan->save();
                     }
-                    $loan->save();
-                }
 
-                // 在庫を戻す
-                $product = UniformProduct::find($item->uniform_product_id);
-                if ($product) {
-                    $product->increment('stock_quantity', $item->quantity);
+                    $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
+                    if ($product) {
+                        $product->increment('stock_quantity', $item->quantity);
+                    }
                 }
             }
 
             $application->status = 'cancel_approved';
             $application->approved_at = now();
-            $application->approved_by_admin_user_id = $admin->id;
+            $application->approved_by_admin_user_id = $userId; // users.id
             $application->save();
         });
 
@@ -250,12 +394,7 @@ class ApplicationApprovalController extends Controller
 
     public function rejectCancel(Request $request, Application $application): RedirectResponse
     {
-        /** @var AdminUser|null $admin */
-        $admin = $request->user()->adminUser;
-
-        if (!$admin || !in_array($admin->role, ['system_admin', 'operation'])) {
-            abort(403);
-        }
+        $this->ensureApprover($request);
 
         if ($application->status !== 'cancel_request') {
             return back()->with('error', 'キャンセル申請がありません。');
@@ -263,7 +402,7 @@ class ApplicationApprovalController extends Controller
 
         $application->status = 'cancel_rejected';
         $application->approved_at = now();
-        $application->approved_by_admin_user_id = $admin->id;
+        $application->approved_by_admin_user_id = $request->user()->id; // users.id
         $application->rejection_reason = $request->input('rejection_reason');
         $application->save();
 
@@ -276,7 +415,7 @@ class ApplicationApprovalController extends Controller
             'employee.positions.jobType',
             'department',
             'medicalInstitution',
-            'items.uniformProduct'
+            'items.uniformProduct',
         ]);
 
         if ($type = $request->string('type')->toString()) {
@@ -301,11 +440,9 @@ class ApplicationApprovalController extends Controller
 
         $callback = function () use ($applications) {
             $file = fopen('php://output', 'w');
-            
-            // BOM for Excel
+
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            
-            // Header
+
             fputcsv($file, [
                 '申請ID',
                 '申請種別',
@@ -323,8 +460,7 @@ class ApplicationApprovalController extends Controller
                 '申請日時',
                 '承認日時',
             ]);
-            
-            // Data
+
             foreach ($applications as $app) {
                 $typeLabels = [
                     'new_loan' => '新規貸与',
@@ -333,7 +469,7 @@ class ApplicationApprovalController extends Controller
                     'exchange' => '交換',
                     'transfer' => '譲渡',
                 ];
-                
+
                 $statusLabels = [
                     'pending' => '未処理',
                     'waiting_special_approval' => '特別承認待ち',
@@ -343,7 +479,7 @@ class ApplicationApprovalController extends Controller
                     'cancel_approved' => 'キャンセル承認',
                     'cancel_rejected' => 'キャンセル却下',
                 ];
-                
+
                 if ($app->items->count() > 0) {
                     foreach ($app->items as $item) {
                         fputcsv($file, [
@@ -365,7 +501,6 @@ class ApplicationApprovalController extends Controller
                         ]);
                     }
                 } else {
-                    // If no items, still export the application
                     fputcsv($file, [
                         '#APP-' . str_pad($app->id, 4, '0', STR_PAD_LEFT),
                         $typeLabels[$app->type] ?? $app->type,
@@ -385,7 +520,7 @@ class ApplicationApprovalController extends Controller
                     ]);
                 }
             }
-            
+
             fclose($file);
         };
 

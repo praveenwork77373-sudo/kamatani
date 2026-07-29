@@ -210,6 +210,39 @@
                         @enderror
                     </div>
 
+                    {{-- 移管先職員 --}}
+                    <div id="transfer-target-field" class="hidden">
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
+                            <i data-lucide="user-round-plus" class="w-4 h-4 text-slate-500"></i>
+                            移管先職員 <span class="text-red-500">*</span>
+                        </label>
+                        <select name="transfer_to_employee_id" id="transfer-to-employee-select"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm">
+                            <option value="">選択してください</option>
+                            @foreach($employees as $emp)
+                                <option value="{{ $emp->id }}" @selected(old('transfer_to_employee_id')==$emp->id)>
+                                    {{ $emp->staff_no }} — {{ $emp->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="text-[12px] text-slate-500 mt-1.5">貸与品を受け取る職員を指定します。</p>
+                        @error('transfer_to_employee_id')
+                            <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- 現在の貸与（返却・交換・移管用） --}}
+                    <div id="current-loans-panel" class="hidden">
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
+                            <i data-lucide="package-minus" class="w-4 h-4 text-amber-600"></i>
+                            <span id="current-loans-title">返却・交換する貸与品</span>
+                        </label>
+                        <div id="current-loans-list" class="space-y-2 max-h-56 overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
+                            <p class="text-[13px] text-slate-500">職員を選択すると貸与中の品が表示されます。</p>
+                        </div>
+                        <div id="return-items-hidden"></div>
+                    </div>
+
                     {{-- Loan Start Date --}}
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
@@ -418,6 +451,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let allUniforms = @json($uniformsJson);
     let filteredUniforms = [];
     let selectedItems = new Map();
+    let returnItems = new Map(); // product_id => { quantity, max, name, size }
+    const returnItemsHidden = document.getElementById('return-items-hidden');
+    const currentLoansPanel = document.getElementById('current-loans-panel');
+    const currentLoansList = document.getElementById('current-loans-list');
+    const transferTargetField = document.getElementById('transfer-target-field');
+    const applicationTypeSelect = document.getElementById('application-type-select');
+    const transferToSelect = document.getElementById('transfer-to-employee-select');
     let currentCategory = 'top';
     let searchTimeout;
 
@@ -1039,6 +1079,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 filteredUniforms = allUniforms;
             }
             loadProducts();
+        }
+
+        if (typeof syncTypeDependentUi === 'function') {
+            syncTypeDependentUi();
         }
     }
 
@@ -2098,12 +2142,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let index = 0;
         selectedItems.forEach((item, key) => {
             if (item.quantity > 0) {
-                // Use the product_id from the item (which should be size-specific)
-                // If product_id is not available, try to find it from filteredUniforms or allUniforms
                 let productId = item.product_id;
                 
                 if (!productId) {
-                    // First try to find in filteredUniforms (grouped products with sizes_with_ids)
                     let product = filteredUniforms.find(u => 
                         (u.product_code || u.id) === item.product_key
                     );
@@ -2115,7 +2156,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // If still not found, try allUniforms (ungrouped products)
                     if (!productId) {
                         product = allUniforms.find(u => 
                             (u.product_code || u.id) === item.product_key && u.size === item.size
@@ -2124,10 +2164,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             productId = product.id;
                         }
                     }
-                }
-                
-                if (!productId) {
-                    console.warn('Could not find product_id for item:', item, 'key:', key);
                 }
                 
                 if (productId) {
@@ -2139,6 +2175,120 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+
+        if (returnItemsHidden) {
+            returnItemsHidden.innerHTML = '';
+            let rIndex = 0;
+            returnItems.forEach((item, productId) => {
+                if (item.quantity > 0) {
+                    returnItemsHidden.innerHTML += `
+                        <input type="hidden" name="return_items[${rIndex}][uniform_product_id]" value="${productId}">
+                        <input type="hidden" name="return_items[${rIndex}][quantity]" value="${item.quantity}">
+                    `;
+                    rIndex++;
+                }
+            });
+        }
+    }
+
+    function syncTypeDependentUi() {
+        const type = applicationTypeSelect?.value || '';
+        const needsLoans = ['return', 'exchange', 'resize', 'transfer'].includes(type);
+        const needsTransfer = type === 'transfer';
+
+        if (currentLoansPanel) {
+            currentLoansPanel.classList.toggle('hidden', !needsLoans);
+        }
+        if (transferTargetField) {
+            transferTargetField.classList.toggle('hidden', !needsTransfer);
+            if (transferToSelect) {
+                transferToSelect.required = needsTransfer;
+            }
+        }
+        const title = document.getElementById('current-loans-title');
+        if (title) {
+            if (type === 'transfer') title.textContent = '移管する貸与品';
+            else if (type === 'return') title.textContent = '返却する貸与品';
+            else title.textContent = '旧品（返却する貸与品）';
+        }
+
+        // 移管時はカート＝移管対象。返却時はカート非表示寄りだが既存UIを維持し return_items を主に使う
+        const employeeId = document.getElementById('selected-employee-id')?.value;
+        if (needsLoans && employeeId) {
+            loadEmployeeLoans(employeeId);
+        }
+    }
+
+    async function loadEmployeeLoans(employeeId) {
+        if (!currentLoansList || !employeeId) return;
+        currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">読み込み中...</p>';
+        try {
+            const res = await fetch(`{{ url('/api/employees') }}/${employeeId}/loans`, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) throw new Error('load failed');
+            const loans = await res.json();
+            if (!Array.isArray(loans) || loans.length === 0) {
+                currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">貸与中の品がありません。</p>';
+                returnItems.clear();
+                updateFormFields();
+                return;
+            }
+            currentLoansList.innerHTML = loans.map(loan => {
+                const checked = returnItems.has(String(loan.uniform_product_id)) ? 'checked' : '';
+                const qty = returnItems.get(String(loan.uniform_product_id))?.quantity || 1;
+                return `
+                    <label class="flex items-center gap-3 p-2 rounded-lg bg-white border border-slate-200 hover:border-primary-300 cursor-pointer">
+                        <input type="checkbox" class="return-loan-check text-primary-600" data-product-id="${loan.uniform_product_id}"
+                               data-max="${loan.quantity}" data-name="${loan.product_name || ''}" data-size="${loan.size || ''}" ${checked}>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[13px] font-medium text-slate-900 truncate">${loan.product_name || ''} (${loan.size || '-'})</div>
+                            <div class="text-[11px] text-slate-500">${loan.product_code || ''} · 貸与中 ${loan.quantity}</div>
+                        </div>
+                        <input type="number" min="1" max="${loan.quantity}" value="${Math.min(qty, loan.quantity)}"
+                               class="return-loan-qty w-16 px-2 py-1 border border-slate-300 rounded text-[13px]"
+                               data-product-id="${loan.uniform_product_id}">
+                    </label>
+                `;
+            }).join('');
+
+            currentLoansList.querySelectorAll('.return-loan-check').forEach(cb => {
+                cb.addEventListener('change', syncReturnItemsFromUi);
+            });
+            currentLoansList.querySelectorAll('.return-loan-qty').forEach(inp => {
+                inp.addEventListener('change', syncReturnItemsFromUi);
+            });
+            syncReturnItemsFromUi();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (e) {
+            console.error(e);
+            currentLoansList.innerHTML = '<p class="text-[13px] text-red-600">貸与情報の取得に失敗しました。</p>';
+        }
+    }
+
+    function syncReturnItemsFromUi() {
+        returnItems.clear();
+        if (!currentLoansList) return;
+        currentLoansList.querySelectorAll('.return-loan-check:checked').forEach(cb => {
+            const productId = String(cb.dataset.productId);
+            const max = parseInt(cb.dataset.max || '1', 10);
+            const qtyInput = currentLoansList.querySelector(`.return-loan-qty[data-product-id="${productId}"]`);
+            let qty = parseInt(qtyInput?.value || '1', 10);
+            if (isNaN(qty) || qty < 1) qty = 1;
+            if (qty > max) qty = max;
+            returnItems.set(productId, {
+                quantity: qty,
+                max,
+                name: cb.dataset.name || '',
+                size: cb.dataset.size || '',
+            });
+        });
+        updateFormFields();
+    }
+
+    if (applicationTypeSelect) {
+        applicationTypeSelect.addEventListener('change', syncTypeDependentUi);
+        syncTypeDependentUi();
     }
 
     // Special Approval Modal Handlers

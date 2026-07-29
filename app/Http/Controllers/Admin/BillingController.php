@@ -48,71 +48,11 @@ class BillingController extends Controller
     public function index(Request $request): View
     {
         $this->checkViewPermission();
-        // Check if billing_status column exists, create it if it doesn't
-        try {
-            $hasBillingStatusColumn = Schema::hasColumn('applications', 'billing_status');
-            
-            // If column doesn't exist, create it
-            if (!$hasBillingStatusColumn) {
-                try {
-                    // Try using Schema builder first
-                    Schema::table('applications', function (Blueprint $table) {
-                        $table->enum('billing_status', ['waiting', 'approved', 'rejected'])->nullable()->default('waiting')->after('status');
-                    });
-                    $hasBillingStatusColumn = true;
-                } catch (\Exception $e) {
-                    // If Schema builder fails, try raw SQL
-                    try {
-                        DB::statement("ALTER TABLE `applications` ADD COLUMN `billing_status` ENUM('waiting', 'approved', 'rejected') NULL DEFAULT 'waiting' AFTER `status`");
-                        $hasBillingStatusColumn = true;
-                    } catch (\Exception $e2) {
-                        // If both fail, continue without the column
-                        $hasBillingStatusColumn = false;
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            $hasBillingStatusColumn = false;
-        }
-        
-        // Check if department_id column exists, if not try to create it
-        $hasDepartmentColumn = \Illuminate\Support\Facades\Schema::hasColumn('billing_snapshots', 'department_id');
-        
-        if (!$hasDepartmentColumn) {
-            try {
-                \Illuminate\Support\Facades\Schema::table('billing_snapshots', function (Blueprint $table) {
-                    $table->foreignId('department_id')->nullable()->after('medical_institution_id')->constrained('departments')->nullOnDelete();
-                });
-                $hasDepartmentColumn = true;
-            } catch (\Exception $e) {
-                // If Schema builder fails, try raw SQL
-                try {
-                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE `billing_snapshots` ADD COLUMN `department_id` BIGINT UNSIGNED NULL AFTER `medical_institution_id`");
-                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE `billing_snapshots` ADD CONSTRAINT `billing_snapshots_department_id_foreign` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL");
-                    $hasDepartmentColumn = true;
-                } catch (\Exception $e2) {
-                    // If both fail, continue without the column
-                    \Illuminate\Support\Facades\Log::warning('Failed to create department_id column in billing_snapshots', ['error' => $e2->getMessage()]);
-                    $hasDepartmentColumn = false;
-                }
-            }
-        }
-        
-        // Check again after potential creation
-        $hasDepartmentColumn = \Illuminate\Support\Facades\Schema::hasColumn('billing_snapshots', 'department_id');
-        
-        // Get auto-generated billing snapshots (created when applications were approved)
-        // Now each snapshot is per department
-        $query = BillingSnapshot::with(['medicalInstitution', 'generatedBy'])
+
+        $query = BillingSnapshot::with(['medicalInstitution', 'department', 'generatedBy'])
             ->orderByDesc('target_date')
             ->orderByDesc('created_at');
-        
-        // Only eager load department if column exists
-        if ($hasDepartmentColumn) {
-            $query->with('department');
-        }
 
-        // Filter by institution
         $institutionId = $request->integer('medical_institution_id');
         $departmentId = $request->integer('department_id');
         
@@ -120,8 +60,7 @@ class BillingController extends Controller
             $query->where('medical_institution_id', $institutionId);
         }
 
-        // Filter by department if specified and column exists
-        if ($departmentId && $hasDepartmentColumn) {
+        if ($departmentId) {
             $query->where('department_id', $departmentId);
         }
 
@@ -140,41 +79,21 @@ class BillingController extends Controller
         ];
 
         foreach ($institutionsWithDepartments as $institution) {
-            // Count billing snapshots for this institution (sum of all department snapshots)
             $snapshotCount = BillingSnapshot::where('medical_institution_id', $institution->id)->count();
 
             if ($snapshotCount > 0) {
                 $billingCounts['institution'][$institution->id] = $snapshotCount;
             }
 
-            // Calculate department-level counts - now each snapshot is per department
             foreach ($institution->departments as $department) {
-                // Count billing snapshots for this specific department
-                $deptQuery = BillingSnapshot::where('medical_institution_id', $institution->id);
-                
-                // Only filter by department_id if column exists
-                if (\Illuminate\Support\Facades\Schema::hasColumn('billing_snapshots', 'department_id')) {
-                    $deptQuery->where('department_id', $department->id);
-                } else {
-                    // Fallback: filter by department in data JSON
-                    $deptQuery->whereJsonContains('data->department->id', $department->id);
-                }
-                
-                $deptCount = $deptQuery->count();
+                $deptCount = BillingSnapshot::where('medical_institution_id', $institution->id)
+                    ->where('department_id', $department->id)
+                    ->count();
                 
                 if ($deptCount > 0) {
-                    // Get latest snapshot for this department to get current data
-                    $latestQuery = BillingSnapshot::where('medical_institution_id', $institution->id);
-                    
-                    // Only filter by department_id if column exists
-                    if (\Illuminate\Support\Facades\Schema::hasColumn('billing_snapshots', 'department_id')) {
-                        $latestQuery->where('department_id', $department->id);
-                    } else {
-                        // Fallback: filter by department in data JSON
-                        $latestQuery->whereJsonContains('data->department->id', $department->id);
-                    }
-                    
-                    $latestSnapshot = $latestQuery->orderByDesc('target_date')
+                    $latestSnapshot = BillingSnapshot::where('medical_institution_id', $institution->id)
+                        ->where('department_id', $department->id)
+                        ->orderByDesc('target_date')
                         ->orderByDesc('created_at')
                         ->first();
                     
@@ -197,7 +116,6 @@ class BillingController extends Controller
                         'return_points' => $deptReturnPoints,
                     ];
                 } else {
-                    // Set to 0 if no billing exists
                     $billingCounts['department'][$department->id] = [
                         'count' => 0,
                         'billing_amount' => 0,
@@ -208,7 +126,6 @@ class BillingController extends Controller
             }
         }
 
-        // Calculate statistics for billing snapshots
         $totalBillingSnapshots = BillingSnapshot::count();
         
         $thisMonthBillingSnapshots = BillingSnapshot::whereBetween('target_date', [
@@ -216,14 +133,12 @@ class BillingController extends Controller
             now()->endOfMonth()->format('Y-m-d')
         ])->count();
 
-        // Calculate total billing amount from summary data
         $totalBillingAmount = BillingSnapshot::get()->sum(function($snapshot) {
             $data = $snapshot->data ?? [];
             $summary = $data['summary'] ?? [];
             return $summary['billing_amount'] ?? 0;
         });
         
-        // Calculate this month's billing amount
         $thisMonthBillingAmount = BillingSnapshot::whereBetween('target_date', [
             now()->startOfMonth()->format('Y-m-d'),
             now()->endOfMonth()->format('Y-m-d')
@@ -348,12 +263,12 @@ class BillingController extends Controller
         $returnPoints = $activeLoans->sum('quantity');
         $employeesWithLoans = $activeLoans->pluck('employee_id')->unique()->count();
 
-        // Calculate estimated billing amount
+        // Calculate estimated billing amount (固定制は在籍者数基準で AutoBilling と統一)
         $estimatedBilling = 0;
         if ($contract->billing_model === 'point_usage') {
             $estimatedBilling = $returnPoints * ($contract->point_unit_price ?? 0);
         } else {
-            $estimatedBilling = $employeesWithLoans * ($contract->fixed_unit_price ?? 0);
+            $estimatedBilling = count($employeesAsOfDate) * ($contract->fixed_unit_price ?? 0);
         }
 
         // Department breakdown
@@ -680,20 +595,12 @@ class BillingController extends Controller
         // Calculate billing amount based on contract model
         $billingAmount = 0;
         if ($contract->billing_model === 'point_usage') {
-            // Point-based: return points × point unit price
             $pointUnitPrice = $contract->point_unit_price ?? 0;
             $billingAmount = $returnPoints * $pointUnitPrice;
         } else {
-            // Fixed per person: count employees who have active loans
-            // If billing model is fixed_per_person, we bill per employee who has loans
-            $employeesWithLoans = $activeLoans->pluck('employee_id')->unique()->count();
-            // Fallback: if no loans but we have employees, use total employees
-            // (This handles the case where billing is per employee regardless of loans)
-            if ($employeesWithLoans == 0 && count($employeesAsOfDate) > 0) {
-                $employeesWithLoans = count($employeesAsOfDate);
-            }
+            // 固定制: 在籍者数 × 固定単価（AutoBillingService と統一）
             $fixedUnitPrice = $contract->fixed_unit_price ?? 0;
-            $billingAmount = $employeesWithLoans * $fixedUnitPrice;
+            $billingAmount = count($employeesAsOfDate) * $fixedUnitPrice;
         }
         
         // Update department billing amounts to match total
@@ -807,16 +714,21 @@ class BillingController extends Controller
             return back()->with('error', 'この申請の請求は既に承認済みです。');
         }
 
-        DB::transaction(function () use ($application, $request, $hasBillingStatusColumn) {
-            // Set billing status to approved if column exists
-            if ($hasBillingStatusColumn) {
+        DB::transaction(function () use ($application, $request) {
+            if (Schema::hasColumn('applications', 'billing_status')) {
                 $application->billing_status = 'approved';
                 $application->save();
             }
 
-            // Regenerate/update billing snapshot to ensure it includes latest data
-            // This will update existing snapshot or create new one if needed
-            \App\Services\AutoBillingService::generateBillingForApprovedApplication($application, $request->user()->id);
+            // 請求スナップショット更新（失敗しても請求承認ステータスは維持）
+            try {
+                \App\Services\AutoBillingService::generateBillingForApprovedApplication($application, $request->user()->id);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Billing approve snapshot update failed', [
+                    'application_id' => $application->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         });
 
         return back()->with('status', '請求を承認しました。請求データを更新しました。');

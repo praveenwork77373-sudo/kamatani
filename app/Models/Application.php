@@ -15,6 +15,7 @@ class Application extends Model
         'medical_institution_id',
         'department_id',
         'employee_id',
+        'transfer_to_employee_id',
         'type',
         'status',
         'billing_status',
@@ -49,6 +50,11 @@ class Application extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function transferToEmployee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'transfer_to_employee_id');
     }
 
     public function deliveryLocation(): BelongsTo

@@ -112,6 +112,18 @@ class ContractController extends Controller
 
         $data = $request->validate($rules);
 
+        // contract_type と billing_model の整合
+        if ($data['contract_type'] === 'FIXED' && $data['billing_model'] !== 'fixed_per_person') {
+            return back()->withInput()->withErrors([
+                'billing_model' => '契約種別が FIXED の場合、請求モデルは fixed_per_person にしてください。',
+            ]);
+        }
+        if ($data['contract_type'] === 'POINT_BASED' && $data['billing_model'] !== 'point_usage') {
+            return back()->withInput()->withErrors([
+                'billing_model' => '契約種別が POINT_BASED の場合、請求モデルは point_usage にしてください。',
+            ]);
+        }
+
         // Set default cleaning_multiplier if not provided and column exists
         if (Schema::hasColumn('contracts', 'cleaning_multiplier')) {
             if (!isset($data['cleaning_multiplier']) || empty($data['cleaning_multiplier'])) {
@@ -175,6 +187,18 @@ class ContractController extends Controller
         }
 
         $data = $request->validate($rules);
+
+        // contract_type と billing_model の整合
+        if ($data['contract_type'] === 'FIXED' && $data['billing_model'] !== 'fixed_per_person') {
+            return back()->withInput()->withErrors([
+                'billing_model' => '契約種別が FIXED の場合、請求モデルは fixed_per_person にしてください。',
+            ]);
+        }
+        if ($data['contract_type'] === 'POINT_BASED' && $data['billing_model'] !== 'point_usage') {
+            return back()->withInput()->withErrors([
+                'billing_model' => '契約種別が POINT_BASED の場合、請求モデルは point_usage にしてください。',
+            ]);
+        }
 
         // Set default cleaning_multiplier if not provided and column exists
         if (Schema::hasColumn('contracts', 'cleaning_multiplier')) {

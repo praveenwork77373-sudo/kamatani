@@ -1,115 +1,112 @@
-# 🔐 Uniform Management System - Login Credentials
+# ユニフォーム管理システム — ログイン認証情報
 
-## System Overview
-This document contains login credentials for all 6 user roles in the Uniform Management System.
-
----
-
-## 👥 User Roles & Credentials
-
-### 1. 🏥 Medical Institution Overall Administrator (医療機関全体管理者)
-**Email:** `hospital-admin@example.com`  
-**Password:** `password123`  
-**Role:** `institution_admin`  
-**Access:** 
-- All departments and employees within the medical institution
-- All applications and history
-- Employee management (create, edit, CSV import/export)
-- Contract viewing
-- Department and job type management
+## システム概要
+本ドキュメントは、ユニフォーム管理システムに用意された全6ロールのログイン認証情報です。
 
 ---
 
-### 2. 🏢 Department Administrator (部署管理者)
-**Email:** `department-admin@example.com`  
-**Password:** `password123`  
-**Role:** `department_admin`  
-**Access:**
-- Own department only
-- Own department's employees
-- Own department's applications
-- Employee management for own department
-- CSV import/export for own department
+## ユーザーロールと認証情報
+
+### 1. 医療機関全体管理者
+**メール:** `hospital-admin@example.com`  
+**パスワード:** `password123`  
+**ロール:** `institution_admin`  
+**権限:**
+- 自医療機関内の全部署・全職員
+- すべての申請および履歴
+- 職員管理（作成、編集、CSV インポート／エクスポート）
+- 契約の閲覧
+- 部署・職種の管理
 
 ---
 
-### 3. ⚙️ System Administrator (システム管理者)
-**Email:** `kamatani-admin@example.com`  
-**Password:** `password123`  
-**Role:** `system_admin`  
-**Access:**
-- Full system access
-- Medical institution master data management
-- Department and job type management
-- Delivery location management
-- Contract management (create, edit, delete)
-- Application approval
-- Uniform product management
-- Uniform recommendations
-- Billing data generation
+### 2. 部署管理者
+**メール:** `department-admin@example.com`  
+**パスワード:** `password123`  
+**ロール:** `department_admin`  
+**権限:**
+- 自部署のみ
+- 自部署の職員
+- 自部署の申請
+- 自部署の職員管理
+- 自部署向け CSV インポート／エクスポート
 
 ---
 
-### 4. 📋 Operations Administrator (運営管理者)
-**Email:** `operations-admin@example.com`  
-**Password:** `password123`  
-**Role:** `operation`  
-**Access:**
-- Application management and approval
-- Uniform product management
-- Uniform recommendations
-- Contract management (view and edit)
-- Billing data access
+### 3. システム管理者
+**メール:** `kamatani-admin@example.com`  
+**パスワード:** `password123`  
+**ロール:** `system_admin`  
+**権限:**
+- システム全体へのアクセス
+- 医療機関マスタ管理
+- 部署・職種管理
+- 配送先管理
+- 契約管理（作成、編集、削除）
+- 申請承認
+- ユニフォーム商品管理
+- ユニフォーム推奨（※現状ルート未登録の可能性あり）
+- 請求データ生成
 
 ---
 
-### 5. 💼 Sales Administrator (営業管理者)
-**Email:** `sales-admin@example.com`  
-**Password:** `password123`  
-**Role:** `sales`  
-**Access:**
-- Contract information (view-only)
-- Usage statistics
-- Contract viewing
+### 4. 運営管理者
+**メール:** `operations-admin@example.com`  
+**パスワード:** `password123`  
+**ロール:** `operation`  
+**権限:**
+- 申請の管理・承認
+- ユニフォーム商品管理
+- ユニフォーム推奨
+- 契約管理（閲覧・編集）
+- 請求データへのアクセス
 
 ---
 
-### 6. 💰 Accounting Administrator (経理管理者)
-**Email:** `accounting-admin@example.com`  
-**Password:** `password123`  
-**Role:** `accounting`  
-**Access:**
-- Billing data generation
-- Historical billing reproduction
-- Billing snapshot viewing
-- Export billing data
+### 5. 営業管理者
+**メール:** `sales-admin@example.com`  
+**パスワード:** `password123`  
+**ロール:** `sales`  
+**権限:**
+- 契約情報（閲覧のみ）
+- 利用統計
+- 契約の閲覧
 
 ---
 
-## 📝 Notes
-
-- All passwords are set to: `password123`
-- All users are created during database seeding
-- Medical Institution: "Test Hospital" (ID: 1)
-- Department Admin is assigned to "内科" (Internal Medicine) department
-- For security, change passwords in production environment
-
----
-
-## 🚀 Quick Access
-
-| Role | Email | Password |
-|------|-------|----------|
-| Institution Admin | `hospital-admin@example.com` | `password123` |
-| Department Admin | `department-admin@example.com` | `password123` |
-| System Admin | `kamatani-admin@example.com` | `password123` |
-| Operations Admin | `operations-admin@example.com` | `password123` |
-| Sales Admin | `sales-admin@example.com` | `password123` |
-| Accounting Admin | `accounting-admin@example.com` | `password123` |
+### 6. 経理管理者
+**メール:** `accounting-admin@example.com`  
+**パスワード:** `password123`  
+**ロール:** `accounting`  
+**権限:**
+- 請求データの生成
+- 過去請求の再現
+- 請求スナップショットの閲覧
+- 請求データのエクスポート
 
 ---
 
-**Generated:** {{ date('Y-m-d H:i:s') }}  
-**System:** Uniform Management System v1.0
+## 注意事項
 
+- すべてのパスワードは `password123` です
+- ユーザーはデータベースシード時に作成されます
+- 医療機関: 「Test Hospital」（ID: 1）
+- 部署管理者は「内科」部署に割り当てられています
+- 本番環境では必ずパスワードを変更してください
 
+---
+
+## クイック参照
+
+| ロール | メール | パスワード |
+|--------|--------|------------|
+| 全体管理者 | `hospital-admin@example.com` | `password123` |
+| 部署管理者 | `department-admin@example.com` | `password123` |
+| システム管理者 | `kamatani-admin@example.com` | `password123` |
+| 運営管理者 | `operations-admin@example.com` | `password123` |
+| 営業管理者 | `sales-admin@example.com` | `password123` |
+| 経理管理者 | `accounting-admin@example.com` | `password123` |
+
+---
+
+**システム:** ユニフォーム管理システム v1.0

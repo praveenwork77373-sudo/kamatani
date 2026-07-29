@@ -437,6 +437,15 @@
                             </div>
                             <span class="font-medium">{{ __('menu.admin_users_management') }}</span>
                         </a>
+
+                        {{-- Database Management --}}
+                        <a href="{{ route('admin.database-backups.index') }}"
+                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/database-backups*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/database-backups*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
+                                <i data-lucide="database-backup" class="w-4 h-4"></i>
+                            </div>
+                            <span class="font-medium">{{ __('menu.database_management') }}</span>
+                        </a>
                         
                         {{-- Employees Section (Single Item - Direct Link) --}}
                         <a href="{{ route('admin.employees.index') }}"

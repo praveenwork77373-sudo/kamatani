@@ -1,59 +1,86 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ユニフォーム管理システム
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+医療機関向けユニフォーム貸与・請求を管理する Laravel 12 アプリケーションです。
 
-## About Laravel
+## 概要
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **医療機関側**: 職員管理、ユニフォーム申請、部署／職種／配送先マスタ（全体管理者）
+- **鎌谷（管理者）側**: 申請承認、商品・在庫、契約、請求、マスタ管理
+- **技術**: PHP 8.2+ / Laravel 12 / Blade / Vite / Tailwind CSS / MySQL
+- **言語**: 日本語（既定）・英語の切り替え対応
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 必要環境
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.2 以上
+- Composer
+- Node.js / npm（フロントエンドビルド用）
+- MySQL（推奨）または SQLite
 
-## Learning Laravel
+## セットアップ
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+1. 依存関係をインストールする
+```bash
+composer install
+npm install
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+2. `.env` を用意し、設定する（MySQL 例）
+```
+APP_NAME=ユニフォーム管理システム
+APP_URL=http://localhost/uniform-system/public
+APP_LOCALE=ja
+APP_FALLBACK_LOCALE=ja
+APP_FAKER_LOCALE=ja_JP
 
-## Laravel Sponsors
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=uniform_system
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+3. アプリケーションキーを生成する
+```bash
+php artisan key:generate
+```
 
-### Premium Partners
+4. データベースを作成し、マイグレーション＋シードを実行する  
+詳細は `MYSQL_SETUP.md` を参照。
+```bash
+php artisan migrate:fresh --seed
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+5. フロントエンドをビルドする
+```bash
+npm run build
+# 開発時: npm run dev
+```
 
-## Contributing
+6. ストレージリンク（商品画像など）
+```bash
+php artisan storage:link
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## ドキュメント
 
-## Code of Conduct
+| ファイル | 内容 |
+|----------|------|
+| `MYSQL_SETUP.md` | MySQL セットアップ手順 |
+| `LOGIN_CREDENTIALS.example.md` | シードユーザーのログイン情報（例） |
+| `LOAN_REGISTRATION_GUIDE.md` | 貸与登録の流れ |
+| `LANGUAGE_SETUP.md` | 日本語／英語切り替えの実装 |
+| `adjust.md` | 不具合修正・DBバックアップ等のレポート |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 主な機能
 
-## Security Vulnerabilities
+- 職員の登録・編集・CSV 入出力
+- ユニフォーム申請（新規貸与／返却／交換／サイズ変更／移管）
+- 管理者による申請承認と貸与レコード自動作成
+- 契約・請求スナップショット
+- ロール別メニューと権限
+- セッションによる言語切り替え（ja / en）
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## ライセンス
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+本プロジェクトは Laravel フレームワーク（MIT）上に構築されています。

@@ -16,6 +16,7 @@ return [
     'department_admins' => '部署管理者管理',
     'all_employees' => '全職員管理',
     'admin_users_management' => '管理者ユーザー管理',
+    'database_management' => 'データベース管理',
     'notifications' => '通知',
     'logout' => 'ログアウト',
     'help_support' => 'Help & Support',

@@ -121,7 +121,7 @@ class AutoBillingService
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
-            throw $e; // Re-throw to see the error in the controller
+            // 承認を失敗させない（ログのみ）
         }
     }
 
@@ -144,6 +144,8 @@ class AutoBillingService
         // Requirement 4.3(1): Reproducing Past Events
         $referenceDate = $targetDateCarbon->copy()->startOfMonth()->format('Y-m-d');
         $referenceDateCarbon = Carbon::parse($referenceDate);
+        $monthStart = $targetDateCarbon->copy()->startOfMonth();
+        $monthEnd = $targetDateCarbon->copy()->endOfMonth();
         
         Log::info('Auto billing: Using reference date for billing calculation', [
             'institution_id' => $institution->id,
@@ -218,7 +220,6 @@ class AutoBillingService
         // Get approved applications for this institution and department (for tracking)
         // Include all applications approved up to the end of the target month
         // This is used for item breakdown and tracking purposes
-        $monthEnd = $targetDateCarbon->copy()->endOfMonth();
         $approvedApplications = Application::with(['items.uniformProduct', 'employee', 'department'])
             ->where('medical_institution_id', $institution->id)
             ->where('department_id', $department->id)
@@ -234,26 +235,23 @@ class AutoBillingService
             'application_ids' => $approvedApplications->pluck('id')->toArray(),
         ]);
 
-        // Get active loans as of reference date (1st of month) for this department
-        // This implements "Reproducing Past Events" requirement for loan status
+        // Get loans active at any point during the target month (includes mid-month approvals)
         $activeLoans = EmployeeLoan::with(['uniformProduct', 'employee', 'application'])
             ->whereHas('employee', function($q) use ($institution, $department) {
                 $q->where('medical_institution_id', $institution->id)
                   ->where('primary_department_id', $department->id);
             })
             ->where('status', 'in_use')
-            ->where(function($q) use ($referenceDate) {
-                // Loan is active if:
-                // - loan_start_date is NULL or <= reference date
-                // AND
-                // - loan_end_date is NULL or >= reference date
-                $q->where(function($subQ) use ($referenceDate) {
+            ->where(function($q) use ($monthStart, $monthEnd) {
+                $monthStartStr = $monthStart->format('Y-m-d');
+                $monthEndStr = $monthEnd->format('Y-m-d');
+                $q->where(function($subQ) use ($monthEndStr) {
                     $subQ->whereNull('loan_start_date')
-                         ->orWhere('loan_start_date', '<=', $referenceDate);
+                         ->orWhere('loan_start_date', '<=', $monthEndStr);
                 })
-                ->where(function($subQ) use ($referenceDate) {
+                ->where(function($subQ) use ($monthStartStr) {
                     $subQ->whereNull('loan_end_date')
-                         ->orWhere('loan_end_date', '>=', $referenceDate);
+                         ->orWhere('loan_end_date', '>=', $monthStartStr);
                 });
             })
             ->get();
@@ -340,28 +338,29 @@ class AutoBillingService
             'contract_billing_model' => $contract->billing_model,
         ]);
         
-        // Calculate cleaning count (クリーニング回数) for the target month
-        // This represents the number of cleaning cycles processed
-        // Japan rental system: Cleaning count is typically calculated from return applications
-        $monthEnd = $targetDateCarbon->copy()->endOfMonth();
+        // Calculate cleaning count for the target month only
         $returnApplications = Application::with('items')
             ->where('medical_institution_id', $institution->id)
             ->where('department_id', $department->id)
             ->where('type', 'return')
             ->where('status', 'approved')
             ->whereNotNull('approved_at')
-            ->where('approved_at', '<=', $monthEnd->format('Y-m-d') . ' 23:59:59')
-            ->where(function($q) use ($monthEnd) {
-                // Include returns processed up to the end of the month
+            ->whereBetween('approved_at', [
+                $monthStart->format('Y-m-d') . ' 00:00:00',
+                $monthEnd->format('Y-m-d') . ' 23:59:59',
+            ])
+            ->where(function($q) use ($monthStart, $monthEnd) {
                 $q->whereNull('return_date')
-                  ->orWhere('return_date', '<=', $monthEnd->format('Y-m-d'));
+                  ->orWhereBetween('return_date', [
+                      $monthStart->format('Y-m-d'),
+                      $monthEnd->format('Y-m-d'),
+                  ]);
             })
             ->get();
         
         // Sum up quantities from return application items
         $cleaningCount = 0;
         foreach ($returnApplications as $app) {
-            // Count items that were actually returned (action = 'return')
             $returnItems = $app->items()->where('action', 'return')->get();
             foreach ($returnItems as $item) {
                 $cleaningCount += $item->quantity;
@@ -369,8 +368,6 @@ class AutoBillingService
         }
         
         // If no actual return applications exist, estimate cleaning cycles from active loans
-        // Using the contract's cleaning multiplier (default: 1.67)
-        // This means: on average, each item gets cleaned 1.67 times per month
         $cleaningMultiplier = $contract->cleaning_multiplier ?? 1.67;
         if ($cleaningCount == 0 && $returnPoints > 0) {
             $cleaningCount = (int)($returnPoints * $cleaningMultiplier);
@@ -393,112 +390,22 @@ class AutoBillingService
             'id' => $deptId,
             'name' => $deptName,
             'employee_count' => count($employeesAsOfDate),
-            'return_points' => 0,
-            'cleaning_count' => 0,
+            'return_points' => $returnPoints,
+            'cleaning_count' => $cleaningCount,
             'billing_amount' => 0,
         ];
 
-        // Calculate return points (総与点数) for this department breakdown
-        // Since activeLoans is already filtered by department, use the calculated returnPoints
-        // But filter to only include employees who are in employeesAsOfDate
-        $departmentReturnPoints = 0;
-        $perPersonLimit = $contract->per_person_loan_limit ?? null;
-        $perItemLimit = $contract->loan_limit_per_item ?? null;
-        
-        // Filter loans for employees who are in employeesAsOfDate (employed as of reference date)
-        $departmentLoans = $activeLoans->filter(function($loan) use ($employeesAsOfDate) {
-            return collect($employeesAsOfDate)->contains('id', $loan->employee_id);
-        });
-        
-        // Group by employee
-        $deptLoansByEmployee = $departmentLoans->groupBy('employee_id');
-        
-        foreach ($deptLoansByEmployee as $employeeId => $employeeLoans) {
-            $employeeTotalQuantity = $employeeLoans->sum('quantity');
-            $hasSpecialApproval = false;
-            
-            // Check if any loan from this employee has special approval
-            foreach ($employeeLoans as $loan) {
-                if ($loan->application && $loan->application->special_approval_reason) {
-                    $hasSpecialApproval = true;
-                    break;
-                }
-            }
-            
-            // Calculate points for this employee
-            $employeePoints = 0;
-            
-            if ($perPersonLimit === null || $employeeTotalQuantity <= $perPersonLimit || $hasSpecialApproval) {
-                // No per-person limit OR within limit OR has special approval
-                foreach ($employeeLoans as $loan) {
-                    $itemQuantity = $loan->quantity;
-                    $loanHasSpecialApproval = $loan->application && $loan->application->special_approval_reason;
-                    
-                    if ($perItemLimit === null || $itemQuantity <= $perItemLimit || $loanHasSpecialApproval) {
-                        $employeePoints += $itemQuantity;
-                    } else {
-                        // Exceeds per-item limit and no special approval - only count up to limit
-                        $employeePoints += $perItemLimit;
-                    }
-                }
-            } else {
-                // Exceeds per-person limit and no special approval
-                // Only count up to per-person limit, distributed proportionally
-                $proportion = $perPersonLimit / max($employeeTotalQuantity, 1);
-                
-                foreach ($employeeLoans as $loan) {
-                    $itemQuantity = $loan->quantity;
-                    $loanHasSpecialApproval = $loan->application && $loan->application->special_approval_reason;
-                    
-                    if ($loanHasSpecialApproval) {
-                        // Special approval - count full quantity
-                        $employeePoints += $itemQuantity;
-                    } else {
-                        // Apply proportion, but also check per-item limit
-                        $proportionalQuantity = (int)($itemQuantity * $proportion);
-                        if ($perItemLimit !== null && $proportionalQuantity > $perItemLimit) {
-                            $proportionalQuantity = $perItemLimit;
-                        }
-                        $employeePoints += $proportionalQuantity;
-                    }
-                }
-            }
-            
-            $departmentReturnPoints += $employeePoints;
-        }
-        
-        $departmentBreakdown[$deptId]['return_points'] = $departmentReturnPoints;
-        
-        // Cleaning count calculation:
-        // 1. Use actual return applications if available
-        // 2. Otherwise, estimate from return points using cleaning multiplier
-        $cleaningMultiplier = $contract->cleaning_multiplier ?? 1.67;
-        if ($cleaningCount > 0) {
-            // Use actual cleaning count from return applications
-            $departmentBreakdown[$deptId]['cleaning_count'] = (int)($departmentBreakdown[$deptId]['return_points'] * ($cleaningCount / max($returnPoints, 1)));
-        } else {
-            // Estimate from return points
-            $departmentBreakdown[$deptId]['cleaning_count'] = (int)($departmentBreakdown[$deptId]['return_points'] * $cleaningMultiplier);
-        }
-
         // Calculate billing for this department based on contract billing model
-        // This implements "Responding to Contract Types" requirement
-        // Japan rental system logic:
-        // - fixed_per_person: Bill per registered employee (在籍者数) × fixed_unit_price
-        // - point_usage: Bill per return point (総与点数) × point_unit_price
+        // fixed_per_person: 在籍者数 × 固定単価
+        // point_usage: 総与点数 × ポイント単価
         if ($contract->billing_model === 'point_usage') {
-            // Point-based rate (usage-based rate): Rates charged based on number of rented items (return points)
-            // ポイント制: 総与点数 × ポイント単価
             $pointUnitPrice = $contract->point_unit_price ?? 0;
-            $departmentBreakdown[$deptId]['billing_amount'] = (int)($departmentBreakdown[$deptId]['return_points'] * $pointUnitPrice);
+            $departmentBreakdown[$deptId]['billing_amount'] = (int)($returnPoints * $pointUnitPrice);
         } else {
-            // Fixed rate based on number of people: Fixed rate per registered employee
-            // 固定制: 在籍者数 × 固定単価
             $fixedUnitPrice = $contract->fixed_unit_price ?? 0;
-            $departmentBreakdown[$deptId]['billing_amount'] = (int)($departmentBreakdown[$deptId]['employee_count'] * $fixedUnitPrice);
+            $departmentBreakdown[$deptId]['billing_amount'] = (int)(count($employeesAsOfDate) * $fixedUnitPrice);
         }
 
-        // Use department billing amount as total billing amount
         $billingAmount = $departmentBreakdown[$deptId]['billing_amount'];
         
         Log::info('Auto billing: Billing calculation', [
@@ -508,14 +415,17 @@ class AutoBillingService
             'billing_amount' => $billingAmount,
         ]);
 
-        // Generate invoice number for this department
-        $monthStart = $targetDateCarbon->copy()->startOfMonth();
-        $monthEnd = $targetDateCarbon->copy()->endOfMonth();
-        $invoiceCount = BillingSnapshot::where('medical_institution_id', $institution->id)
-            ->where('department_id', $department->id)
-            ->whereBetween('target_date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])
-            ->count() + 1;
-        $invoiceNumber = 'INV-' . $targetDateCarbon->format('Y-m') . '-' . str_pad($department->id, 3, '0', STR_PAD_LEFT) . '-' . str_pad($invoiceCount, 4, '0', STR_PAD_LEFT);
+        // Generate or reuse invoice number
+        if ($existingSnapshot && !empty($existingSnapshot->data['invoice']['invoice_number'])) {
+            $invoiceNumber = $existingSnapshot->data['invoice']['invoice_number'];
+        } else {
+            $invoiceCount = BillingSnapshot::where('medical_institution_id', $institution->id)
+                ->where('department_id', $department->id)
+                ->whereBetween('target_date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])
+                ->when($existingSnapshot, fn ($q) => $q->where('id', '!=', $existingSnapshot->id))
+                ->count() + 1;
+            $invoiceNumber = 'INV-' . $targetDateCarbon->format('Y-m') . '-' . str_pad($department->id, 3, '0', STR_PAD_LEFT) . '-' . str_pad($invoiceCount, 4, '0', STR_PAD_LEFT);
+        }
 
         // Build item breakdown from approved applications
         $itemBreakdown = [];

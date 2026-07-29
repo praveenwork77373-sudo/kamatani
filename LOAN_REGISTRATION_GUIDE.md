@@ -1,93 +1,91 @@
-# Loan Registration Guide
+# 貸与登録ガイド
 
-## Overview
-Loans (EmployeeLoan records) are **NOT directly registered** by users. They are automatically created when uniform applications are approved by administrators.
+## 概要
+貸与（`EmployeeLoan` レコード）は、ユーザーが**直接登録するものではありません**。管理者によるユニフォーム申請の承認時に自動作成されます。
 
-## Loan Registration Flow
+## 貸与登録の流れ
 
-### Step 1: Create Application
-**Route:** `/applications/create`  
-**Who can do it:**
-- Medical Institution Administrators (`institution_admin`)
-- Department Administrators (`department_admin`)
+### ステップ1: 申請を作成する
+**ルート:** `/applications/create`  
+**操作可能なロール:**
+- 医療機関全体管理者（`institution_admin`）
+- 部署管理者（`department_admin`）
 
-**What happens:**
-1. User selects employee(s) and uniform products
-2. User specifies quantities and application type (new_loan, exchange, return, resize, transfer)
-3. System checks:
-   - Contract limits (per person loan limit)
-   - Stock availability
-4. Application is created with status:
-   - `pending` - Normal application
-   - `waiting_special_approval` - If limits exceeded and special approval reason provided
+**処理内容:**
+1. 職員およびユニフォーム商品を選択する
+2. 数量と申請種別（new_loan, exchange, return, resize, transfer）を指定する
+3. システムが次をチェックする:
+   - 契約上限（1人あたり貸与上限）
+   - 在庫の有無
+4. 申請が次のステータスで作成される:
+   - `pending` - 通常の申請
+   - `waiting_special_approval` - 上限超過かつ特別承認理由が入力されている場合
 
-**Location in UI:**
-- Menu: **Applications** → **New Application**
-- Or: Click "新規ユニフォーム申請" button
+**画面上の場所:**
+- メニュー: **申請** → **新規申請**
+- または「新規ユニフォーム申請」ボタン
 
-### Step 2: Approve Application
-**Route:** `/admin/applications/{id}/approve`  
-**Who can do it:**
-- System Administrators (`system_admin`)
-- Operations Administrators (`operation`)
+### ステップ2: 申請を承認する
+**ルート:** `/admin/applications/{id}/approve`  
+**操作可能なロール:**
+- システム管理者（`system_admin`）
+- 運営管理者（`operation`）
 
-**What happens:**
-1. Admin reviews the application
-2. Admin clicks "承認" (Approve) button
-3. System automatically:
-   - Creates/updates `EmployeeLoan` records
-   - Decrements stock quantities
-   - Sets loan status to `in_use`
-   - Links loan to application via `application_id`
-   - Sets `loan_start_date` from application's `start_date`
+**処理内容:**
+1. 管理者が申請内容を確認する
+2. 「承認」ボタンをクリックする
+3. システムが自動で次を行う:
+   - `EmployeeLoan` レコードの作成／更新
+   - 在庫数量の減算
+   - 貸与ステータスを `in_use` に設定
+   - `application_id` で申請と貸与を紐づけ
+   - 申請の `start_date` から `loan_start_date` を設定
 
-**Location in UI:**
-- Menu: **Admin** → **Applications**
-- View application details and click "承認" button
+**画面上の場所:**
+- メニュー: **管理** → **申請**
+- 申請詳細を開き「承認」ボタンをクリック
 
-### Step 3: Loan Record Created
-When application is approved, the system automatically:
-- Creates `EmployeeLoan` record(s) for each uniform product
-- Sets `employee_id`, `uniform_product_id`, `quantity`
-- Sets `status` to `in_use`
-- Sets `loan_start_date` from application start date
-- Links to application via `application_id`
-- `loan_end_date` remains `NULL` (ongoing loan)
+### ステップ3: 貸与レコードの作成
+申請が承認されると、システムは自動で次を行います。
+- 各ユニフォーム商品ごとに `EmployeeLoan` を作成
+- `employee_id`、`uniform_product_id`、`quantity` を設定
+- `status` を `in_use` に設定
+- 申請の開始日から `loan_start_date` を設定
+- `application_id` で申請と紐づけ
+- `loan_end_date` は `NULL` のまま（継続中の貸与）
 
-## Important Notes
+## 重要な注意点
 
-1. **No Direct Loan Registration**: There is no separate "Register Loan" page. Loans are always created through the application approval process.
+1. **直接の貸与登録はない**: 「貸与登録」専用画面はありません。貸与は必ず申請承認の過程で作成されます。
 
-2. **Application Types**:
-   - `new_loan` - Creates new loan records
-   - `exchange` - Returns old + creates new loans
-   - `return` - Updates loan status to `returned`
-   - `resize` - Exchanges for different size
-   - `transfer` - Transfers loan to another employee
+2. **申請種別:**
+   - `new_loan` - 新規貸与レコードを作成
+   - `exchange` - 旧品返却 ＋ 新品貸与
+   - `return` - 貸与ステータスを `returned` に更新
+   - `resize` - 別サイズへの交換
+   - `transfer` - 別職員への貸与移管
 
-3. **Loan Status**:
-   - `in_use` - Active loan
-   - `scheduled_return` - Scheduled for return
-   - `returned` - Loan has been returned
+3. **貸与ステータス:**
+   - `in_use` - 貸与中
+   - `scheduled_return` - 返却予定
+   - `returned` - 返却済み
 
-4. **Where Loans Are Used**:
-   - Billing calculations (count active loans)
-   - Employee loan history
-   - Stock management
-   - Contract limit enforcement
+4. **貸与データの利用箇所:**
+   - 請求計算（貸与中の件数）
+   - 職員の貸与履歴
+   - 在庫管理
+   - 契約上限のチェック
 
-## Summary
+## まとめ
 
-**To register a loan:**
-1. Go to **Applications** → **New Application**
-2. Select employee and uniforms
-3. Submit application
-4. Wait for admin approval
-5. Loan is automatically created when approved
+**貸与を登録するには:**
+1. **申請** → **新規申請** へ移動する
+2. 職員とユニフォームを選択する
+3. 申請を送信する
+4. 管理者の承認を待つ
+5. 承認時に貸与が自動作成される
 
-**To view existing loans:**
-- Loans are tracked in the `employee_loans` table
-- Used in billing calculations
-- Can be viewed through employee details or billing reports
-
-
+**既存の貸与を確認するには:**
+- `employee_loans` テーブルで管理されています
+- 請求計算で利用されます
+- 職員詳細や請求レポートから確認できます

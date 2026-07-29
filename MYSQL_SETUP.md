@@ -1,47 +1,47 @@
-# MySQL Database Setup Guide
+# MySQL データベースセットアップガイド
 
-## Prerequisites
-1. MySQL Server must be installed and running
-2. MySQL root user credentials (default: root with no password, or your configured password)
+## 事前準備
+1. MySQL サーバーがインストールされ、起動していること
+2. MySQL の root ユーザー認証情報（既定: パスワードなしの root、または設定済みパスワード）
 
-## Step 1: Start MySQL Server
+## ステップ1: MySQL サーバーを起動する
 
 ### Windows:
-- Open Services (services.msc)
-- Find "MySQL" or "MySQL80" service
-- Right-click and select "Start"
+- サービス（services.msc）を開く
+- 「MySQL」または「MySQL80」サービスを探す
+- 右クリックして「開始」を選ぶ
 
-Or use command line:
+またはコマンドライン:
 ```powershell
 net start MySQL80
 ```
 
-### Linux/Mac:
+### Linux / Mac:
 ```bash
 sudo systemctl start mysql
-# or
+# または
 sudo service mysql start
 ```
 
-## Step 2: Create Database
+## ステップ2: データベースを作成する
 
-### Option A: Using MySQL Command Line
+### 方法 A: MySQL コマンドラインを使う
 ```bash
 mysql -u root -p
 ```
 
-Then run:
+続けて実行:
 ```sql
 CREATE DATABASE IF NOT EXISTS uniform_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 EXIT;
 ```
 
-### Option B: Using Laravel (if MySQL is running)
-The migrations will attempt to create the database automatically if the user has CREATE DATABASE privileges.
+### 方法 B: Laravel を使う（MySQL 起動済みの場合）
+ユーザーに CREATE DATABASE 権限があれば、マイグレーション時にデータベース作成を試みます。
 
-## Step 3: Update .env File
+## ステップ3: .env ファイルを更新する
 
-The .env file has been updated with:
+`.env` は次のように設定します。
 ```
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -51,52 +51,57 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-**Important:** If your MySQL root user has a password, update `DB_PASSWORD` in the .env file.
+**重要:** MySQL の root にパスワードがある場合は、`.env` の `DB_PASSWORD` を更新してください。
 
-## Step 4: Run Migrations and Seeders
+ロケール（日本語既定）の例:
+```
+APP_LOCALE=ja
+APP_FALLBACK_LOCALE=ja
+APP_FAKER_LOCALE=ja_JP
+```
 
-Once MySQL is running and the database is created:
+## ステップ4: マイグレーションとシーダーを実行する
+
+MySQL が起動し、データベースが作成できたら:
 
 ```bash
 php artisan migrate:fresh --seed
 ```
 
-This will:
-1. Drop all existing tables
-2. Run all migrations
-3. Seed the database with test data including:
-   - Medical Institution
-   - Departments, Job Types, Delivery Locations
-   - Uniform Products
-   - Employees
-   - 6 User Accounts (all roles)
+これにより次が行われます。
+1. 既存テーブルをすべて削除
+2. すべてのマイグレーションを実行
+3. 次のテストデータでシード:
+   - 医療機関
+   - 部署、職種、配送先
+   - ユニフォーム商品
+   - 職員
+   - 6ユーザーアカウント（全ロール）
 
-## Troubleshooting
+## トラブルシューティング
 
-### Error: "Can't connect to MySQL server"
-- Ensure MySQL service is running
-- Check if MySQL is listening on port 3306
-- Verify DB_HOST in .env matches your MySQL configuration
+### エラー: "Can't connect to MySQL server"
+- MySQL サービスが起動しているか確認する
+- ポート 3306 で待ち受けているか確認する
+- `.env` の `DB_HOST` が MySQL 設定と一致しているか確認する
 
-### Error: "Access denied for user"
-- Check DB_USERNAME and DB_PASSWORD in .env
-- Verify the user has CREATE DATABASE privileges
+### エラー: "Access denied for user"
+- `.env` の `DB_USERNAME` と `DB_PASSWORD` を確認する
+- ユーザーに CREATE DATABASE 権限があるか確認する
 
-### Error: "Unknown database"
-- Create the database manually using Step 2
-- Or grant CREATE DATABASE privilege to the MySQL user
+### エラー: "Unknown database"
+- ステップ2で手動作成する
+- または MySQL ユーザーに CREATE DATABASE 権限を付与する
 
-## Login Credentials After Seeding
+## シード後のログイン情報
 
-All users have password: `password123`
+すべてのユーザーのパスワード: `password123`
 
-1. **Institution Admin**: hospital-admin@example.com
-2. **Department Admin**: department-admin@example.com
-3. **System Admin**: kamatani-admin@example.com
-4. **Operations Admin**: operations-admin@example.com
-5. **Sales Admin**: sales-admin@example.com
-6. **Accounting Admin**: accounting-admin@example.com
+1. **全体管理者**: hospital-admin@example.com
+2. **部署管理者**: department-admin@example.com
+3. **システム管理者**: kamatani-admin@example.com
+4. **運営管理者**: operations-admin@example.com
+5. **営業管理者**: sales-admin@example.com
+6. **経理管理者**: accounting-admin@example.com
 
-See `LOGIN_CREDENTIALS.md` for full details.
-
-
+詳細は `LOGIN_CREDENTIALS.md` を参照してください。

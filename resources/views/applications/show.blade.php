@@ -75,6 +75,15 @@
                             <span class="text-slate-500 text-[13px] ml-2">({{ $application->employee?->staff_no ?? '-' }})</span>
                         </dd>
                     </div>
+                    @if($application->type === 'transfer' && $application->transfer_to_employee_id)
+                    <div>
+                        <dt class="text-slate-500 mb-1">移管先職員</dt>
+                        <dd class="text-slate-900">
+                            {{ $application->transferToEmployee?->name ?? '-' }}
+                            <span class="text-slate-500 text-[13px] ml-2">({{ $application->transferToEmployee?->staff_no ?? '-' }})</span>
+                        </dd>
+                    </div>
+                    @endif
                     <div>
                         <dt class="text-slate-500 mb-1">{{ __('pages.department') }}</dt>
                         <dd class="text-slate-900">{{ $application->department?->name ?? '-' }}</dd>

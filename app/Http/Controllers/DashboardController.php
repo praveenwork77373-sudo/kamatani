@@ -36,9 +36,9 @@ class DashboardController extends Controller
             // Kamatani Admin Dashboard
             $stats = [
                 'total_applications' => Application::count(),
-                'pending_approvals' => Application::where('status', 'pending')->count(),
+                'pending_approvals' => Application::whereIn('status', ['pending', 'waiting_special_approval'])->count(),
                 'total_employees' => Employee::count(),
-                'inventory_alerts' => 5, // Placeholder - implement actual inventory check
+                'inventory_alerts' => \App\Models\UniformProduct::where('stock_quantity', '<=', 0)->count(),
             ];
             
             $recentApplications = Application::with(['employee', 'department', 'items.uniformProduct'])
@@ -137,7 +137,7 @@ class DashboardController extends Controller
                 'active_loans' => $activeLoans,
                 'loans_this_month' => $loansThisMonth,
                 'contract_limit' => $contractLimit,
-                'pending_approvals' => (clone $baseQuery)->where('status', 'pending')->orWhere('status', 'waiting_special_approval')->count(),
+                'pending_approvals' => (clone $baseQuery)->whereIn('status', ['pending', 'waiting_special_approval'])->count(),
                 'special_approval_pending' => (clone $baseQuery)->where('status', 'waiting_special_approval')->count(),
                 'applications_this_month' => (clone $baseQuery)
                     ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])

@@ -13,11 +13,23 @@ use Illuminate\Support\Facades\Mail;
 class NotificationService
 {
     /**
+     * アクティブな管理者ユーザーを取得（ブロック・削除済み除外）
+     */
+    private static function activeAdminUsers(array $roles)
+    {
+        return User::whereHas('adminUser', function ($q) use ($roles) {
+            $q->whereIn('role', $roles)
+              ->whereNull('blocked_at')
+              ->whereNull('deleted_at');
+        })->get();
+    }
+
+    /**
      * 通知を作成
      */
     public static function create(User $user, string $type, string $title, string $message, ?string $link = null, ?array $data = null): Notification
     {
-        $notification = Notification::create([
+        return Notification::create([
             'user_id' => $user->id,
             'type' => $type,
             'title' => $title,
@@ -26,11 +38,6 @@ class NotificationService
             'data' => $data,
             'is_read' => false,
         ]);
-
-        // Socket通知を送信（後で実装）
-        // broadcast(new NotificationCreated($notification))->toOthers();
-
-        return $notification;
     }
 
     /**
@@ -38,10 +45,9 @@ class NotificationService
      */
     public static function notifyApplicationCreated($application): void
     {
-        // 管理者に通知
-        $adminUsers = User::whereHas('adminUser', function($q) {
-            $q->whereIn('role', ['system_admin', 'operation']);
-        })->get();
+        $application->loadMissing('medicalInstitution', 'employee');
+
+        $adminUsers = self::activeAdminUsers(['system_admin', 'operation']);
 
         $adminEmails = [];
         foreach ($adminUsers as $admin) {
@@ -58,10 +64,15 @@ class NotificationService
             }
         }
 
-        // メール通知
-        if (!empty($adminEmails) && $application->medicalInstitution?->notification_email) {
+        $recipients = $adminEmails;
+        $institutionEmail = $application->medicalInstitution?->notification_email;
+        if ($institutionEmail && !in_array($institutionEmail, $recipients, true)) {
+            $recipients[] = $institutionEmail;
+        }
+
+        if (!empty($recipients)) {
             try {
-                Mail::to($adminEmails)->send(new ApplicationCreatedMail($application));
+                Mail::to($recipients)->send(new ApplicationCreatedMail($application));
             } catch (\Exception $e) {
                 Log::error('メール送信エラー: ' . $e->getMessage());
             }
@@ -73,6 +84,8 @@ class NotificationService
      */
     public static function notifyApplicationApproved($application): void
     {
+        $application->loadMissing('requestedBy');
+
         if ($application->requestedBy) {
             self::create(
                 $application->requestedBy,
@@ -83,7 +96,6 @@ class NotificationService
                 ['application_id' => $application->id]
             );
 
-            // メール通知
             if ($application->requestedBy->email) {
                 try {
                     Mail::to($application->requestedBy->email)->send(new ApplicationApprovedMail($application));
@@ -99,6 +111,8 @@ class NotificationService
      */
     public static function notifyApplicationRejected($application): void
     {
+        $application->loadMissing('requestedBy');
+
         if ($application->requestedBy) {
             self::create(
                 $application->requestedBy,
@@ -109,7 +123,6 @@ class NotificationService
                 ['application_id' => $application->id]
             );
 
-            // メール通知
             if ($application->requestedBy->email) {
                 try {
                     Mail::to($application->requestedBy->email)->send(new ApplicationRejectedMail($application));
@@ -125,9 +138,7 @@ class NotificationService
      */
     public static function notifyCancelRequested($application): void
     {
-        $adminUsers = User::whereHas('adminUser', function($q) {
-            $q->whereIn('role', ['system_admin', 'operation']);
-        })->get();
+        $adminUsers = self::activeAdminUsers(['system_admin', 'operation']);
 
         foreach ($adminUsers as $admin) {
             self::create(
@@ -146,9 +157,7 @@ class NotificationService
      */
     public static function notifySpecialApprovalRequested($application): void
     {
-        $adminUsers = User::whereHas('adminUser', function($q) {
-            $q->whereIn('role', ['system_admin', 'operation']);
-        })->get();
+        $adminUsers = self::activeAdminUsers(['system_admin', 'operation']);
 
         foreach ($adminUsers as $admin) {
             self::create(
@@ -162,4 +171,3 @@ class NotificationService
         }
     }
 }
-

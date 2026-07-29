@@ -68,6 +68,19 @@ class AuthController extends Controller
             ]);
         }
 
+        // ブロック／削除済み管理者はログイン不可
+        $authUser = Auth::user();
+        $adminProfile = $authUser?->adminUser()->withTrashed()->first();
+        if ($adminProfile && ($adminProfile->trashed() || $adminProfile->isBlocked())) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'email' => 'このアカウントは利用停止されています。管理者にお問い合わせください。',
+            ]);
+        }
+
         $request->session()->regenerate();
 
         return redirect()->intended('/dashboard');

@@ -15,8 +15,6 @@ use App\Models\UniformProduct;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class ApplicationController extends Controller
@@ -280,8 +278,8 @@ class ApplicationController extends Controller
             return response()->json([]);
         }
 
-        // 権限チェック
-        if ($customer->role === 'department_admin' && $departmentId !== $customer->department_id) {
+        // 権限チェック（文字列／整数の型差を吸収）
+        if ($customer->role === 'department_admin' && (int) $departmentId !== (int) $customer->department_id) {
             return response()->json([]);
         }
 
@@ -342,6 +340,42 @@ class ApplicationController extends Controller
         }));
     }
 
+    public function getEmployeeLoans(Request $request, Employee $employee)
+    {
+        $customer = $request->user()->customerUser;
+        if (!$customer) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        if ((int) $employee->medical_institution_id !== (int) $customer->medical_institution_id) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        if ($customer->role === 'department_admin' && $customer->department_id
+            && (int) $employee->primary_department_id !== (int) $customer->department_id) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $loans = EmployeeLoan::with('uniformProduct')
+            ->where('employee_id', $employee->id)
+            ->where('status', 'in_use')
+            ->where('quantity', '>', 0)
+            ->get()
+            ->map(function ($loan) {
+                return [
+                    'loan_id' => $loan->id,
+                    'uniform_product_id' => $loan->uniform_product_id,
+                    'quantity' => $loan->quantity,
+                    'product_code' => $loan->uniformProduct?->product_code,
+                    'product_name' => $loan->uniformProduct?->name,
+                    'size' => $loan->uniformProduct?->size,
+                    'category' => $loan->uniformProduct?->category,
+                ];
+            });
+
+        return response()->json($loans);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $user = $request->user();
@@ -355,22 +389,62 @@ class ApplicationController extends Controller
         $data = $request->validate([
             'application_mode' => ['required', 'in:individual,departmental'],
             'employee_id' => ['required_if:application_mode,individual', 'nullable', 'exists:employees,id'],
+            'transfer_to_employee_id' => ['nullable', 'required_if:type,transfer', 'exists:employees,id', 'different:employee_id'],
             'department_id' => ['required', 'exists:departments,id'],
             'type' => ['required', 'in:new_loan,resize,return,exchange,transfer'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'delivery_location_id' => ['required', 'exists:delivery_locations,id'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.uniform_product_id' => ['required', 'exists:uniform_products,id'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items' => ['nullable', 'array'],
+            'items.*.uniform_product_id' => ['required_with:items', 'exists:uniform_products,id'],
+            'items.*.quantity' => ['required_with:items', 'integer', 'min:1'],
+            'return_items' => ['nullable', 'array'],
+            'return_items.*.uniform_product_id' => ['required_with:return_items', 'exists:uniform_products,id'],
+            'return_items.*.quantity' => ['required_with:return_items', 'integer', 'min:1'],
             'special_approval_reason' => ['nullable', 'string', 'max:1000'],
         ], [
             'employee_id.required_if' => '職員を選択してください。',
+            'transfer_to_employee_id.required_if' => '移管先の職員を選択してください。',
+            'transfer_to_employee_id.different' => '移管先は申請元と別の職員を選択してください。',
             'department_id.required' => '部署を選択してください。',
             'end_date.required' => '貸出終了日を入力してください。',
-            'items.required' => '少なくとも1つのユニフォームを選択してください。',
-            'items.min' => '少なくとも1つのユニフォームを選択してください。',
         ]);
+
+        $data['items'] = $data['items'] ?? [];
+        $data['return_items'] = $data['return_items'] ?? [];
+
+        // 種別ごとの明細必須チェック
+        if (in_array($data['type'], ['new_loan', 'transfer'], true) && empty($data['items'])) {
+            return redirect()->back()->withInput()->with('error', '少なくとも1つのユニフォームを選択してください。');
+        }
+        if ($data['type'] === 'return' && empty($data['return_items']) && empty($data['items'])) {
+            return redirect()->back()->withInput()->with('error', '返却する貸与品を選択してください。');
+        }
+        if (in_array($data['type'], ['exchange', 'resize'], true)
+            && empty($data['items']) && empty($data['return_items'])) {
+            return redirect()->back()->withInput()->with('error', '旧品または新品のユニフォームを選択してください。');
+        }
+
+        // 返却のみ: return_items が空なら items を返却扱い
+        if ($data['type'] === 'return' && empty($data['return_items']) && !empty($data['items'])) {
+            $data['return_items'] = $data['items'];
+            $data['items'] = [];
+        }
+
+        // 部署・配送先は自医療機関に属するもののみ
+        $department = Department::where('id', $data['department_id'])
+            ->where('medical_institution_id', $customer->medical_institution_id)
+            ->first();
+        if (!$department) {
+            return redirect()->back()->withInput()->with('error', '選択された部署は自医療機関のものではありません。');
+        }
+
+        $deliveryLocation = DeliveryLocation::where('id', $data['delivery_location_id'])
+            ->where('medical_institution_id', $customer->medical_institution_id)
+            ->first();
+        if (!$deliveryLocation) {
+            return redirect()->back()->withInput()->with('error', '選択された配送先は自医療機関のものではありません。');
+        }
 
         // Get active contract
         $contract = Contract::where('medical_institution_id', $customer->medical_institution_id)
@@ -392,94 +466,115 @@ class ApplicationController extends Controller
         }
     }
 
+    private function itemActionForType(string $type): string
+    {
+        return match ($type) {
+            'return' => 'return',
+            'exchange', 'resize' => 'loan', // 選定商品は新品側。旧品は別明細で exchange_out を想定
+            'transfer' => 'transfer_change',
+            default => 'loan',
+        };
+    }
+
     private function storeIndividual(Request $request, array $data, CustomerUser $customer, ?Contract $contract): RedirectResponse
     {
-        // Ensure end_date column exists before transaction
-        if (!Schema::hasColumn('applications', 'end_date')) {
-            try {
-                Schema::table('applications', function ($table) {
-                    $table->date('end_date')->nullable()->after('start_date');
-                });
-            } catch (\Exception $e) {
-                // Column might already exist or migration issue
-            }
-        }
-        
         $employee = Employee::findOrFail($data['employee_id']);
 
-        // 権限チェック
-        if ($customer->role === 'department_admin' && $employee->primary_department_id !== $customer->department_id) {
+        // 医療機関・部署の所有権チェック
+        if ((int) $employee->medical_institution_id !== (int) $customer->medical_institution_id) {
+            return redirect()->back()->withInput()->with('error', '自医療機関の職員のみ申請できます。');
+        }
+
+        if ($customer->role === 'department_admin' && (int) $employee->primary_department_id !== (int) $customer->department_id) {
             return redirect()->back()->with('error', '自部署の職員のみ申請できます。');
         }
 
-        // 上限チェック
+        $transferToId = null;
+        if ($data['type'] === 'transfer') {
+            $transferTo = Employee::findOrFail($data['transfer_to_employee_id']);
+            if ((int) $transferTo->medical_institution_id !== (int) $customer->medical_institution_id) {
+                return redirect()->back()->withInput()->with('error', '移管先は自医療機関の職員を選択してください。');
+            }
+            if ($customer->role === 'department_admin'
+                && (int) $transferTo->primary_department_id !== (int) $customer->department_id) {
+                return redirect()->back()->withInput()->with('error', '移管先は自部署の職員を選択してください。');
+            }
+            $transferToId = $transferTo->id;
+        }
+
+        // 上限チェック（新品貸与分のみ）
         $totalQuantity = array_sum(array_column($data['items'], 'quantity'));
         $currentLoans = EmployeeLoan::where('employee_id', $employee->id)
             ->where('status', 'in_use')
             ->sum('quantity');
 
         $exceedsLimit = false;
-        if ($contract && $contract->per_person_loan_limit) {
+        if ($contract && $contract->per_person_loan_limit && in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
             if (($currentLoans + $totalQuantity) > $contract->per_person_loan_limit) {
                 $exceedsLimit = true;
             }
         }
 
-        // 在庫チェック
+        // 在庫チェック（新品側のみ）
         $insufficientStock = false;
-        foreach ($data['items'] as $item) {
-            $product = UniformProduct::find($item['uniform_product_id']);
-            if ($product && $product->stock_quantity < $item['quantity']) {
-                $insufficientStock = true;
-                break;
+        if (!empty($data['items']) && !in_array($data['type'], ['return', 'transfer'], true)) {
+            foreach ($data['items'] as $item) {
+                $product = UniformProduct::find($item['uniform_product_id']);
+                if ($product && $product->stock_quantity < $item['quantity']) {
+                    $insufficientStock = true;
+                    break;
+                }
             }
         }
 
         $status = 'pending';
-        // Only set to waiting_special_approval if conditions are met AND reason is provided
         if (($exceedsLimit || $insufficientStock)) {
-            // If reason is not provided, return error
             if (empty($data['special_approval_reason']) || trim($data['special_approval_reason']) === '') {
                 return redirect()->back()
                     ->withInput()
                     ->with('error', '契約上限または在庫を超えています。特別承認理由を入力してください。');
             }
-            // If reason is provided, set status to waiting_special_approval
             $status = 'waiting_special_approval';
         }
 
-        DB::transaction(function () use ($data, $request, $customer, $employee, $status) {
-            $applicationData = [
+        DB::transaction(function () use ($data, $request, $customer, $employee, $status, $transferToId) {
+            $application = Application::create([
                 'medical_institution_id' => $customer->medical_institution_id,
                 'department_id' => $employee->primary_department_id,
                 'employee_id' => $employee->id,
+                'transfer_to_employee_id' => $transferToId,
                 'type' => $data['type'],
                 'status' => $status,
                 'start_date' => $data['start_date'],
+                'end_date' => $data['end_date'] ?? null,
                 'delivery_location_id' => $data['delivery_location_id'],
                 'requested_by_user_id' => $request->user()->id,
                 'special_approval_reason' => $data['special_approval_reason'] ?? null,
-            ];
-            
-            // Only include end_date if column exists
-            if (Schema::hasColumn('applications', 'end_date')) {
-                $applicationData['end_date'] = $data['end_date'] ?? null;
-            }
-            
-            $application = Application::create($applicationData);
+            ]);
 
+            // 旧品（返却／交換アウト）
+            foreach ($data['return_items'] as $item) {
+                ApplicationItem::create([
+                    'application_id' => $application->id,
+                    'uniform_product_id' => $item['uniform_product_id'],
+                    'quantity' => $item['quantity'],
+                    'action' => in_array($data['type'], ['exchange', 'resize'], true) ? 'exchange_out' : 'return',
+                ]);
+            }
+
+            // 新品／移管対象
+            $newAction = $this->itemActionForType($data['type']);
             foreach ($data['items'] as $item) {
                 ApplicationItem::create([
                     'application_id' => $application->id,
                     'uniform_product_id' => $item['uniform_product_id'],
                     'quantity' => $item['quantity'],
-                    'action' => 'loan',
+                    'action' => $newAction,
                 ]);
             }
 
-            // 通知を送信
             \App\Services\NotificationService::notifyApplicationCreated($application);
-            
+
             if ($status === 'waiting_special_approval') {
                 \App\Services\NotificationService::notifySpecialApprovalRequested($application);
             }
@@ -497,21 +592,10 @@ class ApplicationController extends Controller
 
     private function storeDepartmental(Request $request, array $data, CustomerUser $customer, ?Contract $contract): RedirectResponse
     {
-        // Ensure end_date column exists before transaction
-        if (!Schema::hasColumn('applications', 'end_date')) {
-            try {
-                Schema::table('applications', function ($table) {
-                    $table->date('end_date')->nullable()->after('start_date');
-                });
-            } catch (\Exception $e) {
-                // Column might already exist or migration issue
-            }
-        }
-        
-        $departmentId = $data['department_id'];
+        $departmentId = (int) $data['department_id'];
 
-        // 権限チェック
-        if ($customer->role === 'department_admin' && $departmentId !== $customer->department_id) {
+        // 権限チェック（文字列／整数の型差を吸収）
+        if ($customer->role === 'department_admin' && $departmentId !== (int) $customer->department_id) {
             return redirect()->back()->with('error', '自部署のみ申請できます。');
         }
 
@@ -527,10 +611,10 @@ class ApplicationController extends Controller
 
         $createdCount = 0;
         $errors = [];
+        $itemAction = $this->itemActionForType($data['type']);
 
-        DB::transaction(function () use ($data, $request, $customer, $employees, $contract, &$createdCount, &$errors) {
+        DB::transaction(function () use ($data, $request, $customer, $employees, $contract, $itemAction, &$createdCount, &$errors) {
             foreach ($employees as $employee) {
-                // Check limits per employee
                 $totalQuantity = array_sum(array_column($data['items'], 'quantity'));
                 $currentLoans = EmployeeLoan::where('employee_id', $employee->id)
                     ->where('status', 'in_use')
@@ -543,71 +627,50 @@ class ApplicationController extends Controller
                     }
                 }
 
-                // Check stock (aggregate check for all employees)
                 $insufficientStock = false;
-                foreach ($data['items'] as $item) {
-                    $product = UniformProduct::find($item['uniform_product_id']);
-                    if ($product && $product->stock_quantity < ($item['quantity'] * $employees->count())) {
-                        $insufficientStock = true;
-                        break;
+                if ($data['type'] !== 'return') {
+                    foreach ($data['items'] as $item) {
+                        $product = UniformProduct::find($item['uniform_product_id']);
+                        if ($product && $product->stock_quantity < ($item['quantity'] * $employees->count())) {
+                            $insufficientStock = true;
+                            break;
+                        }
                     }
                 }
 
                 $status = 'pending';
-                // Only set to waiting_special_approval if conditions are met AND reason is provided
-                if (($exceedsLimit || $insufficientStock)) {
-                    // If reason is not provided, add error and skip this employee
+                if ($exceedsLimit || $insufficientStock) {
                     if (empty($data['special_approval_reason']) || trim($data['special_approval_reason']) === '') {
                         $errors[] = "職員 {$employee->name} ({$employee->staff_no}): 契約上限または在庫を超えています。特別承認理由を入力してください。";
                         continue;
                     }
-                    // If reason is provided, set status to waiting_special_approval
                     $status = 'waiting_special_approval';
                 }
 
-                // Ensure end_date column exists
-                if (!Schema::hasColumn('applications', 'end_date')) {
-                    try {
-                        Schema::table('applications', function ($table) {
-                            $table->date('end_date')->nullable()->after('start_date');
-                        });
-                    } catch (\Exception $e) {
-                        // Column might already exist or migration issue
-                    }
-                }
-                
-                $applicationData = [
+                $application = Application::create([
                     'medical_institution_id' => $customer->medical_institution_id,
                     'department_id' => $employee->primary_department_id,
                     'employee_id' => $employee->id,
                     'type' => $data['type'],
                     'status' => $status,
                     'start_date' => $data['start_date'],
+                    'end_date' => $data['end_date'] ?? null,
                     'delivery_location_id' => $data['delivery_location_id'],
                     'requested_by_user_id' => $request->user()->id,
                     'special_approval_reason' => $data['special_approval_reason'] ?? null,
-                ];
-                
-                // Only include end_date if column exists
-                if (Schema::hasColumn('applications', 'end_date')) {
-                    $applicationData['end_date'] = $data['end_date'] ?? null;
-                }
-                
-                // Create application for this employee
-                $application = Application::create($applicationData);
+                ]);
 
                 foreach ($data['items'] as $item) {
                     ApplicationItem::create([
                         'application_id' => $application->id,
                         'uniform_product_id' => $item['uniform_product_id'],
                         'quantity' => $item['quantity'],
-                        'action' => 'loan',
+                        'action' => $itemAction,
                     ]);
                 }
 
-                // 通知を送信
                 \App\Services\NotificationService::notifyApplicationCreated($application);
-                
+
                 if ($status === 'waiting_special_approval') {
                     \App\Services\NotificationService::notifySpecialApprovalRequested($application);
                 }
@@ -634,7 +697,9 @@ class ApplicationController extends Controller
 
     public function show(Application $application): View
     {
-        $application->load(['employee', 'items.uniformProduct', 'department', 'deliveryLocation']);
+        $this->authorize('view', $application);
+
+        $application->load(['employee', 'transferToEmployee', 'items.uniformProduct', 'department', 'deliveryLocation']);
 
         return view('applications.show', [
             'application' => $application,
@@ -643,26 +708,15 @@ class ApplicationController extends Controller
 
     public function requestCancel(Request $request, Application $application): RedirectResponse
     {
-        $user = $request->user();
-        $customer = $user->customerUser;
-
-        if (!$customer || $application->medical_institution_id !== $customer->medical_institution_id) {
-            abort(403);
-        }
+        $this->authorize('cancel', $application);
 
         // Only allow cancel request for approved applications
         if ($application->status !== 'approved') {
             return redirect()->back()->with('error', '承認済みの申請のみキャンセル申請が可能です。');
         }
 
-        // Check if already in cancel process
-        if (in_array($application->status, ['cancel_request', 'cancel_approved', 'cancel_rejected'])) {
-            return redirect()->back()->with('error', 'この申請は既にキャンセル処理中または処理済みです。');
-        }
-
         $application->update(['status' => 'cancel_request']);
 
-        // 通知を送信
         \App\Services\NotificationService::notifyCancelRequested($application);
 
         return redirect()->back()->with('status', 'キャンセル申請を送信しました。');
