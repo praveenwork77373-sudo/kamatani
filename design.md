@@ -752,3 +752,19 @@ flowchart LR
 
 *Related: `flow.md`（要件・業務フロー）*  
 *This doc: UI/UX redesign for dual portal, simple client-facing design.*
+
+---
+
+## 付録 C. ブランドアセット（Phase 0 済）
+
+マスター（手置き）: `public/images/brand/logo.png`, `favicon.png`  
+
+生成物・チェックリスト: `public/images/brand/README.md`
+
+| ファイル | 用途 |
+|----------|------|
+| `logo.png` | マスターロゴ |
+| `favicon.png` | マスター favicon 原画 |
+| `logo-mark.svg` / `logo-mark-64.png` | サイドバー等 |
+| `favicon-32.png` / `public/favicon.ico` | ブラウザタブ |
+| `brand-tokens.css` | `#0F6B6B` / `#5C6B7A` |

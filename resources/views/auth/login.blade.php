@@ -3,90 +3,110 @@
 @section('title', 'ログイン | ユニフォーム管理システム')
 
 @section('content')
-    <div class="bg-white rounded-2xl shadow-xl px-8 py-10 border border-slate-200 max-w-md w-full">
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary-100 mb-4">
-                <i class="ph ph-shield-check text-3xl text-primary-600"></i>
-            </div>
-            <h1 class="text-2xl font-bold text-slate-900 mb-2">
-                {{ __('auth.system_title') }}
-            </h1>
-            <p class="text-[14px] text-slate-600">
-                {{ __('auth.system_subtitle') }}
-            </p>
+    <div class="guest-card px-8 py-10 w-full">
+        <div class="text-center mb-8 h-[240px]">
+            {{-- Full brand lockup (icon + 日本語 + KAMATANI). No duplicate title text. --}}
+            <img
+                src="{{ asset('brand.png') }}"
+                alt="ユニフォーム管理システム — KAMATANI"
+                class="mx-auto w-full max-w-[280px] h-auto object-contain select-none"
+                height="280"
+                decoding="async"
+            >
         </div>
 
         @if(session('error'))
-            <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-                <div class="flex items-center gap-2">
-                    <i class="ph ph-warning text-lg text-red-600"></i>
-                    <span class="text-[14px] text-red-800 font-medium">{{ session('error') }}</span>
-                </div>
+            <div class="mb-5 p-3.5 rounded-[10px] bg-red-50 border border-red-200 text-[13px] text-red-800">
+                {{ session('error') }}
             </div>
         @endif
 
         @if(session('status'))
-            <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-                <div class="flex items-center gap-2">
-                    <i class="ph ph-check-circle text-lg text-emerald-600"></i>
-                    <span class="text-[14px] text-emerald-800 font-medium">{{ session('status') }}</span>
-                </div>
+            <div class="mb-5 p-3.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-[13px] text-emerald-800">
+                {{ session('status') }}
             </div>
         @endif
 
         <form method="POST" action="{{ route('login.post') }}" class="space-y-5">
             @csrf
+
             <div>
-                <label class="block text-slate-700 text-[14px] font-semibold mb-2">
+                <label class="block text-[13px] font-semibold text-slate-800 mb-2">
                     {{ __('auth.email') }}
                 </label>
-                <input type="email" name="email" value="{{ old('email') }}" required autofocus
-                       class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all"
-                       placeholder="{{ __('auth.email') }}">
+                <input
+                    type="email"
+                    name="email"
+                    value="{{ old('email') }}"
+                    required
+                    autofocus
+                    autocomplete="username"
+                    class="guest-input w-full px-4 py-3 text-[14px] text-slate-900 placeholder:text-slate-400"
+                    placeholder="{{ __('auth.email') }}"
+                >
                 @error('email')
-                    <p class="mt-1.5 text-[13px] text-red-600 flex items-center gap-1">
-                        <i class="ph ph-warning text-xs"></i>
-                        {{ $message }}
-                    </p>
+                    <p class="mt-1.5 text-[13px] text-red-600">{{ $message }}</p>
                 @enderror
             </div>
-            
+
             <div>
-                <label class="block text-slate-700 text-[14px] font-semibold mb-2">
+                <label class="block text-[13px] font-semibold text-slate-800 mb-2">
                     {{ __('auth.password') }}
                 </label>
-                <input type="password" name="password" required
-                       class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all"
-                       placeholder="{{ __('auth.password') }}">
+                <div class="relative">
+                    <input
+                        type="password"
+                        name="password"
+                        id="password"
+                        required
+                        autocomplete="current-password"
+                        class="guest-input w-full px-4 py-3 pr-11 text-[14px] text-slate-900 placeholder:text-slate-400"
+                        placeholder="{{ __('auth.password') }}"
+                    >
+                    <button
+                        type="button"
+                        id="toggle-password"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slatebrand text-[12px] font-medium hover:text-brand"
+                        aria-label="パスワードを表示"
+                    >
+                        表示
+                    </button>
+                </div>
                 @error('password')
-                    <p class="mt-1.5 text-[13px] text-red-600 flex items-center gap-1">
-                        <i class="ph ph-warning text-xs"></i>
-                        {{ $message }}
-                    </p>
+                    <p class="mt-1.5 text-[13px] text-red-600">{{ $message }}</p>
                 @enderror
             </div>
-            
-            <div class="flex items-center justify-between text-[13px] text-slate-600">
-                <label class="inline-flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" name="remember" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+
+            <div class="flex items-center justify-between text-[13px]">
+                <label class="inline-flex items-center gap-2 cursor-pointer text-slate-700">
+                    <input
+                        type="checkbox"
+                        name="remember"
+                        class="rounded border-slate-300 text-brand focus:ring-brand"
+                    >
                     <span>{{ __('auth.remember_me') }}</span>
                 </label>
-                <a href="{{ route('password.request') }}" class="text-primary-600 hover:text-primary-700 hover:underline font-medium">
+                <a href="{{ route('password.request') }}" class="font-medium text-brand hover:text-brand-hover hover:underline">
                     {{ __('auth.forgot_password') }}
                 </a>
             </div>
-            
-            <div class="pt-2">
-                <button type="submit"
-                        class="w-full bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-semibold py-3 rounded-lg transition-all shadow-md flex items-center justify-center gap-2">
-                    <i class="ph ph-sign-in text-lg"></i>
-                    {{ __('auth.login') }}
-                </button>
-            </div>
-            
-            <p class="text-center text-[12px] text-slate-500 mt-4">
-                ※ 本システムのご利用には、事前に発行されたアカウントが必要です。
-            </p>
+
+            <button type="submit" class="guest-btn w-full py-3 text-[14px] font-semibold text-white transition-colors">
+                {{ __('auth.login') }}
+            </button>
         </form>
     </div>
+
+    <script>
+        (function () {
+            var input = document.getElementById('password');
+            var btn = document.getElementById('toggle-password');
+            if (!input || !btn) return;
+            btn.addEventListener('click', function () {
+                var show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+                btn.textContent = show ? '隠す' : '表示';
+            });
+        })();
+    </script>
 @endsection

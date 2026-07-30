@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" role="img" aria-label="æËÕ©üà¡·¹Æà">
+  <!-- Frame (slate) -->
+  <rect x="10" y="8" width="52" height="58" rx="10" stroke="#5C6B7A" stroke-width="3.5"/>
+  <!-- Uniform (brand teal) -->
+  <path fill="#0F6B6B" d="M18 16c1.2-1.2 3.5-2.2 6.5-2.8L32 10c2.2 3.8 5.8 6 10 6s7.8-2.2 10-6l7.5 3.2c3 .8 5 2.4 5 5V46c0 3.8-3 6.8-6.8 6.8H24.8c-3.8 0-6.8-3-6.8-6.8V16z"/>
+  <!-- Collar notch -->
+  <path fill="#FFFFFF" d="M35 13.5c2 3.2 4.2 4.8 7 4.8s5-1.6 7-4.8L47 24H37l-2-10.5z"/>
+  <!-- Pocket -->
+  <path stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" d="M45 31h12"/>
+  <!-- Medical plus (slate, matches provided favicon) -->
+  <rect x="52" y="50" width="5" height="14" rx="1" fill="#5C6B7A"/>
+  <rect x="47.5" y="54.5" width="14" height="5" rx="1" fill="#5C6B7A"/>
+</svg>

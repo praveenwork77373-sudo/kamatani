@@ -12,8 +12,10 @@ use Illuminate\Support\Facades\Route;
 
 // 認証
 Route::middleware('guest')->group(function () {
-    Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
+    // Laravel 既定のゲストリダイレクト先は /login（GET）
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    Route::get('/', fn () => redirect()->route('login'));
 
     Route::get('/password/forgot', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
     Route::post('/password/email', [AuthController::class, 'sendResetLink'])->name('password.email');

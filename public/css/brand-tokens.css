@@ -1,0 +1,44 @@
+/**
+ * Kamatani Uniform Management — Design tokens (Phase 0)
+ * Source: attached design system + logo
+ * Use in layouts starting Phase 1
+ */
+:root {
+  /* Brand */
+  --brand: #0F6B6B;
+  --brand-hover: #0B5555;
+  --brand-muted: #3D8A8A;
+  --brand-soft: #E6F3F3;
+
+  /* Neutrals */
+  --slate: #5C6B7A;
+  --text: #1A2330;
+  --text-muted: #5C6B7A;
+  --border: #D8DEE3;
+  --bg: #F4F6F7;
+  --surface: #FFFFFF;
+
+  /* Status */
+  --success: #1B7F4A;
+  --success-soft: #E6F5EC;
+  --warning: #B86E00;
+  --warning-soft: #FFF4E5;
+  --danger: #C0352B;
+  --danger-soft: #FDECEC;
+  --info: #2F5F8A;
+  --info-soft: #E8F1F8;
+
+  /* Type */
+  --font-sans: "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Assets — masters: logo.png / favicon.png */
+  --logo-master: url("/images/brand/logo.png");
+  --logo-mark: url("/images/brand/logo-mark.svg");
+  --logo-mark-png: url("/images/brand/logo-mark-64.png");
+  --favicon: url("/images/brand/favicon-32.png");
+}
