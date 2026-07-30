@@ -7,7 +7,6 @@ use App\Models\AdminUser;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -58,14 +57,6 @@ class AdminUserController extends Controller
                 'role' => __('pages.cannot_demote_last_system_admin'),
             ]);
         }
-    }
-
-    /**
-     * パスワード設定用の再設定メールを送信
-     */
-    private function sendPasswordSetupLink(User $user): string
-    {
-        return Password::sendResetLink(['email' => $user->email]);
     }
 
     /**
@@ -161,8 +152,7 @@ class AdminUserController extends Controller
     /**
      * Store a newly created admin user
      *
-     * システム管理者はアカウント（氏名・メール・ロール）のみ発行する。
-     * パスワードは本人が再設定メールから設定する。
+     * システム管理者が氏名・メール・ロール・パスワードを設定して発行する。
      */
     public function store(Request $request): RedirectResponse
     {
@@ -171,14 +161,15 @@ class AdminUserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'in:system_admin,operation,sales,accounting'],
         ]);
 
+        // password は User の hashed キャストに任せる（二重ハッシュ防止）
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            // 仮パスワード（本人はログイン不可想定）。hashed キャストで保存。
-            'password' => Str::password(32),
+            'password' => $data['password'],
             'type' => 'kamatani_admin',
         ]);
 
@@ -187,17 +178,8 @@ class AdminUserController extends Controller
             'role' => $data['role'],
         ]);
 
-        $resetStatus = $this->sendPasswordSetupLink($user);
-
-        $message = __('pages.admin_user_created_successfully');
-        if ($resetStatus === Password::RESET_LINK_SENT) {
-            $message .= ' '.__('pages.admin_user_password_setup_email_sent');
-        } else {
-            $message .= ' '.__('pages.admin_user_password_setup_email_failed');
-        }
-
         return redirect()->route('admin.admin-users.index')
-            ->with('status', $message);
+            ->with('status', __('pages.admin_user_created_successfully'));
     }
 
     /**
@@ -212,7 +194,9 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Update an admin user (identity / role only — not password)
+     * Update an admin user
+     *
+     * パスワードは任意。入力時のみシステム管理者が再設定する。
      */
     public function update(Request $request, AdminUser $adminUser): RedirectResponse
     {
@@ -221,15 +205,28 @@ class AdminUserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($adminUser->user_id)],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'in:system_admin,operation,sales,accounting'],
         ]);
 
         $this->assertRoleChangeAllowed($adminUser, $data['role']);
 
-        $adminUser->user->update([
+        $userData = [
             'name' => $data['name'],
             'email' => $data['email'],
-        ]);
+        ];
+
+        if (! empty($data['password'])) {
+            $userData['password'] = $data['password'];
+            $userData['remember_token'] = Str::random(60);
+
+            // ブロック中でなければ一時ロックも解除（新パスワードで即ログイン可能に）
+            if (! $adminUser->isBlocked()) {
+                $userData['locked_until'] = null;
+            }
+        }
+
+        $adminUser->user->update($userData);
 
         $adminUser->update([
             'role' => $data['role'],
@@ -237,29 +234,6 @@ class AdminUserController extends Controller
 
         return redirect()->route('admin.admin-users.index')
             ->with('status', __('pages.admin_user_updated_successfully'));
-    }
-
-    /**
-     * 対象管理者へパスワード再設定メールを送信する
-     */
-    public function sendPasswordReset(AdminUser $adminUser): RedirectResponse
-    {
-        $this->checkSystemAdmin();
-
-        if ($adminUser->trashed() || $adminUser->isBlocked()) {
-            return redirect()->route('admin.admin-users.edit', $adminUser)
-                ->with('error', __('pages.cannot_send_password_reset_to_inactive'));
-        }
-
-        $status = $this->sendPasswordSetupLink($adminUser->user);
-
-        if ($status === Password::RESET_LINK_SENT) {
-            return redirect()->route('admin.admin-users.edit', $adminUser)
-                ->with('status', __('pages.admin_user_password_setup_email_sent'));
-        }
-
-        return redirect()->route('admin.admin-users.edit', $adminUser)
-            ->with('error', __('pages.admin_user_password_setup_email_failed'));
     }
 
     /**

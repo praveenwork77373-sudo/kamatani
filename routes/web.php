@@ -121,7 +121,6 @@ Route::prefix('admin')
             Route::post('/', [\App\Http\Controllers\Admin\AdminUserController::class, 'store'])->name('store');
             Route::get('/{adminUser}/edit', [\App\Http\Controllers\Admin\AdminUserController::class, 'edit'])->name('edit');
             Route::put('/{adminUser}', [\App\Http\Controllers\Admin\AdminUserController::class, 'update'])->name('update');
-            Route::post('/{adminUser}/send-password-reset', [\App\Http\Controllers\Admin\AdminUserController::class, 'sendPasswordReset'])->name('send-password-reset');
             Route::post('/{adminUser}/block', [\App\Http\Controllers\Admin\AdminUserController::class, 'block'])->name('block');
             Route::post('/{adminUser}/unblock', [\App\Http\Controllers\Admin\AdminUserController::class, 'unblock'])->name('unblock');
             Route::delete('/{adminUser}', [\App\Http\Controllers\Admin\AdminUserController::class, 'destroy'])->name('destroy');

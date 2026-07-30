@@ -17,17 +17,6 @@
         </div>
     </div>
 
-    @if (session('status'))
-        <div class="mb-4 p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-[14px] text-emerald-800">
-            {{ session('status') }}
-        </div>
-    @endif
-    @if (session('error'))
-        <div class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-[14px] text-red-800">
-            {{ session('error') }}
-        </div>
-    @endif
-
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
         <form action="{{ route('admin.admin-users.update', $adminUser) }}" method="POST">
             @csrf
@@ -58,6 +47,28 @@
                     @enderror
                 </div>
 
+                {{-- Password (optional reset by system admin) --}}
+                <div>
+                    <label for="password" class="block text-[13px] font-semibold text-slate-700 mb-2">
+                        {{ __('pages.password') }} <span class="text-slate-500">({{ __('pages.leave_blank_to_keep_current') }})</span>
+                    </label>
+                    <input type="password" id="password" name="password"
+                           class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 @error('password') border-red-300 @enderror">
+                    <p class="mt-1.5 text-[13px] text-slate-500">{{ __('pages.password_min_length') }}</p>
+                    @error('password')
+                        <p class="mt-1.5 text-[13px] text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Password Confirmation --}}
+                <div>
+                    <label for="password_confirmation" class="block text-[13px] font-semibold text-slate-700 mb-2">
+                        {{ __('pages.password_confirmation') }}
+                    </label>
+                    <input type="password" id="password_confirmation" name="password_confirmation"
+                           class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20">
+                </div>
+
                 {{-- Role --}}
                 <div>
                     <label for="role" class="block text-[13px] font-semibold text-slate-700 mb-2">
@@ -83,7 +94,7 @@
                             <div>
                                 <p class="text-[13px] font-semibold text-orange-900 mb-1">{{ __('pages.user_is_blocked') }}</p>
                                 <p class="text-[13px] text-orange-700">{{ __('pages.block_reason') }}: {{ $adminUser->blocked_reason }}</p>
-                                <p class="text-[13px] text-orange-600 mt-1">{{ __('pages.blocked_at') }}: {{ $adminUser->blocked_at->format('Y/m/d H:i') }}</p>
+                                <p class="text-[13px] text-orange-600 mt-1">{{ __('pages.blocked_at') }}: {{ $adminUser->blocked_at->timezone(config('app.timezone'))->format('Y/m/d H:i') }}</p>
                             </div>
                         </div>
                     </div>
@@ -101,26 +112,6 @@
                 </button>
             </div>
         </form>
-    </div>
-
-    {{-- Password: owned by the account holder — system admin only triggers reset email --}}
-    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mt-6">
-        <h2 class="text-[16px] font-semibold text-slate-900 mb-2">{{ __('pages.admin_user_password_section') }}</h2>
-        <p class="text-[13px] text-slate-600 mb-4 leading-relaxed">{{ __('pages.admin_user_password_policy_hint') }}</p>
-
-        @if($adminUser->isBlocked() || $adminUser->trashed())
-            <p class="text-[13px] text-orange-700">{{ __('pages.cannot_send_password_reset_to_inactive') }}</p>
-        @else
-            <form action="{{ route('admin.admin-users.send-password-reset', $adminUser) }}" method="POST"
-                  onsubmit="return confirm(@json(__('pages.confirm_send_password_reset')));">
-                @csrf
-                <button type="submit"
-                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-800 text-[14px] font-medium transition-all">
-                    <i data-lucide="mail" class="w-4 h-4"></i>
-                    {{ __('pages.send_password_reset_email') }}
-                </button>
-            </form>
-        @endif
     </div>
 
     <script>
