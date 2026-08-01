@@ -161,7 +161,8 @@
                         <option value="">{{ __('pages.all_statuses') }}</option>
                         <option value="pending" @selected(request('status')==='pending')>{{ __('pages.unprocessed') }}</option>
                         <option value="waiting_special_approval" @selected(request('status')==='waiting_special_approval')>{{ __('pages.special_approval_pending') }}</option>
-                        <option value="approved" @selected(request('status')==='approved')>{{ __('pages.approved') }}</option>
+                        <option value="in_progress" @selected(request('status')==='in_progress')>対応中</option>
+                        <option value="completed" @selected(request('status')==='completed')>完了</option>
                         <option value="rejected" @selected(request('status')==='rejected')>{{ __('pages.reject') }}</option>
                         <option value="cancel_request" @selected(request('status')==='cancel_request')>{{ __('pages.cancel_request_status') }}</option>
                     </select>
@@ -248,9 +249,11 @@
                             <td class="px-5 py-4">
                                 @php
                                     $statusConfig = [
-                                        'pending' => ['label' => __('pages.unprocessed'), 'class' => 'bg-slate-100 text-slate-700', 'icon' => 'clock'],
+                                        'pending' => ['label' => '申請', 'class' => 'bg-slate-100 text-slate-700', 'icon' => 'clock'],
                                         'waiting_special_approval' => ['label' => __('pages.special_approval_pending'), 'class' => 'bg-slate-900 text-white', 'icon' => 'alert-triangle'],
-                                        'approved' => ['label' => __('pages.approved'), 'class' => 'bg-emerald-100 text-emerald-700', 'icon' => 'check-circle'],
+                                        'in_progress' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700', 'icon' => 'loader'],
+                                        'completed' => ['label' => '完了', 'class' => 'bg-emerald-100 text-emerald-700', 'icon' => 'check-circle'],
+                                        'approved' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700', 'icon' => 'loader'],
                                         'rejected' => ['label' => __('pages.reject'), 'class' => 'bg-red-50 text-red-700', 'icon' => 'x-circle'],
                                         'cancel_request' => ['label' => __('pages.cancel_request_status'), 'class' => 'bg-slate-900 text-white', 'icon' => 'alert-circle'],
                                         'cancel_approved' => ['label' => __('pages.cancel_approved'), 'class' => 'bg-slate-100 text-slate-700', 'icon' => 'check'],

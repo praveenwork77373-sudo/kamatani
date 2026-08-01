@@ -79,6 +79,32 @@
             </div>
         </div>
 
+        {{-- Maker (SPEC) --}}
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">メーカー情報</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">メーカー</label>
+                    <select name="maker_id" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
+                        <option value="">未設定</option>
+                        @foreach(($makers ?? []) as $maker)
+                            <option value="{{ $maker->id }}" @selected(old('maker_id')==$maker->id)>{{ $maker->name }}（{{ $maker->code }}）</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">メーカー品番</label>
+                    <input type="text" name="maker_product_code" value="{{ old('maker_product_code') }}"
+                           class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px]" placeholder="メーカー側コード">
+                </div>
+                <div>
+                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">色名</label>
+                    <input type="text" name="color_name" value="{{ old('color_name') }}"
+                           class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px]" placeholder="例: ネイビー">
+                </div>
+            </div>
+        </div>
+
         {{-- Product Cards Section --}}
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-blue-50">

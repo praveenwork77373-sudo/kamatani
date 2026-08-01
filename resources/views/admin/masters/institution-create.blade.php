@@ -259,6 +259,28 @@
                             </p>
                         @enderror
                     </div>
+
+                    <div>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">
+                            締め日（請求基準日）
+                            <span class="text-[12px] font-normal text-slate-500 ml-1">(1〜28)</span>
+                        </label>
+                        <input type="number" name="billing_closing_day" value="{{ old('billing_closing_day', 1) }}" min="1" max="28"
+                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
+                        @error('billing_closing_day')
+                            <p class="text-[13px] text-red-600 mt-2">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">担当セールス名</label>
+                        <input type="text" name="sales_person_name" value="{{ old('sales_person_name') }}"
+                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white"
+                               placeholder="例: 山田 太郎">
+                        @error('sales_person_name')
+                            <p class="text-[13px] text-red-600 mt-2">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
             </div>
 

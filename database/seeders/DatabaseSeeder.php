@@ -12,7 +12,6 @@ use App\Models\DeliveryLocation;
 use App\Models\Employee;
 use App\Models\EmployeePosition;
 use App\Models\UniformProduct;
-use App\Models\UniformRecommendation;
 use App\Models\Contract;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -194,62 +193,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // ユニフォーム推奨設定を作成
-        // 外科・医師用
-        foreach ($uniforms as $uniform) {
-            if (in_array($uniform->category, ['top', 'bottom']) && $uniform->gender === 'male') {
-                UniformRecommendation::create([
-                    'medical_institution_id' => $institution->id,
-                    'department_id' => $department1->id,
-                    'job_type_id' => $jobType1->id,
-                    'uniform_product_id' => $uniform->id,
-                    'is_required' => true,
-                    'is_recommended' => true,
-                ]);
-            }
-        }
-
-        // 内科・医師用
-        foreach ($uniforms as $uniform) {
-            if (in_array($uniform->category, ['top', 'bottom']) && $uniform->gender === 'male') {
-                UniformRecommendation::create([
-                    'medical_institution_id' => $institution->id,
-                    'department_id' => $department2->id,
-                    'job_type_id' => $jobType1->id,
-                    'uniform_product_id' => $uniform->id,
-                    'is_required' => true,
-                    'is_recommended' => true,
-                ]);
-            }
-        }
-
-        // 看護部・看護師用（女性）
-        foreach ($uniforms as $uniform) {
-            if (in_array($uniform->category, ['top', 'bottom']) && $uniform->gender === 'female') {
-                UniformRecommendation::create([
-                    'medical_institution_id' => $institution->id,
-                    'department_id' => $department3->id,
-                    'job_type_id' => $jobType2->id,
-                    'uniform_product_id' => $uniform->id,
-                    'is_required' => true,
-                    'is_recommended' => true,
-                ]);
-            }
-        }
-
-        // 全職種用シューズ
-        foreach ($uniforms as $uniform) {
-            if ($uniform->category === 'shoe') {
-                UniformRecommendation::create([
-                    'medical_institution_id' => $institution->id,
-                    'department_id' => null,
-                    'job_type_id' => null,
-                    'uniform_product_id' => $uniform->id,
-                    'is_required' => false,
-                    'is_recommended' => true,
-                ]);
-            }
-        }
+        // Plan-linked products supersede department/job uniform recommendations (SPEC 2026-07-31).
 
         // 従業員を作成
         $employee1 = Employee::create([
@@ -459,6 +403,66 @@ class DatabaseSeeder extends Seeder
             'role' => 'accounting',
         ]);
 
+        // 7. 契約プラン管理者 (Contract Plan Manager)
+        $planManagerUser = User::create([
+            'name' => '契約プラン管理者',
+            'email' => 'plan-manager@example.com',
+            'password' => Hash::make('password123'),
+            'type' => 'kamatani_admin',
+        ]);
+        AdminUser::create([
+            'user_id' => $planManagerUser->id,
+            'role' => 'contract_plan_manager',
+        ]);
+
+        // Sample contract plan domain for apply eligibility testing
+        $maker = \App\Models\Maker::firstOrCreate(
+            ['code' => 'MKR-001'],
+            ['name' => 'サンプルメーカー', 'is_active' => true]
+        );
+
+        $contractPlan = \App\Models\ContractPlan::firstOrCreate(
+            ['code' => 'PLAN-5'],
+            [
+                'name' => '5点リース',
+                'rentable_points' => 5,
+                'unit_price_ex_tax' => 8000,
+                'is_active' => true,
+            ]
+        );
+
+        $productIds = UniformProduct::whereIn('category', ['top', 'bottom', 'shoe'])->limit(40)->pluck('id');
+        if ($productIds->isNotEmpty()) {
+            $contractPlan->uniformProducts()->syncWithoutDetaching($productIds->all());
+        }
+
+        $ccp = \App\Models\CustomerContractPlan::firstOrCreate(
+            [
+                'medical_institution_id' => $institution->id,
+                'contract_plan_id' => $contractPlan->id,
+            ],
+            [
+                'contract_count' => 10,
+                'start_date' => now()->subMonth(),
+                'end_date' => now()->addYear(),
+                'status' => 'confirmed',
+                'confirmed_at' => now(),
+            ]
+        );
+
+        foreach ([$employee1, $employee2, $employee3] as $emp) {
+            \App\Models\EmployeeContractPlan::firstOrCreate(
+                [
+                    'employee_id' => $emp->id,
+                    'customer_contract_plan_id' => $ccp->id,
+                ],
+                [
+                    'assigned_from' => now()->subMonth(),
+                    'assigned_until' => null,
+                ]
+            );
+        }
+
         // ============================================
         // LOGIN INFORMATION SUMMARY
         // ============================================
@@ -468,5 +472,6 @@ class DatabaseSeeder extends Seeder
         // 4. Operations Admin: operations-admin@example.com / password123
         // 5. Sales Admin: sales-admin@example.com / password123
         // 6. Accounting Admin: accounting-admin@example.com / password123
+        // 7. Contract Plan Manager: plan-manager@example.com / password123
     }
 }

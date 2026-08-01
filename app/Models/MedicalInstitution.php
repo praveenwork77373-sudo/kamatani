@@ -18,6 +18,12 @@ class MedicalInstitution extends Model
         'notification_email',
         'per_person_loan_limit',
         'point_unit_price',
+        'billing_closing_day',
+        'sales_person_name',
+    ];
+
+    protected $casts = [
+        'billing_closing_day' => 'integer',
     ];
 
     public function departments(): HasMany
@@ -43,6 +49,11 @@ class MedicalInstitution extends Model
     public function contracts(): HasMany
     {
         return $this->hasMany(Contract::class);
+    }
+
+    public function customerContractPlans(): HasMany
+    {
+        return $this->hasMany(CustomerContractPlan::class);
     }
 
     public function institutionAdmin(): HasOne

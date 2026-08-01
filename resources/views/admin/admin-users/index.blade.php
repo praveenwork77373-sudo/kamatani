@@ -121,6 +121,7 @@
                                 <option value="operation" @selected($selectedRole == 'operation')>{{ __('roles.operation') }}</option>
                                 <option value="sales" @selected($selectedRole == 'sales')>{{ __('roles.sales') }}</option>
                                 <option value="accounting" @selected($selectedRole == 'accounting')>{{ __('roles.accounting') }}</option>
+                                <option value="contract_plan_manager" @selected($selectedRole == 'contract_plan_manager')>{{ __('roles.contract_plan_manager') }}</option>
                             </select>
                         </div>
                     </div>

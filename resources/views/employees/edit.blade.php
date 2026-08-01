@@ -222,6 +222,47 @@
                             </p>
                         @enderror
                     </div>
+                    <div>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">股下 (cm)</label>
+                        <select name="inseam_cm" class="w-full py-2.5 px-3 rounded-lg border border-slate-300 text-[14px] bg-white">
+                            <option value="">未設定</option>
+                            @for($cm = 60; $cm <= 90; $cm++)
+                                <option value="{{ $cm }}" @selected(old('inseam_cm', $employee->inseam_cm)==$cm)>{{ $cm }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">体型</label>
+                        <input type="text" name="body_type" value="{{ old('body_type', $employee->body_type) }}" class="w-full py-2.5 px-3 rounded-lg border border-slate-300 text-[14px]" placeholder="例: 7号, 11号">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">入職日</label>
+                        <input type="date" name="join_date" value="{{ old('join_date', optional($employee->join_date)->format('Y-m-d')) }}" class="w-full py-2.5 px-3 rounded-lg border border-slate-300 text-[14px]">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">退職日</label>
+                        <input type="date" name="retire_date" value="{{ old('retire_date', optional($employee->retire_date)->format('Y-m-d')) }}" class="w-full py-2.5 px-3 rounded-lg border border-slate-300 text-[14px]">
+                    </div>
+                </div>
+
+                <div class="mt-6 mb-4">
+                    <h3 class="text-[15px] font-semibold text-slate-700 mb-2">契約プラン割当（任意・後から可）</h3>
+                    <p class="text-[13px] text-slate-500 mb-3">申請時には割当が必要です。本登録済みプランから選択してください。</p>
+                    <div class="space-y-2 border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto">
+                        @php
+                            $selectedPlanIds = old('customer_contract_plan_ids', $employee->contractPlanAssignments->pluck('customer_contract_plan_id')->all());
+                        @endphp
+                        @forelse(($availablePlans ?? []) as $ccp)
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" name="customer_contract_plan_ids[]" value="{{ $ccp->id }}"
+                                    {{ in_array($ccp->id, $selectedPlanIds) ? 'checked' : '' }}>
+                                <span class="font-mono text-xs">{{ $ccp->contractPlan->code ?? '' }}</span>
+                                <span>{{ $ccp->contractPlan->name ?? '' }}</span>
+                            </label>
+                        @empty
+                            <p class="text-slate-500 text-sm">本登録の契約プランがありません</p>
+                        @endforelse
+                    </div>
                 </div>
 
                 {{-- Divider --}}

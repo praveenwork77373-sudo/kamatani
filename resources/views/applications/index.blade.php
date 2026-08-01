@@ -61,9 +61,11 @@
                             <td class="px-5 py-4">
                                 @php
                                     $statusConfig = [
-                                        'pending' => ['label' => '未処理', 'class' => 'bg-slate-100 text-slate-700'],
+                                        'pending' => ['label' => '申請', 'class' => 'bg-slate-100 text-slate-700'],
                                         'waiting_special_approval' => ['label' => '特別承認待ち', 'class' => 'bg-amber-100 text-amber-700'],
-                                        'approved' => ['label' => '承認済み', 'class' => 'bg-emerald-100 text-emerald-700'],
+                                        'in_progress' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700'],
+                                        'completed' => ['label' => '完了', 'class' => 'bg-emerald-100 text-emerald-700'],
+                                        'approved' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700'],
                                         'rejected' => ['label' => '却下', 'class' => 'bg-red-100 text-red-700'],
                                         'cancel_request' => ['label' => 'キャンセル依頼中', 'class' => 'bg-orange-100 text-orange-700'],
                                         'cancel_approved' => ['label' => 'キャンセル承認', 'class' => 'bg-slate-100 text-slate-700'],

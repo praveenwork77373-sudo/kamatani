@@ -198,7 +198,19 @@
                                             <span class="font-medium">{{ __('pages.shoes_label') }}:</span> 
                                             <span id="employee-shoe-size" class="text-slate-900"></span>
                                         </span>
+                                        <span class="text-slate-600">
+                                            <span class="font-medium">股下:</span>
+                                            <span id="employee-inseam" class="text-slate-900"></span>
+                                        </span>
+                                        <span class="text-slate-600">
+                                            <span class="font-medium">体型:</span>
+                                            <span id="employee-body-type" class="text-slate-900"></span>
+                                        </span>
                                     </div>
+                                    <p class="text-[12px] text-slate-600 mt-2">
+                                        <span class="font-medium">契約プラン:</span>
+                                        <span id="employee-plans" class="text-slate-900"></span>
+                                    </p>
                                 </div>
                                 <button type="button" id="clear-employee-btn" class="text-slate-400 hover:text-red-600 transition-colors">
                                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -298,22 +310,45 @@
                         @enderror
                     </div>
 
-                    {{-- Contract Limit Progress Bar --}}
+                    {{-- Contract Limit Progress Bar (plan rentable points) --}}
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-[14px] font-semibold text-slate-700 flex items-center gap-2">
                                 <i data-lucide="shield-check" class="w-4 h-4 text-primary-600"></i>
-                                {{ __('pages.contract_limit') }}
+                                プラン貸与上限
                             </span>
                             <span class="text-[14px] text-slate-600">
                                 <span id="selected-items-count">0</span>{{ __('pages.items') }} / 
-                                <span id="contract-limit">{{ $contract->per_person_loan_limit ?? 5 }}</span>{{ __('pages.items') }}{{ __('pages.per_person') }}
+                                <span id="contract-limit">{{ $contract->per_person_loan_limit ?? '—' }}</span>{{ __('pages.items') }}
+                                <span class="text-[12px] text-slate-500">（職員選択でプラン上限に更新）</span>
                             </span>
                         </div>
                         <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden shadow-inner">
                             <div id="contract-limit-progress" class="h-full bg-gradient-to-r from-primary-500 via-blue-600 to-indigo-600 transition-all duration-300 rounded-full" style="width: 0%"></div>
                         </div>
                         <p class="text-[12px] text-slate-500 mt-1.5" id="contract-limit-text"></p>
+                    </div>
+
+                    {{-- Application memos (SPEC / PDF) --}}
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-slate-700 text-[14px] font-semibold mb-2">メモ1</label>
+                            <input type="text" name="memo1" value="{{ old('memo1') }}" maxlength="500"
+                                   class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px]"
+                                   placeholder="帳票に印字されるメモ1">
+                            @error('memo1')
+                                <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-slate-700 text-[14px] font-semibold mb-2">メモ2</label>
+                            <input type="text" name="memo2" value="{{ old('memo2') }}" maxlength="500"
+                                   class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px]"
+                                   placeholder="帳票に印字されるメモ2">
+                            @error('memo2')
+                                <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
 
                     {{-- Special Approval Button (Optional) --}}
@@ -443,7 +478,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryTabs = document.querySelectorAll('.category-tab');
     const productsContainer = document.getElementById('products-container');
     const selectedItemsContainer = document.getElementById('selected-items-container');
-    const contractLimit = parseInt(document.getElementById('contract-limit').textContent) || 5;
+    let contractLimit = parseInt(document.getElementById('contract-limit').textContent) || 5;
+    const contractLimitEl = document.getElementById('contract-limit');
     const contractLimitProgress = document.getElementById('contract-limit-progress');
     const selectedItemsCount = document.getElementById('selected-items-count');
     const contractLimitText = document.getElementById('contract-limit-text');
@@ -543,6 +579,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let html = '';
         filteredEmployeesData.forEach(emp => {
+            const planLabel = emp.plan_names || (emp.plans || []).map(p => p.name).join(' / ') || '';
             html += `
                 <button type="button" class="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors employee-select-option flex items-center gap-3" 
                         data-employee-id="${emp.id}"
@@ -552,6 +589,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         data-employee-top-size="${emp.top_size || '-'}"
                         data-employee-bottom-size="${emp.bottom_size || '-'}"
                         data-employee-shoe-size="${emp.shoe_size || '-'}"
+                        data-employee-inseam="${emp.inseam_cm || '-'}"
+                        data-employee-body-type="${emp.body_type || '-'}"
+                        data-employee-plans="${planLabel || '未割当'}"
+                        data-employee-rentable-limit="${emp.rentable_limit ?? ''}"
                         data-employee-dept="${emp.department_id}"
                         data-employee-job="${emp.job_type_id}"
                         data-employee-gender="${emp.gender || ''}">
@@ -560,7 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="font-medium text-slate-900 text-[14px]">${emp.name}</p>
-                        <p class="text-[12px] text-slate-600">${emp.staff_no || ''}</p>
+                        <p class="text-[12px] text-slate-600">${emp.staff_no || ''}${planLabel ? ' · ' + planLabel : ''}</p>
                     </div>
                 </button>
             `;
@@ -1044,7 +1085,22 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('employee-top-size').textContent = data.employeeTopSize || '-';
         document.getElementById('employee-bottom-size').textContent = data.employeeBottomSize || '-';
         document.getElementById('employee-shoe-size').textContent = data.employeeShoeSize || '-';
+        const inseamEl = document.getElementById('employee-inseam');
+        const bodyTypeEl = document.getElementById('employee-body-type');
+        const plansEl = document.getElementById('employee-plans');
+        if (inseamEl) inseamEl.textContent = data.employeeInseam || '-';
+        if (bodyTypeEl) bodyTypeEl.textContent = data.employeeBodyType || '-';
+        if (plansEl) plansEl.textContent = data.employeePlans || '未割当';
         selectedEmployeeCard.classList.remove('hidden');
+
+        // Update plan-based rentable limit for progress bar
+        if (data.employeeRentableLimit !== undefined && data.employeeRentableLimit !== '') {
+            const parsed = parseInt(data.employeeRentableLimit, 10);
+            if (!Number.isNaN(parsed) && parsed > 0) {
+                contractLimit = parsed;
+                if (contractLimitEl) contractLimitEl.textContent = String(contractLimit);
+            }
+        }
         
         // Store employee sizes for filtering (handle "-" as null)
         selectedEmployeeSizes = {
@@ -1108,6 +1164,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Filter uniforms by employee
     async function filterUniformsByEmployee(deptId, jobId, gender) {
+        const employeeId = document.getElementById('selected-employee-id')?.value
+            || document.querySelector('[name="employee_id"]')?.value;
+
+        // Prefer plan-linked products for the selected employee
+        if (employeeId) {
+            try {
+                let apiUrl = `{{ route('api.uniforms_by_dept_job') }}?employee_id=${employeeId}`;
+                if (gender) {
+                    apiUrl += `&gender=${gender}`;
+                }
+                const response = await fetch(apiUrl);
+                const uniforms = await response.json();
+
+                if (!Array.isArray(uniforms) || uniforms.length === 0) {
+                    filteredUniforms = [];
+                    loadProducts();
+                    return;
+                }
+
+                const grouped = {};
+                uniforms.forEach(u => {
+                    let baseKey = u.product_code || u.id;
+                    if (u.product_code && u.size) {
+                        const lastDashPos = u.product_code.lastIndexOf('-');
+                        if (lastDashPos !== -1) {
+                            const suffix = u.product_code.substring(lastDashPos + 1);
+                            if (suffix === u.size || ['S', 'M', 'L', 'XL', 'XXL'].includes(suffix) || !isNaN(suffix)) {
+                                baseKey = u.product_code.substring(0, lastDashPos);
+                            }
+                        }
+                    }
+                    if (!grouped[baseKey]) {
+                        grouped[baseKey] = [];
+                    }
+                    grouped[baseKey].push(u);
+                });
+
+                filteredUniforms = Object.keys(grouped).map(key => {
+                    const group = grouped[key];
+                    const first = group[0];
+                    return {
+                        id: first.id,
+                        name: first.name,
+                        product_code: key,
+                        category: first.category,
+                        gender: first.gender,
+                        sizes_with_ids: group.map(g => ({
+                            size: g.size,
+                            product_id: g.id,
+                            stock_quantity: g.stock_quantity ?? 0,
+                            available: (g.stock_quantity ?? 0) > 0,
+                        })),
+                        available_sizes: group.map(g => g.size),
+                        stock_quantity: group.reduce((s, g) => s + (g.stock_quantity || 0), 0),
+                        image_path: first.image_path || '',
+                    };
+                });
+                loadProducts();
+                return;
+            } catch (error) {
+                console.error('Plan uniform fetch error:', error);
+            }
+        }
+
         // If no department, show all uniforms filtered by gender
         if (!deptId) {
             filteredUniforms = allUniforms.filter(u => 

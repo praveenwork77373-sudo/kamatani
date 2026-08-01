@@ -19,8 +19,18 @@ class Employee extends Model
         'top_size',
         'bottom_size',
         'shoe_size',
+        'inseam_cm',
+        'body_type',
         'status',
+        'join_date',
+        'retire_date',
         'primary_department_id',
+    ];
+
+    protected $casts = [
+        'join_date' => 'date',
+        'retire_date' => 'date',
+        'inseam_cm' => 'integer',
     ];
 
     public function medicalInstitution(): BelongsTo
@@ -46,6 +56,11 @@ class Employee extends Model
     public function statusHistory(): HasMany
     {
         return $this->hasMany(EmployeeStatusHistory::class);
+    }
+
+    public function contractPlanAssignments(): HasMany
+    {
+        return $this->hasMany(EmployeeContractPlan::class);
     }
 
     /**

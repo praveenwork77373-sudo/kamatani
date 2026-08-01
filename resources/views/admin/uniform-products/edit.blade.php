@@ -85,6 +85,28 @@
                         @enderror
                     </div>
                 </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">メーカー</label>
+                        <select name="maker_id" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
+                            <option value="">未設定</option>
+                            @foreach(($makers ?? []) as $maker)
+                                <option value="{{ $maker->id }}" @selected(old('maker_id', $product->maker_id)==$maker->id)>{{ $maker->name }}（{{ $maker->code }}）</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">メーカー品番</label>
+                        <input type="text" name="maker_product_code" value="{{ old('maker_product_code', $product->maker_product_code) }}"
+                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px]">
+                    </div>
+                    <div>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">色名</label>
+                        <input type="text" name="color_name" value="{{ old('color_name', $product->color_name) }}"
+                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px]">
+                    </div>
+                </div>
             </div>
         </div>
 

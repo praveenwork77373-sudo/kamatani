@@ -1,0 +1,336 @@
+/**
+ * Uniform System — shared UI kit
+ * Consistent form controls, buttons, and mobile-friendly layout helpers.
+ * Loaded by layouts/app.blade.php and layouts/guest.blade.php
+ */
+
+:root {
+  --ui-border: #cbd5e1;          /* slate-300 */
+  --ui-border-hover: #94a3b8;    /* slate-400 */
+  --ui-border-focus: #0284c7;    /* primary-600 */
+  --ui-ring: rgba(2, 132, 199, 0.2);
+  --ui-bg: #ffffff;
+  --ui-bg-disabled: #f8fafc;
+  --ui-text: #0f172a;
+  --ui-placeholder: #94a3b8;
+  --ui-radius: 0.5rem;           /* rounded-lg */
+  --ui-radius-xl: 0.75rem;
+  --ui-control-h: 2.75rem;       /* ~44px touch target */
+  --ui-pad-x: 1rem;
+  --ui-pad-y: 0.625rem;
+  --ui-font: 14px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Utility classes (prefer these on new markup)                               */
+/* -------------------------------------------------------------------------- */
+
+.ui-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.5rem;
+}
+
+.ui-hint {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 0.375rem;
+}
+
+.ui-error {
+  font-size: 13px;
+  color: #dc2626;
+  margin-top: 0.375rem;
+}
+
+.ui-input,
+.ui-select,
+.ui-textarea {
+  display: block;
+  width: 100%;
+  min-height: var(--ui-control-h);
+  padding: var(--ui-pad-y) var(--ui-pad-x);
+  font-size: var(--ui-font);
+  line-height: 1.4;
+  color: var(--ui-text);
+  background-color: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.ui-textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.ui-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%6494a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+}
+
+.ui-input::placeholder,
+.ui-textarea::placeholder {
+  color: var(--ui-placeholder);
+}
+
+.ui-input:hover,
+.ui-select:hover,
+.ui-textarea:hover {
+  border-color: var(--ui-border-hover);
+}
+
+.ui-input:focus,
+.ui-select:focus,
+.ui-textarea:focus {
+  outline: none;
+  border-color: var(--ui-border-focus);
+  box-shadow: 0 0 0 3px var(--ui-ring);
+}
+
+.ui-input:disabled,
+.ui-select:disabled,
+.ui-textarea:disabled,
+.ui-input[readonly] {
+  background-color: var(--ui-bg-disabled);
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.ui-check {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid var(--ui-border);
+  border-radius: 0.25rem;
+  accent-color: #0284c7;
+}
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--ui-control-h);
+  padding: 0.625rem 1.25rem;
+  font-size: var(--ui-font);
+  font-weight: 600;
+  line-height: 1.2;
+  border-radius: var(--ui-radius);
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ui-btn-primary {
+  background-color: #0284c7;
+  color: #fff;
+}
+.ui-btn-primary:hover {
+  background-color: #0369a1;
+  color: #fff;
+}
+
+.ui-btn-secondary {
+  background-color: #fff;
+  color: #334155;
+  border-color: var(--ui-border);
+}
+.ui-btn-secondary:hover {
+  background-color: #f8fafc;
+}
+
+.ui-btn-danger {
+  background-color: #dc2626;
+  color: #fff;
+}
+.ui-btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+.ui-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--ui-radius-xl);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ui-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+@media (min-width: 640px) {
+  .ui-page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.ui-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+@media (min-width: 640px) {
+  .ui-toolbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
+.ui-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Global normalize — fix missing borders / uneven shapes project-wide        */
+/* (Tailwind's border-slate-300 alone does NOT set border-width)              */
+/* -------------------------------------------------------------------------- */
+
+main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="range"]):not([type="color"]),
+main select,
+main textarea,
+.ui-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="submit"]):not([type="button"]),
+.ui-form select,
+.ui-form textarea {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--ui-border);
+  border-radius: var(--ui-radius);
+  background-color: var(--ui-bg);
+  color: var(--ui-text);
+  font-size: var(--ui-font);
+  line-height: 1.4;
+  min-height: var(--ui-control-h);
+  padding: var(--ui-pad-y) var(--ui-pad-x);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+main textarea,
+.ui-form textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+main select,
+.ui-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%6494a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+}
+
+main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="submit"]):not([type="button"]):focus,
+main select:focus,
+main textarea:focus,
+.ui-form input:focus,
+.ui-form select:focus,
+.ui-form textarea:focus {
+  outline: none;
+  border-color: var(--ui-border-focus);
+  box-shadow: 0 0 0 3px var(--ui-ring);
+}
+
+main input[type="checkbox"],
+main input[type="radio"],
+.ui-form input[type="checkbox"],
+.ui-form input[type="radio"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  accent-color: #0284c7;
+  box-shadow: none;
+}
+
+/* Keep compact filter/search inputs that share a row with buttons usable */
+main .inline-flex input,
+main .flex.items-center input,
+main form.inline input,
+main form.flex input {
+  width: auto;
+  min-width: 0;
+}
+
+main .w-full.inline-flex input,
+main input.w-full,
+main select.w-full,
+main textarea.w-full {
+  width: 100%;
+}
+
+/* Primary action buttons that lack min size on mobile */
+main button[type="submit"]:not(.ui-btn),
+main a.px-6.py-2\.5,
+main button.px-6.py-2\.5 {
+  min-height: 2.5rem;
+}
+
+@media (max-width: 640px) {
+  /* Full-width primary actions in form footers, not every tiny filter button */
+  main form.ui-form .ui-btn,
+  main form.ui-card .ui-btn,
+  main .ui-page-header .ui-btn {
+    width: 100%;
+  }
+
+  /* Stack common header action rows */
+  main .mb-6.flex.items-center.justify-between,
+  main .mb-6.flex.flex-wrap.items-center.justify-between,
+  main > .flex.items-center.justify-between.mb-6 {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem;
+  }
+
+  main .mb-6.flex.items-center.justify-between > a,
+  main .mb-6.flex.items-center.justify-between > div,
+  main .mb-6.flex.items-center.justify-between > form {
+    width: 100%;
+  }
+
+  main .mb-6.flex.items-center.justify-between .inline-flex,
+  main .mb-6.flex.items-center.justify-between .flex {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+}
+
+/* Tables: always scrollable on small screens */
+@media (max-width: 768px) {
+  main table {
+    font-size: 12px;
+  }
+  main .overflow-x-auto,
+  main .ui-table-wrap {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    padding-bottom: 0.25rem;
+  }
+}
+
+/* App shell main padding tightening already handled in layout; safe area */
+@supports (padding: max(0px)) {
+  main {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+}

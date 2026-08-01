@@ -14,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="{{ asset('css/brand-tokens.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/ui-kit.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -60,8 +61,20 @@
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
         }
         .guest-input {
+            display: block;
+            width: 100%;
+            min-height: 2.75rem;
+            padding: 0.75rem 1rem;
+            font-size: 14px;
+            color: #0f172a;
+            background: #fff;
             border: 1px solid var(--border, #D8DEE3);
             border-radius: var(--radius-md, 10px);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .guest-input:hover {
+            border-color: #94a3b8;
         }
         .guest-input:focus {
             outline: none;
@@ -69,8 +82,18 @@
             box-shadow: 0 0 0 3px rgba(15, 107, 107, 0.18);
         }
         .guest-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 2.75rem;
             background: var(--brand, #0F6B6B);
             border-radius: var(--radius-md, 10px);
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
         }
         .guest-btn:hover {
             background: var(--brand-hover, #0B5555);

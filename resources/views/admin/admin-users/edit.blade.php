@@ -80,6 +80,7 @@
                         <option value="operation" @selected(old('role', $adminUser->role) == 'operation')>{{ __('roles.operation') }}</option>
                         <option value="sales" @selected(old('role', $adminUser->role) == 'sales')>{{ __('roles.sales') }}</option>
                         <option value="accounting" @selected(old('role', $adminUser->role) == 'accounting')>{{ __('roles.accounting') }}</option>
+                        <option value="contract_plan_manager" @selected(old('role', $adminUser->role) == 'contract_plan_manager')>{{ __('roles.contract_plan_manager') }}</option>
                     </select>
                     @error('role')
                         <p class="mt-1.5 text-[13px] text-red-600">{{ $message }}</p>

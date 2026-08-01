@@ -270,7 +270,74 @@
                             </p>
                         @enderror
                     </div>
+
+                    <div>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">股下 (cm)</label>
+                        <select name="inseam_cm"
+                                class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
+                            <option value="">未設定</option>
+                            @for($cm = 60; $cm <= 90; $cm++)
+                                <option value="{{ $cm }}" @selected(old('inseam_cm')==$cm)>{{ $cm }}</option>
+                            @endfor
+                        </select>
+                        @error('inseam_cm')
+                            <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">体型</label>
+                        <input type="text" name="body_type" value="{{ old('body_type') }}"
+                               class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all"
+                               placeholder="例: 7号, 11号">
+                        @error('body_type')
+                            <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">入職日</label>
+                        <input type="date" name="join_date" value="{{ old('join_date') }}"
+                               class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
+                        @error('join_date')
+                            <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">退職日</label>
+                        <input type="date" name="retire_date" value="{{ old('retire_date') }}"
+                               class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
+                        @error('retire_date')
+                            <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
+            </div>
+
+            {{-- 契約プラン割当 --}}
+            <div class="p-6 border-b border-slate-200">
+                <h2 class="text-lg font-semibold text-slate-900 mb-2">契約プラン割当</h2>
+                <p class="text-[13px] text-slate-500 mb-3">登録時は任意です（後から割当可）。申請・請求では割当が必要です。本登録済みプランから選択してください。</p>
+                <div class="space-y-2 border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto bg-slate-50">
+                    @php
+                        $selectedPlanIds = old('customer_contract_plan_ids', []);
+                    @endphp
+                    @forelse(($availablePlans ?? []) as $ccp)
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" name="customer_contract_plan_ids[]" value="{{ $ccp->id }}"
+                                {{ in_array($ccp->id, (array) $selectedPlanIds) ? 'checked' : '' }}>
+                            <span class="font-mono text-xs text-slate-500">{{ $ccp->contractPlan->code ?? '' }}</span>
+                            <span>{{ $ccp->contractPlan->name ?? '' }}</span>
+                            <span class="text-slate-400 text-xs">（口数 {{ $ccp->contract_count }}）</span>
+                        </label>
+                    @empty
+                        <p class="text-slate-500 text-sm">本登録の契約プランがありません。カマタニ側で顧客契約プランを本登録してください。</p>
+                    @endforelse
+                </div>
+                @error('customer_contract_plan_ids')
+                    <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
+                @enderror
             </div>
 
             {{-- 状態セクション --}}
@@ -374,13 +441,17 @@
                     });
             }
 
-            // Listen to institution change (for admin users)
+            // Listen to institution change (for admin users) — reload so plans load
             if (institutionSelect) {
                 institutionSelect.addEventListener('change', function() {
+                    const id = this.value;
+                    if (id) {
+                        window.location.href = '{{ route('employees.create') }}?medical_institution_id=' + id;
+                        return;
+                    }
                     loadInstitutionData(this.value);
                 });
 
-                // Load initial data if institution is already selected
                 if (institutionSelect.value) {
                     loadInstitutionData(institutionSelect.value);
                 }

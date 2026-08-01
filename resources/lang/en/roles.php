@@ -5,6 +5,7 @@ return [
     'operation' => 'Operations Administrator',
     'sales' => 'Sales Administrator',
     'accounting' => 'Accounting Administrator',
+    'contract_plan_manager' => 'Contract Plan Manager',
     'institution_admin' => 'Medical Institution Administrator',
     'department_admin' => 'Department Administrator',
     

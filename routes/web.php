@@ -10,12 +10,17 @@ use App\Http\Controllers\InstitutionLookupController;
 
 use Illuminate\Support\Facades\Route;
 
-// 認証
+// 認証（病院 / カマタニ — URLで分離、選択ページなし）
 Route::middleware('guest')->group(function () {
-    // Laravel 既定のゲストリダイレクト先は /login（GET）
+    Route::redirect('/', '/login')->name('home');
+
+    // Hospital (customer) login
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
-    Route::get('/', fn () => redirect()->route('login'));
+
+    // Kamatani admin login
+    Route::get('/admin/login', [AuthController::class, 'showAdminLoginForm'])->name('admin.login');
+    Route::post('/admin/login', [AuthController::class, 'adminLogin'])->name('admin.login.post');
 
     Route::get('/password/forgot', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
     Route::post('/password/email', [AuthController::class, 'sendResetLink'])->name('password.email');
@@ -23,9 +28,14 @@ Route::middleware('guest')->group(function () {
     Route::post('/password/reset', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
-Route::post('/logout', [AuthController::class, 'logout'])
+    Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/password/force-change', [AuthController::class, 'showForceChangePasswordForm'])->name('password.force-change');
+    Route::post('/password/force-change', [AuthController::class, 'updateForcedPassword'])->name('password.force-change.update');
+});
 
 // 言語切り替え
 Route::get('/language/{locale}', [\App\Http\Controllers\LanguageController::class, 'switch'])->name('language.switch');
@@ -39,8 +49,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.read_all');
     Route::get('/api/notifications/unread-count', [\App\Http\Controllers\NotificationController::class, 'unreadCount'])->name('api.notifications.unread_count');
+});
 
-    // 医療機関側（職員管理・申請）
+// 医療機関側（病院ポータル）
+Route::middleware(['auth', 'customer'])->group(function () {
     Route::resource('employees', EmployeeController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::post('/employees/export-csv', [EmployeeController::class, 'exportCsv'])->name('employees.export_csv');
     Route::post('/employees/import-csv', [EmployeeController::class, 'importCsv'])->name('employees.import_csv');
@@ -63,9 +75,6 @@ Route::middleware('auth')->group(function () {
         return response()->json($departments);
     })->name('api.departments');
 
-
-
-    
     // 医療機関側 マスタ管理（全体管理者のみ）
     Route::prefix('customer/masters')->name('customer.masters.')->middleware('can:manage-masters')->group(function () {
         Route::get('/departments', [\App\Http\Controllers\Customer\MasterController::class, 'departments'])->name('departments');
@@ -89,7 +98,6 @@ Route::middleware('auth')->group(function () {
         Route::put('/delivery-locations/{deliveryLocation}', [\App\Http\Controllers\Customer\MasterController::class, 'deliveryLocationUpdate'])->name('delivery-locations.update');
         Route::delete('/delivery-locations/{deliveryLocation}', [\App\Http\Controllers\Customer\MasterController::class, 'deliveryLocationDestroy'])->name('delivery-locations.destroy');
         
-        // Department Admin Management
         Route::get('/department-admins', [\App\Http\Controllers\Customer\DepartmentAdminController::class, 'index'])->name('department-admins');
         Route::get('/department-admins/create', [\App\Http\Controllers\Customer\DepartmentAdminController::class, 'create'])->name('department-admins.create');
         Route::post('/department-admins', [\App\Http\Controllers\Customer\DepartmentAdminController::class, 'store'])->name('department-admins.store');
@@ -97,6 +105,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/department-admins/{customerUser}', [\App\Http\Controllers\Customer\DepartmentAdminController::class, 'update'])->name('department-admins.update');
         Route::delete('/department-admins/{customerUser}', [\App\Http\Controllers\Customer\DepartmentAdminController::class, 'destroy'])->name('department-admins.destroy');
     });
+
+    Route::get('/customer/contract-plans', [\App\Http\Controllers\Customer\ContractPlanController::class, 'index'])
+        ->name('customer.contract-plans.index');
 });
 
 // 鎌谷側 管理ポータル
@@ -108,10 +119,16 @@ Route::prefix('admin')
             Route::get('/applications', [ApplicationApprovalController::class, 'index'])->name('applications.index');
             Route::get('/applications/export', [ApplicationApprovalController::class, 'exportCsv'])->name('applications.export');
             Route::get('/applications/{application}', [ApplicationApprovalController::class, 'show'])->name('applications.show');
+            Route::post('/applications/{application}/memos', [ApplicationApprovalController::class, 'updateMemos'])->name('applications.update_memos');
             Route::post('/applications/{application}/approve', [ApplicationApprovalController::class, 'approve'])->name('applications.approve');
+            Route::post('/applications/{application}/complete', [ApplicationApprovalController::class, 'complete'])->name('applications.complete');
             Route::post('/applications/{application}/reject', [ApplicationApprovalController::class, 'reject'])->name('applications.reject');
             Route::post('/applications/{application}/cancel-approve', [ApplicationApprovalController::class, 'approveCancel'])->name('applications.cancel_approve');
             Route::post('/applications/{application}/cancel-reject', [ApplicationApprovalController::class, 'rejectCancel'])->name('applications.cancel_reject');
+            Route::post('/applications/{application}/documents/issue', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'issueAll'])->name('applications.documents.issue');
+            Route::post('/applications/{application}/documents/{formType}/reissue', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'reissue'])->name('applications.documents.reissue');
+            Route::get('/application-documents/{document}/download', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'download'])->name('application-documents.download');
+            Route::get('/application-documents/{document}/preview', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'preview'])->name('application-documents.preview');
 
             Route::resource('uniform-products', UniformProductController::class);
         });
@@ -143,6 +160,8 @@ Route::prefix('admin')
             Route::get('/institutions/{institution}/edit', [\App\Http\Controllers\Admin\MasterController::class, 'institutionEdit'])->name('institutions.edit');
             Route::put('/institutions/{institution}', [\App\Http\Controllers\Admin\MasterController::class, 'institutionUpdate'])->name('institutions.update');
             Route::delete('/institutions/{institution}', [\App\Http\Controllers\Admin\MasterController::class, 'institutionDestroy'])->name('institutions.destroy');
+            Route::post('/institutions/{institution}/welcome-email', [\App\Http\Controllers\Admin\MasterController::class, 'sendWelcomeEmail'])->name('institutions.welcome_email');
+            Route::get('/institutions/{institution}/welcome-email-history', [\App\Http\Controllers\Admin\MasterController::class, 'welcomeEmailHistory'])->name('institutions.welcome_email_history');
             
             Route::get('/departments', [\App\Http\Controllers\Admin\MasterController::class, 'departments'])->name('departments');
             Route::get('/departments/create', [\App\Http\Controllers\Admin\MasterController::class, 'departmentCreate'])->name('departments.create');
@@ -166,10 +185,19 @@ Route::prefix('admin')
             Route::delete('/delivery-locations/{deliveryLocation}', [\App\Http\Controllers\Admin\MasterController::class, 'deliveryLocationDestroy'])->name('delivery-locations.destroy');
         });
         
-        // 契約管理
-        Route::middleware('admin.role:system_admin,operation,sales')->group(function () {
-            Route::resource('contracts', \App\Http\Controllers\Admin\ContractController::class)->except(['show']);
-            Route::get('/contracts/{contract}', [\App\Http\Controllers\Admin\ContractController::class, 'show'])->name('contracts.show');
+        // レガシー FIXED/POINT 契約 CRUD は SPEC 上廃止。コードは残すがルートは公開しない。
+        // Route::middleware('admin.role:system_admin,operation,sales')->group(function () {
+        //     Route::resource('contracts', \App\Http\Controllers\Admin\ContractController::class)->except(['show']);
+        //     Route::get('/contracts/{contract}', [\App\Http\Controllers\Admin\ContractController::class, 'show'])->name('contracts.show');
+        // });
+
+        // 契約プラン中心ドメイン（SPEC 2026-07-31）
+        Route::middleware('admin.role:system_admin,contract_plan_manager,operation,sales')->group(function () {
+            Route::resource('makers', \App\Http\Controllers\Admin\MakerController::class)->except(['show']);
+            Route::resource('contract-plans', \App\Http\Controllers\Admin\ContractPlanController::class);
+            Route::resource('customer-contract-plans', \App\Http\Controllers\Admin\CustomerContractPlanController::class)->except(['show']);
+            Route::post('/customer-contract-plans/{customerContractPlan}/confirm', [\App\Http\Controllers\Admin\CustomerContractPlanController::class, 'confirm'])
+                ->name('customer-contract-plans.confirm');
         });
         
         // 請求データ
@@ -178,6 +206,7 @@ Route::prefix('admin')
             Route::get('/create', [\App\Http\Controllers\Admin\BillingController::class, 'create'])->name('create');
             Route::post('/generate', [\App\Http\Controllers\Admin\BillingController::class, 'generate'])->name('generate');
             Route::post('/applications/{application}/approve', [\App\Http\Controllers\Admin\BillingController::class, 'approve'])->name('approve')->where('application', '[0-9]+');
+            Route::get('/{snapshot}/export', [\App\Http\Controllers\Admin\BillingController::class, 'export'])->name('export');
             Route::get('/{snapshot}', [\App\Http\Controllers\Admin\BillingController::class, 'show'])->name('show');
         });
         

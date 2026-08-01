@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Maker;
 use App\Models\UniformProduct;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -266,6 +267,7 @@ class UniformProductController extends Controller
             'existingProducts' => $existingProducts,
             'topBottomSizes' => $topBottomSizes,
             'shoeSizes' => $shoeSizes,
+            'makers' => Maker::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -321,6 +323,9 @@ class UniformProductController extends Controller
             $data = $request->validate([
                 'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
                 'department_id' => ['required', 'exists:departments,id'],
+                'maker_id' => ['nullable', 'exists:makers,id'],
+                'maker_product_code' => ['nullable', 'string', 'max:100'],
+                'color_name' => ['nullable', 'string', 'max:100'],
                 'products' => ['required', 'array', 'min:1'],
                 'products.*.product_code' => ['required', 'string', 'max:50'],
                 'products.*.name' => ['required', 'string', 'max:255'],
@@ -465,6 +470,9 @@ class UniformProductController extends Controller
                         'gender' => $productData['gender'],
                         'stock_quantity' => 0, // Default to 0 if no sizes
                         'image_path' => $imagePath,
+                        'maker_id' => $data['maker_id'] ?? null,
+                        'maker_product_code' => $data['maker_product_code'] ?? null,
+                        'color_name' => $data['color_name'] ?? null,
                     ];
                     
                     // Only include medical_institution_id and department_id if columns exist
@@ -510,6 +518,9 @@ class UniformProductController extends Controller
                             'gender' => $productData['gender'],
                             'stock_quantity' => (int)$sizeData['stock_quantity'],
                             'image_path' => $imagePath, // Same image for all sizes of same product
+                            'maker_id' => $data['maker_id'] ?? null,
+                            'maker_product_code' => $data['maker_product_code'] ?? null,
+                            'color_name' => $data['color_name'] ?? null,
                         ];
                         
                         // Only include medical_institution_id and department_id if columns exist
@@ -551,16 +562,6 @@ class UniformProductController extends Controller
             'errors_count' => count($errors),
             'errors' => $errors,
         ]);
-        
-        // Create uniform recommendations for the selected institution and department
-        if ($createdCount > 0 && !empty($createdProductIds)) {
-            \Log::info('Creating uniform recommendations', [
-                'product_ids' => $createdProductIds,
-                'institution_id' => $data['medical_institution_id'],
-                'department_id' => $data['department_id'],
-            ]);
-            
-        }
         
         // Build success/error message
         if ($createdCount > 0) {
@@ -700,6 +701,7 @@ class UniformProductController extends Controller
             'departments' => $departments,
             'selectedInstitutionId' => $selectedInstitutionId,
             'selectedDepartmentId' => $selectedDepartmentId,
+            'makers' => Maker::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -749,6 +751,9 @@ class UniformProductController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'in:top,bottom,shoe,other'],
             'gender' => ['required', 'in:male,female,unisex'],
+            'maker_id' => ['nullable', 'exists:makers,id'],
+            'maker_product_code' => ['nullable', 'string', 'max:100'],
+            'color_name' => ['nullable', 'string', 'max:100'],
             'sizes' => ['nullable', 'array'],
             'sizes.*.size' => ['required_with:sizes', 'string', 'max:50'],
             'sizes.*.stock_quantity' => ['required_with:sizes', 'integer', 'min:0'],
@@ -802,6 +807,9 @@ class UniformProductController extends Controller
                 'category' => $data['category'],
                 'gender' => $data['gender'],
                 'image_path' => $imagePath,
+                'maker_id' => $data['maker_id'] ?? null,
+                'maker_product_code' => $data['maker_product_code'] ?? null,
+                'color_name' => $data['color_name'] ?? null,
             ];
             
             // Only include medical_institution_id and department_id if columns exist
@@ -862,6 +870,9 @@ class UniformProductController extends Controller
                             'gender' => $data['gender'],
                             'stock_quantity' => (int)($sizeData['stock_quantity'] ?? 0),
                             'image_path' => $imagePath,
+                            'maker_id' => $data['maker_id'] ?? null,
+                            'maker_product_code' => $data['maker_product_code'] ?? null,
+                            'color_name' => $data['color_name'] ?? null,
                         ];
                         
                         // Only include medical_institution_id and department_id if columns exist
@@ -906,6 +917,9 @@ class UniformProductController extends Controller
                             'gender' => $data['gender'],
                             'stock_quantity' => (int)($sizeData['stock_quantity'] ?? 0),
                             'image_path' => $imagePath,
+                            'maker_id' => $data['maker_id'] ?? null,
+                            'maker_product_code' => $data['maker_product_code'] ?? null,
+                            'color_name' => $data['color_name'] ?? null,
                         ];
                         
                         // Only include medical_institution_id and department_id if columns exist

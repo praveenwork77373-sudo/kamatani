@@ -47,12 +47,12 @@ class ApplicationApprovalController extends Controller
         $applications = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
 
         $stats = [
-            'pending' => Application::where('status', 'pending')->count(),
-            'special' => Application::where('status', 'waiting_special_approval')->count(),
-            'approved_this_month' => Application::where('status', 'approved')
+            'pending' => Application::where('status', Application::STATUS_PENDING)->count(),
+            'special' => Application::where('status', Application::STATUS_WAITING_SPECIAL)->count(),
+            'approved_this_month' => Application::whereIn('status', [Application::STATUS_IN_PROGRESS, Application::STATUS_COMPLETED])
                 ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
                 ->count(),
-            'cancellations' => Application::where('status', 'cancel_request')->count(),
+            'cancellations' => Application::where('status', Application::STATUS_CANCEL_REQUEST)->count(),
         ];
 
         $institutions = MedicalInstitution::orderBy('name')->get();
@@ -73,11 +73,33 @@ class ApplicationApprovalController extends Controller
             'deliveryLocation',
             'medicalInstitution',
             'requestedBy',
+            'documents' => fn ($q) => $q->orderByDesc('issued_at'),
         ]);
 
         return view('admin.applications.show', [
             'application' => $application,
+            'latestDocuments' => $application->documents->where('is_latest', true)->keyBy('form_type'),
+            'documentHistory' => $application->documents,
         ]);
+    }
+
+    public function updateMemos(Request $request, Application $application): RedirectResponse
+    {
+        $this->ensureApprover($request);
+
+        $data = $request->validate([
+            'memo1' => ['nullable', 'string', 'max:500'],
+            'memo2' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $application->update([
+            'memo1' => $data['memo1'] ?? null,
+            'memo2' => $data['memo2'] ?? null,
+        ]);
+
+        return redirect()
+            ->route('admin.applications.show', $application)
+            ->with('status', 'メモを保存しました。帳票再発行で反映されます。');
     }
 
     public function approve(Request $request, Application $application): RedirectResponse
@@ -110,8 +132,9 @@ class ApplicationApprovalController extends Controller
                     default => $this->processNewLoanApproval($application, $hasSpecialApproval),
                 };
 
-                $application->status = 'approved';
+                $application->status = Application::STATUS_IN_PROGRESS;
                 $application->approved_at = now();
+                $application->accepted_at = now();
                 $application->approved_by_admin_user_id = $userId;
 
                 if ($application->type === 'return') {
@@ -125,16 +148,27 @@ class ApplicationApprovalController extends Controller
                 $application->save();
             });
 
-            // 請求はコミット後に実行（失敗しても承認は維持）
+            // 通知はコミット後に実行（失敗しても受付は維持）
+            // SPEC: 請求は締め日基準の PlanBillingService スナップショットのみ。レガシー AutoBilling は呼ばない。
             try {
                 $approved = Application::with(['medicalInstitution', 'department', 'items'])->findOrFail($applicationId);
                 \App\Services\NotificationService::notifyApplicationApproved($approved);
-                \App\Services\AutoBillingService::generateBillingForApprovedApplication($approved, $userId);
             } catch (\Exception $e) {
-                Log::error('Post-approval notification/billing failed', [
+                Log::error('Post-approval notification failed', [
                     'application_id' => $applicationId,
                     'error' => $e->getMessage(),
                 ]);
+            }
+
+            try {
+                $approved = Application::findOrFail($applicationId);
+                app(\App\Services\ApplicationPdfService::class)->issueAll($approved, $request->user());
+            } catch (\Exception $e) {
+                Log::error('PDF issue after accept failed', [
+                    'application_id' => $applicationId,
+                    'error' => $e->getMessage(),
+                ]);
+                return back()->with('status', '申請を受付し対応中にしました。帳票PDFの自動発行に失敗したため、詳細画面から再発行してください。');
             }
         } catch (\Exception $e) {
             Log::error('Application approval failed', [
@@ -145,7 +179,26 @@ class ApplicationApprovalController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('status', '申請を承認しました。');
+        return back()->with('status', '申請を受付し、対応中にしました。帳票PDF（5種）を発行しました。');
+    }
+
+    /**
+     * 出荷登録 → 完了
+     */
+    public function complete(Request $request, Application $application): RedirectResponse
+    {
+        $this->ensureApprover($request);
+
+        if (! $application->isCompletable()) {
+            return back()->with('error', '対応中の申請のみ完了にできます。');
+        }
+
+        $application->status = Application::STATUS_COMPLETED;
+        $application->shipped_at = now();
+        $application->completed_at = now();
+        $application->save();
+
+        return back()->with('status', '出荷登録し、申請を完了にしました。');
     }
 
     /**
@@ -471,9 +524,11 @@ class ApplicationApprovalController extends Controller
                 ];
 
                 $statusLabels = [
-                    'pending' => '未処理',
+                    'pending' => '申請',
                     'waiting_special_approval' => '特別承認待ち',
-                    'approved' => '承認済み',
+                    'in_progress' => '対応中',
+                    'completed' => '完了',
+                    'approved' => '対応中',
                     'rejected' => '却下',
                     'cancel_request' => 'キャンセル依頼中',
                     'cancel_approved' => 'キャンセル承認',

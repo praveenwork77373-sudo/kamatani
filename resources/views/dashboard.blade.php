@@ -185,15 +185,15 @@
                     </a>
                     @endif
                     
-                    {{-- System Admin, Operations, Sales: Contracts --}}
-                    @if(in_array($adminRole, ['system_admin', 'operation', 'sales']))
-                    <a href="{{ route('admin.contracts.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
+                    {{-- System Admin, Operations, Sales: Customer Contract Plans (SPEC) --}}
+                    @if(in_array($adminRole, ['system_admin', 'operation', 'sales', 'contract_plan_manager']))
+                    <a href="{{ route('admin.customer-contract-plans.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
                         <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center group-hover:scale-105 transition-transform">
                             <i data-lucide="file-signature" class="w-4 h-4 text-white"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-[13px] font-semibold text-slate-900">{{ $adminRole === 'sales' ? __('menu.contract_info') : __('pages.contract_management') }}</p>
-                            <p class="text-[11px] text-slate-600">{{ $adminRole === 'sales' ? __('pages.contract_info_desc') ?? '契約情報の確認' : __('pages.contract_management_desc') }}</p>
+                            <p class="text-[13px] font-semibold text-slate-900">{{ __('menu.customer_contract_plans') }}</p>
+                            <p class="text-[11px] text-slate-600">契約プランの確認・管理</p>
                         </div>
                         <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-slate-600"></i>
                     </a>

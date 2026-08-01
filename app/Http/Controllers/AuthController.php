@@ -17,18 +17,33 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    /** 連続失敗回数の上限 */
-    private const MAX_FAILED_ATTEMPTS = 5;
+    public const PORTAL_HOSPITAL = 'hospital';
+    public const PORTAL_ADMIN = 'admin';
 
-    /** 一時ロック時間（分） */
+    private const MAX_FAILED_ATTEMPTS = 5;
     private const LOCK_MINUTES = 15;
 
     public function showLoginForm(): View
     {
-        return view('auth.login');
+        return view('auth.login', ['portal' => self::PORTAL_HOSPITAL]);
+    }
+
+    public function showAdminLoginForm(): View
+    {
+        return view('auth.admin-login', ['portal' => self::PORTAL_ADMIN]);
     }
 
     public function login(Request $request): RedirectResponse
+    {
+        return $this->attemptLogin($request, self::PORTAL_HOSPITAL);
+    }
+
+    public function adminLogin(Request $request): RedirectResponse
+    {
+        return $this->attemptLogin($request, self::PORTAL_ADMIN);
+    }
+
+    private function attemptLogin(Request $request, string $portal): RedirectResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
@@ -38,7 +53,6 @@ class AuthController extends Controller
         /** @var User|null $user */
         $user = User::where('email', $credentials['email'])->first();
 
-        // ロック期限切れなら自動解除
         if ($user && $user->locked_until && $user->locked_until->isPast()) {
             $user->forceFill(['locked_until' => null])->save();
             $user->refresh();
@@ -51,6 +65,11 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'email' => "このアカウントは一時的にロックされています。解除予定: {$until}",
             ]);
+        }
+
+        // Reject wrong portal before Auth::attempt when we can identify the user
+        if ($user) {
+            $this->assertPortalAllowed($user, $portal);
         }
 
         $successful = Auth::attempt($credentials, $request->boolean('remember'));
@@ -72,32 +91,94 @@ class AuthController extends Controller
             ]);
         }
 
-        // ブロック／削除済み管理者はログイン不可
         $authUser = Auth::user();
         $adminProfile = $authUser?->adminUser()->withTrashed()->first();
-        if ($adminProfile && ($adminProfile->trashed() || $adminProfile->isBlocked())) {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
 
-            throw ValidationException::withMessages([
-                'email' => 'このアカウントは利用停止されています。管理者にお問い合わせください。',
-            ]);
+        if ($portal === self::PORTAL_ADMIN) {
+            if (!$adminProfile || $adminProfile->trashed() || $adminProfile->isBlocked()) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                throw ValidationException::withMessages([
+                    'email' => $adminProfile && ($adminProfile->trashed() || $adminProfile->isBlocked())
+                        ? 'このアカウントは利用停止されています。管理者にお問い合わせください。'
+                        : 'カマタニ管理者アカウントでログインしてください。医療機関の方は病院ログインをご利用ください。',
+                ]);
+            }
         }
 
-        // 成功時は一時ロックをクリア
+        if ($portal === self::PORTAL_HOSPITAL) {
+            if (!$authUser?->customerUser) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                throw ValidationException::withMessages([
+                    'email' => '医療機関アカウントでログインしてください。カマタニ管理者の方は管理者ログインをご利用ください。',
+                ]);
+            }
+        }
+
         if ($authUser && $authUser->locked_until) {
             $authUser->forceFill(['locked_until' => null])->save();
         }
 
         $request->session()->regenerate();
+        $request->session()->put('auth_portal', $portal);
 
-        return redirect()->intended('/dashboard');
+        if ($authUser && $authUser->must_change_password) {
+            return redirect()->route('password.force-change');
+        }
+
+        return redirect()->intended(route('dashboard'));
     }
 
-    /**
-     * 連続失敗による一時ロック
-     */
+    public function showForceChangePasswordForm(): View
+    {
+        return view('auth.force-change-password');
+    }
+
+    public function updateForcedPassword(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+        $user->forceFill([
+            'password' => $request->input('password'),
+            'must_change_password' => false,
+        ])->save();
+
+        return redirect()->route('dashboard')->with('status', 'パスワードを変更しました。');
+    }
+
+    private function assertPortalAllowed(User $user, string $portal): void
+    {
+        $user->loadMissing(['customerUser', 'adminUser']);
+
+        if ($portal === self::PORTAL_HOSPITAL && !$user->customerUser) {
+            throw ValidationException::withMessages([
+                'email' => '医療機関アカウントでログインしてください。カマタニ管理者の方は管理者ログインをご利用ください。',
+            ]);
+        }
+
+        if ($portal === self::PORTAL_ADMIN) {
+            $admin = $user->adminUser()->withTrashed()->first();
+            if (!$admin) {
+                throw ValidationException::withMessages([
+                    'email' => 'カマタニ管理者アカウントでログインしてください。医療機関の方は病院ログインをご利用ください。',
+                ]);
+            }
+            if ($admin->trashed() || $admin->isBlocked()) {
+                throw ValidationException::withMessages([
+                    'email' => 'このアカウントは利用停止されています。管理者にお問い合わせください。',
+                ]);
+            }
+        }
+    }
+
     private function handleFailedLogin(User $user): void
     {
         $recentFails = LoginAttempt::where('user_id', $user->id)
@@ -111,7 +192,6 @@ class AuthController extends Controller
             return;
         }
 
-        // 既にロック中なら再通知しない
         $wasAlreadyLocked = $user->locked_until && $user->locked_until->isFuture();
 
         $user->locked_until = Carbon::now()->addMinutes(self::LOCK_MINUTES);
@@ -140,24 +220,38 @@ class AuthController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
-        Auth::logout();
+        $portal = $request->session()->get('auth_portal');
+        $user = $request->user();
+        if (!$portal && $user) {
+            $portal = $user->adminUser ? self::PORTAL_ADMIN : self::PORTAL_HOSPITAL;
+        }
 
+        Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        return redirect()->route(
+            $portal === self::PORTAL_ADMIN ? 'admin.login' : 'login'
+        );
     }
 
-    public function showForgotPasswordForm(): View
+    public function showForgotPasswordForm(Request $request): View
     {
-        return view('auth.forgot-password');
+        $portal = $request->query('portal', self::PORTAL_HOSPITAL);
+        if (! in_array($portal, [self::PORTAL_HOSPITAL, self::PORTAL_ADMIN], true)) {
+            $portal = self::PORTAL_HOSPITAL;
+        }
+
+        return view('auth.forgot-password', ['portal' => $portal]);
     }
 
     public function sendResetLink(Request $request): RedirectResponse
     {
-        $request->validate(['email' => ['required', 'email']]);
+        $request->validate([
+            'email' => ['required', 'email'],
+            'portal' => ['nullable', 'in:hospital,admin'],
+        ]);
 
-        // 登録有無を推測させないため、応答メッセージは共通にする
         Password::sendResetLink($request->only('email'));
 
         return back()->with([
@@ -170,6 +264,7 @@ class AuthController extends Controller
         return view('auth.reset-password', [
             'token' => $token,
             'email' => $request->query('email', old('email')),
+            'portal' => $request->query('portal', old('portal', self::PORTAL_HOSPITAL)),
         ]);
     }
 
@@ -179,25 +274,38 @@ class AuthController extends Controller
             'token' => ['required'],
             'email' => ['required', 'email'],
             'password' => ['required', 'confirmed', 'min:8'],
+            'portal' => ['nullable', 'in:hospital,admin'],
         ]);
+
+        $portal = $request->input('portal', self::PORTAL_HOSPITAL);
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
-                // User モデルの hashed キャストに任せる（二重ハッシュ防止）
                 $user->forceFill([
                     'password' => $password,
                     'locked_until' => null,
                 ])->save();
 
-                // 既存セッション／remember を無効化
                 $user->setRememberToken(\Illuminate\Support\Str::random(60));
                 $user->save();
             }
         );
 
+        $loginRoute = $portal === self::PORTAL_ADMIN ? 'admin.login' : 'login';
+
+        // If portal omitted, pick by account type
+        if ($status === Password::PASSWORD_RESET) {
+            $user = User::where('email', $request->input('email'))->first();
+            if ($user?->adminUser && !$user->customerUser) {
+                $loginRoute = 'admin.login';
+            } elseif ($user?->customerUser && !$user->adminUser) {
+                $loginRoute = 'login';
+            }
+        }
+
         return $status === Password::PASSWORD_RESET
-            ? redirect()->route('login')->with('status', 'パスワードを変更しました。ログインしてください。')
+            ? redirect()->route($loginRoute)->with('status', 'パスワードを変更しました。ログインしてください。')
             : back()->withErrors([
                 'email' => match ($status) {
                     Password::INVALID_TOKEN => '再設定リンクが無効、期限切れ、または使用済みです。再度お手続きください。',

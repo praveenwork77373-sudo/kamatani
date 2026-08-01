@@ -26,6 +26,7 @@ class User extends Authenticatable
         'password',
         'type',
         'locked_until',
+        'must_change_password',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'locked_until' => 'datetime',
+            'must_change_password' => 'boolean',
         ];
     }
 

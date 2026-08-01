@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\CustomerUser;
+use App\Models\CustomerContractPlan;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\EmployeeContractPlan;
 use App\Models\EmployeePosition;
 use App\Models\JobType;
 use App\Models\MedicalInstitution;
+use App\Services\EmployeeStatusHistoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -102,7 +105,7 @@ class EmployeeController extends Controller
 
         // Check if user is customer user (institution_admin or department_admin) or admin user
         $isCustomer = $customer && in_array($customer->role, ['institution_admin', 'department_admin'], true);
-        $isAdmin = $adminUser && in_array($adminUser->role, ['system_admin', 'operation', 'sales', 'accounting'], true);
+        $isAdmin = $adminUser && in_array($adminUser->role, ['system_admin', 'operation', 'sales', 'accounting', 'contract_plan_manager'], true);
 
         if (!$isCustomer && !$isAdmin) {
             abort(403, '職員を追加できる権限がありません。');
@@ -125,6 +128,7 @@ class EmployeeController extends Controller
         // Get departments and job types based on institution
         $departments = collect();
         $jobTypes = collect();
+        $availablePlans = collect();
 
         if ($institutionId) {
             $departmentsQuery = Department::where('medical_institution_id', $institutionId);
@@ -136,6 +140,11 @@ class EmployeeController extends Controller
 
             $departments = $departmentsQuery->get();
             $jobTypes = JobType::where('medical_institution_id', $institutionId)->get();
+            $availablePlans = CustomerContractPlan::with('contractPlan')
+                ->where('medical_institution_id', $institutionId)
+                ->where('status', 'confirmed')
+                ->orderBy('id')
+                ->get();
         }
 
         return view('employees.create', [
@@ -145,6 +154,7 @@ class EmployeeController extends Controller
             'adminUser' => $adminUser,
             'institutions' => $institutions,
             'selectedInstitutionId' => $institutionId,
+            'availablePlans' => $availablePlans,
         ]);
     }
 
@@ -156,7 +166,7 @@ class EmployeeController extends Controller
 
         // Check if user is customer user or admin user
         $isCustomer = $customer && in_array($customer->role, ['institution_admin', 'department_admin'], true);
-        $isAdmin = $adminUser && in_array($adminUser->role, ['system_admin', 'operation', 'sales', 'accounting'], true);
+        $isAdmin = $adminUser && in_array($adminUser->role, ['system_admin', 'operation', 'sales', 'accounting', 'contract_plan_manager'], true);
 
         if (!$isCustomer && !$isAdmin) {
             abort(403);
@@ -184,7 +194,13 @@ class EmployeeController extends Controller
             'top_size' => ['nullable', 'max:50'],
             'bottom_size' => ['nullable', 'max:50'],
             'shoe_size' => ['nullable', 'max:50'],
+            'inseam_cm' => ['nullable', 'integer', 'min:50', 'max:120'],
+            'body_type' => ['nullable', 'string', 'max:50'],
             'status' => ['required', 'in:employed,on_leave,retired'],
+            'join_date' => ['nullable', 'date'],
+            'retire_date' => ['nullable', 'date', 'after_or_equal:join_date'],
+            'customer_contract_plan_ids' => ['nullable', 'array'],
+            'customer_contract_plan_ids.*' => ['integer', 'exists:customer_contract_plans,id'],
         ];
 
         // Add institution validation for admin users
@@ -202,13 +218,17 @@ class EmployeeController extends Controller
         $data = $request->validate($rules);
 
         $data['medical_institution_id'] = $institutionId;
+        $planIds = $data['customer_contract_plan_ids'] ?? [];
+        unset($data['customer_contract_plan_ids']);
 
         if ($isCustomer && $customer->role === 'department_admin') {
             $data['primary_department_id'] = $customer->department_id;
         }
 
-        DB::transaction(function () use ($data, $request, $customer, $isCustomer, $institutionId, &$employee) {
+        DB::transaction(function () use ($data, $request, $customer, $isCustomer, $institutionId, $planIds, &$employee) {
             $employee = Employee::create($data);
+
+            EmployeeStatusHistoryService::record($employee, $employee->status, 'initial');
 
             $positions = $request->input('positions', []);
             $index = 0;
@@ -249,6 +269,8 @@ class EmployeeController extends Controller
                 }
                 $index++;
             }
+
+            $this->syncEmployeeContractPlans($employee, $planIds, $institutionId);
         });
 
         return redirect()
@@ -263,7 +285,7 @@ class EmployeeController extends Controller
         $user = request()->user();
         $customer = $user->customerUser;
 
-        $employee->load(['primaryDepartment', 'positions.department', 'positions.jobType']);
+        $employee->load(['primaryDepartment', 'positions.department', 'positions.jobType', 'contractPlanAssignments.customerContractPlan.contractPlan']);
 
         return view('employees.show', [
             'employee' => $employee,
@@ -278,11 +300,20 @@ class EmployeeController extends Controller
         $user = request()->user();
         $customer = $user->customerUser;
 
+        $employee->load('contractPlanAssignments');
+
+        $availablePlans = CustomerContractPlan::with('contractPlan')
+            ->where('medical_institution_id', $customer->medical_institution_id)
+            ->where('status', 'confirmed')
+            ->orderBy('id')
+            ->get();
+
         return view('employees.edit', [
             'employee' => $employee,
             'customer' => $customer,
             'departments' => Department::where('medical_institution_id', $customer->medical_institution_id)->get(),
             'jobTypes' => JobType::where('medical_institution_id', $customer->medical_institution_id)->get(),
+            'availablePlans' => $availablePlans,
         ]);
     }
 
@@ -310,7 +341,13 @@ class EmployeeController extends Controller
             'top_size' => ['nullable', 'max:50'],
             'bottom_size' => ['nullable', 'max:50'],
             'shoe_size' => ['nullable', 'max:50'],
+            'inseam_cm' => ['nullable', 'integer', 'min:50', 'max:120'],
+            'body_type' => ['nullable', 'string', 'max:50'],
             'status' => ['required', 'in:employed,on_leave,retired'],
+            'join_date' => ['nullable', 'date'],
+            'retire_date' => ['nullable', 'date', 'after_or_equal:join_date'],
+            'customer_contract_plan_ids' => ['nullable', 'array'],
+            'customer_contract_plan_ids.*' => ['integer', 'exists:customer_contract_plans,id'],
         ];
 
         // 全体管理者のみ部署変更可能
@@ -319,9 +356,16 @@ class EmployeeController extends Controller
         }
 
         $data = $request->validate($rules);
+        $planIds = $data['customer_contract_plan_ids'] ?? [];
+        unset($data['customer_contract_plan_ids']);
 
-        DB::transaction(function () use ($data, $request, $employee, $customer) {
+        DB::transaction(function () use ($data, $request, $employee, $customer, $planIds) {
+            $oldStatus = $employee->status;
             $employee->update($data);
+
+            if ($oldStatus !== $employee->status) {
+                EmployeeStatusHistoryService::record($employee, $employee->status, 'status_change');
+            }
 
             // 職種・兼務ポジションを更新（既存を一旦削除して再作成）
             $employee->positions()->delete();
@@ -353,11 +397,58 @@ class EmployeeController extends Controller
                 }
                 $index++;
             }
+
+            $this->syncEmployeeContractPlans($employee, $planIds, $customer->medical_institution_id);
         });
 
         return redirect()
             ->route('employees.index')
             ->with('status', '職員情報を更新しました。');
+    }
+
+    /**
+     * Assign confirmed customer contract plans to an employee (optional at registration).
+     * Preserves history by closing prior assignments with assigned_until instead of delete.
+     */
+    private function syncEmployeeContractPlans(Employee $employee, array $planIds, int $institutionId): void
+    {
+        $validIds = CustomerContractPlan::where('medical_institution_id', $institutionId)
+            ->where('status', 'confirmed')
+            ->whereIn('id', $planIds)
+            ->pluck('id')
+            ->all();
+
+        $today = now()->toDateString();
+        $yesterday = now()->subDay()->toDateString();
+
+        $activeAssignments = $employee->contractPlanAssignments()
+            ->where(function ($q) use ($today) {
+                $q->whereNull('assigned_until')
+                    ->orWhere('assigned_until', '>=', $today);
+            })
+            ->get();
+
+        foreach ($activeAssignments as $assignment) {
+            if (! in_array($assignment->customer_contract_plan_id, $validIds, true)) {
+                $assignment->update(['assigned_until' => $yesterday]);
+            }
+        }
+
+        foreach ($validIds as $ccpId) {
+            $hasActive = $employee->contractPlanAssignments()
+                ->where('customer_contract_plan_id', $ccpId)
+                ->get()
+                ->contains(fn (EmployeeContractPlan $a) => $a->isActiveOn($today));
+
+            if (! $hasActive) {
+                EmployeeContractPlan::create([
+                    'employee_id' => $employee->id,
+                    'customer_contract_plan_id' => $ccpId,
+                    'assigned_from' => $today,
+                    'assigned_until' => null,
+                ]);
+            }
+        }
     }
 
     public function destroy(Employee $employee): RedirectResponse
@@ -410,7 +501,10 @@ class EmployeeController extends Controller
             });
         }
 
-        $employees = $query->with('primaryDepartment')->orderBy('staff_no')->get();
+        $employees = $query->with([
+            'primaryDepartment',
+            'contractPlanAssignments.customerContractPlan.contractPlan',
+        ])->orderBy('staff_no')->get();
 
         $filename = 'employees_' . date('YmdHis') . '.csv';
         $headers = [
@@ -422,12 +516,20 @@ class EmployeeController extends Controller
             $file = fopen('php://output', 'w');
             // BOM for Excel
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            // Header
+            // Header (SPEC fields)
             fputcsv($file, [
-                '職員番号', '氏名', '性別', '上衣サイズ', 'ズボンサイズ', '靴サイズ', '部署', '状態'
+                '職員番号', '氏名', '性別', '上衣サイズ', 'ズボンサイズ', '靴サイズ',
+                '股下cm', '体型', '部署', '入職日', '退職日', '状態', '契約プランコード',
             ]);
-            // Data
+            $today = now()->toDateString();
             foreach ($employees as $emp) {
+                $planCodes = $emp->contractPlanAssignments
+                    ->filter(fn ($a) => $a->isActiveOn($today))
+                    ->map(fn ($a) => $a->customerContractPlan?->contractPlan?->code)
+                    ->filter()
+                    ->unique()
+                    ->implode(',');
+
                 fputcsv($file, [
                     $emp->staff_no,
                     $emp->name,
@@ -435,8 +537,13 @@ class EmployeeController extends Controller
                     $emp->top_size ?? '',
                     $emp->bottom_size ?? '',
                     $emp->shoe_size ?? '',
+                    $emp->inseam_cm ?? '',
+                    $emp->body_type ?? '',
                     $emp->primaryDepartment?->name ?? '',
+                    optional($emp->join_date)->format('Y-m-d') ?? '',
+                    optional($emp->retire_date)->format('Y-m-d') ?? '',
                     $emp->status === 'employed' ? '在籍' : ($emp->status === 'on_leave' ? '休職' : '退職'),
+                    $planCodes,
                 ]);
             }
             fclose($file);
@@ -460,10 +567,11 @@ class EmployeeController extends Controller
 
         $file = $request->file('csv_file');
         $path = $file->getRealPath();
-        $data = array_map('str_getcsv', file($path));
+        $rows = array_map('str_getcsv', file($path));
 
-        // Skip header
-        array_shift($data);
+        $header = array_shift($rows) ?? [];
+        $headerJoined = implode(',', $header);
+        $isNewFormat = str_contains($headerJoined, '股下') || str_contains($headerJoined, '契約プラン');
 
         DB::beginTransaction();
         try {
@@ -471,74 +579,118 @@ class EmployeeController extends Controller
             $updated = 0;
             $errors = [];
 
-            foreach ($data as $index => $row) {
-                if (count($row) < 3) continue;
+            foreach ($rows as $index => $row) {
+                if (count($row) < 3) {
+                    continue;
+                }
 
                 $staffNo = trim($row[0] ?? '');
                 $name = trim($row[1] ?? '');
-                if (empty($staffNo) || empty($name)) continue;
+                if ($staffNo === '' || $name === '') {
+                    continue;
+                }
 
                 $gender = null;
                 if (isset($row[2])) {
                     $g = trim($row[2]);
-                    if (strpos($g, '男') !== false) $gender = 'male';
-                    elseif (strpos($g, '女') !== false) $gender = 'female';
+                    if (str_contains($g, '男')) {
+                        $gender = 'male';
+                    } elseif (str_contains($g, '女')) {
+                        $gender = 'female';
+                    }
                 }
 
                 $employee = Employee::where('staff_no', $staffNo)
                     ->where('medical_institution_id', $customer->medical_institution_id)
                     ->first();
 
-                $data = [
-                    'staff_no' => $staffNo,
-                    'name' => $name,
-                    'gender' => $gender,
-                    'top_size' => trim($row[3] ?? ''),
-                    'bottom_size' => trim($row[4] ?? ''),
-                    'shoe_size' => trim($row[5] ?? ''),
-                    'status' => isset($row[7]) && strpos($row[7], '退職') !== false ? 'retired' : 'employed',
-                    'medical_institution_id' => $customer->medical_institution_id,
-                ];
+                if ($isNewFormat) {
+                    // 職員番号,氏名,性別,上衣,ズボン,靴,股下,体型,部署,入職日,退職日,状態,契約プランコード
+                    $deptName = trim($row[8] ?? '');
+                    $statusRaw = trim($row[11] ?? '');
+                    $status = str_contains($statusRaw, '退職') ? 'retired'
+                        : (str_contains($statusRaw, '休職') ? 'on_leave' : 'employed');
+                    $empData = [
+                        'staff_no' => $staffNo,
+                        'name' => $name,
+                        'gender' => $gender,
+                        'top_size' => trim($row[3] ?? '') ?: null,
+                        'bottom_size' => trim($row[4] ?? '') ?: null,
+                        'shoe_size' => trim($row[5] ?? '') ?: null,
+                        'inseam_cm' => is_numeric(trim($row[6] ?? '')) ? (int) trim($row[6]) : null,
+                        'body_type' => trim($row[7] ?? '') ?: null,
+                        'join_date' => trim($row[9] ?? '') ?: null,
+                        'retire_date' => trim($row[10] ?? '') ?: null,
+                        'status' => $status,
+                        'medical_institution_id' => $customer->medical_institution_id,
+                    ];
+                    $planCodesRaw = trim($row[12] ?? '');
+                } else {
+                    // legacy: 職員番号,氏名,性別,上衣,ズボン,靴,部署,状態
+                    $deptName = trim($row[6] ?? '');
+                    $statusRaw = trim($row[7] ?? '');
+                    $empData = [
+                        'staff_no' => $staffNo,
+                        'name' => $name,
+                        'gender' => $gender,
+                        'top_size' => trim($row[3] ?? '') ?: null,
+                        'bottom_size' => trim($row[4] ?? '') ?: null,
+                        'shoe_size' => trim($row[5] ?? '') ?: null,
+                        'status' => str_contains($statusRaw, '退職') ? 'retired' : 'employed',
+                        'medical_institution_id' => $customer->medical_institution_id,
+                    ];
+                    $planCodesRaw = '';
+                }
 
                 if ($employee) {
-                    // 部署管理者は自部署の職員のみ更新
-                    if ($customer->role === 'department_admin' && $customer->department_id && $employee->primary_department_id !== $customer->department_id) {
-                        $errors[] = "行" . ($index + 2) . ": 権限外の部署の職員のため更新できません（職員番号: {$staffNo}）";
+                    if ($customer->role === 'department_admin' && $customer->department_id
+                        && (int) $employee->primary_department_id !== (int) $customer->department_id) {
+                        $errors[] = '行'.($index + 2).": 権限外の部署の職員のため更新できません（職員番号: {$staffNo}）";
                         continue;
                     }
-                    $employee->update($data);
+                    $employee->update($empData);
                     $updated++;
                 } else {
-                    // 新規作成時の部署決定
                     if ($customer->role === 'department_admin' && $customer->department_id) {
-                        // 部署管理者は自部署に固定
-                        $data['primary_department_id'] = $customer->department_id;
-                    } else {
-                        // 全体管理者の場合はCSVの部署名から取得（任意）
-                        if (isset($row[6]) && !empty(trim($row[6]))) {
-                            $dept = Department::where('name', trim($row[6]))
-                                ->where('medical_institution_id', $customer->medical_institution_id)
-                                ->first();
-                            if ($dept) {
-                                $data['primary_department_id'] = $dept->id;
-                            }
+                        $empData['primary_department_id'] = $customer->department_id;
+                    } elseif ($deptName !== '') {
+                        $dept = Department::where('name', $deptName)
+                            ->where('medical_institution_id', $customer->medical_institution_id)
+                            ->first();
+                        if ($dept) {
+                            $empData['primary_department_id'] = $dept->id;
                         }
                     }
 
-                    if (empty($data['primary_department_id'] ?? null)) {
-                        $errors[] = "行" . ($index + 2) . ": 部署が判定できないためスキップしました（職員番号: {$staffNo}）";
+                    if (empty($empData['primary_department_id'] ?? null)) {
+                        $errors[] = '行'.($index + 2).": 部署が判定できないためスキップしました（職員番号: {$staffNo}）";
                         continue;
                     }
-                    Employee::create($data);
+                    $employee = Employee::create($empData);
                     $imported++;
+                }
+
+                if ($isNewFormat && $employee) {
+                    $planIds = [];
+                    if ($planCodesRaw !== '') {
+                        $codes = array_filter(array_map('trim', explode(',', $planCodesRaw)));
+                        if (! empty($codes)) {
+                            $planIds = CustomerContractPlan::where('medical_institution_id', $customer->medical_institution_id)
+                                ->where('status', 'confirmed')
+                                ->whereHas('contractPlan', fn ($q) => $q->whereIn('code', $codes))
+                                ->pluck('id')
+                                ->all();
+                        }
+                    }
+                    $this->syncEmployeeContractPlans($employee, $planIds, $customer->medical_institution_id);
                 }
             }
 
             DB::commit();
 
             $message = "CSVインポート完了: 新規 {$imported} 件、更新 {$updated} 件";
-            if (!empty($errors)) {
-                $message .= '（一部スキップ: ' . count($errors) . ' 件）';
+            if (! empty($errors)) {
+                $message .= '（一部スキップ: '.count($errors).' 件）';
             }
 
             return redirect()
@@ -546,10 +698,11 @@ class EmployeeController extends Controller
                 ->with('status', $message);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('CSV import error: ' . $e->getMessage());
+            Log::error('CSV import error: '.$e->getMessage());
+
             return redirect()
                 ->route('employees.index')
-                ->with('error', 'CSVインポート中にエラーが発生しました: ' . $e->getMessage());
+                ->with('error', 'CSVインポート中にエラーが発生しました: '.$e->getMessage());
         }
     }
 

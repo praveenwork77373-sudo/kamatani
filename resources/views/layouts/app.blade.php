@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/ui-kit.css') }}">
     {{-- Tailwind CSS CDN --}}
     <script src="https://cdn.tailwindcss.com"></script>
     {{-- Lucide Icons - Modern, Beautiful Icons --}}
@@ -332,10 +333,10 @@
                                 </div>
                             </div>
                             
-                            {{-- Contract Section (Single Item - Direct Link) --}}
-                            <a href="{{ route('admin.contracts.index') }}"
-                               class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/contracts*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                <div class="h-8 w-8 rounded-lg {{ request()->is('admin/contracts*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
+                            {{-- Contract plans / limits (hospital read-only) --}}
+                            <a href="{{ route('customer.contract-plans.index') }}"
+                               class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('customer/contract-plans*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                                <div class="h-8 w-8 rounded-lg {{ request()->is('customer/contract-plans*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
                                     <i data-lucide="file-signature" class="w-4 h-4"></i>
                                 </div>
                                 <span class="font-medium">{{ __('menu.contract_info') }}</span>
@@ -467,49 +468,49 @@
                     
                     {{-- Sales: Contract Info Only (Single Item - Direct Link) --}}
                     @if($adminRole === 'sales')
-                        <a href="{{ route('admin.contracts.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/contracts*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/contracts*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
+                        <a href="{{ route('admin.customer-contract-plans.index') }}"
+                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/customer-contract-plans*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/customer-contract-plans*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
                                 <i data-lucide="file-signature" class="w-4 h-4"></i>
                             </div>
-                            <span class="font-medium">{{ __('menu.contract_info') }}</span>
+                            <span class="font-medium">{{ __('menu.customer_contract_plans') }}</span>
+                        </a>
+                    @endif
+
+                    {{-- Contract Plan masters --}}
+                    @if(in_array($adminRole, ['system_admin', 'contract_plan_manager', 'operation']))
+                        <a href="{{ route('admin.makers.index') }}"
+                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/makers*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/makers*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
+                                <i data-lucide="factory" class="w-4 h-4"></i>
+                            </div>
+                            <span class="font-medium">{{ __('menu.makers') }}</span>
+                        </a>
+                        <a href="{{ route('admin.contract-plans.index') }}"
+                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/contract-plans*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/contract-plans*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
+                                <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                            </div>
+                            <span class="font-medium">{{ __('menu.contract_plans') }}</span>
+                        </a>
+                        <a href="{{ route('admin.customer-contract-plans.index') }}"
+                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/customer-contract-plans*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/customer-contract-plans*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
+                                <i data-lucide="building-2" class="w-4 h-4"></i>
+                            </div>
+                            <span class="font-medium">{{ __('menu.customer_contract_plans') }}</span>
                         </a>
                     @endif
                     
-                    {{-- Contract Management - System Admin, Operations --}}
+                    {{-- Billing (plan-based) — System Admin, Operations --}}
                     @if(in_array($adminRole, ['system_admin', 'operation']))
-                        @php
-                            $isContractBillingActive = request()->is('admin/contracts*') || 
-                                                      request()->is('admin/billing*');
-                        @endphp
-                        <div class="menu-section {{ $isContractBillingActive ? 'expanded' : 'collapsed' }}" data-initialized="true">
-                            <button type="button" class="menu-section-header w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-50 transition-all" onclick="toggleMenuSection(this)">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="file-signature" class="w-4 h-4 text-slate-500"></i>
-                                    <span class="text-[13px] font-semibold">{{ __('menu.menu_contract_billing') }}</span>
-                                </div>
-                                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 menu-chevron transition-transform duration-200"></i>
-                            </button>
-                            <div class="menu-section-content pl-4 mt-1 space-y-1">
-                                <a href="{{ route('admin.contracts.index') }}"
-                                   class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/contracts*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                    <div class="h-8 w-8 rounded-lg {{ request()->is('admin/contracts*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                        <i data-lucide="file-signature" class="w-4 h-4"></i>
-                                    </div>
-                                    <span class="font-medium">{{ __('menu.contracts') }}</span>
-                                </a>
-                                {{-- Billing: System Admin, Operations, and Accounting can see --}}
-                                @if(in_array($adminRole, ['system_admin', 'operation', 'accounting']))
-                                    <a href="{{ route('admin.billing.index') }}"
-                                       class="group mt-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/billing*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                        <div class="h-8 w-8 rounded-lg {{ request()->is('admin/billing*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                            <i data-lucide="receipt-text" class="w-4 h-4"></i>
-                                        </div>
-                                        <span class="font-medium">{{ __('menu.billing') }}</span>
-                                    </a>
-                                @endif
+                        <a href="{{ route('admin.billing.index') }}"
+                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/billing*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/billing*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
+                                <i data-lucide="receipt-text" class="w-4 h-4"></i>
                             </div>
-                        </div>
+                            <span class="font-medium">{{ __('menu.billing') }}</span>
+                        </a>
                     @endif
                     
                     {{-- Accounting: Billing Only (Single Item - Direct Link) --}}
@@ -564,23 +565,22 @@
 
         <!-- メインコンテンツ -->
         <div class="w-full flex flex-col min-w-0 md:ml-64">
-            <header class="bg-white/95 z-[100] backdrop-blur-sm border-b border-slate-200 shadow-sm sticky top-0 z-10 pb-[0.1em]" >
-                <div class="px-3 py-3 md:px-6 md:py-3 lg:py-4 flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-3 md:hidden lg:block">
+            <header class="bg-white/95 z-[100] backdrop-blur-sm border-b border-slate-200 shadow-sm sticky top-0">
+                <div class="px-3 py-3 sm:px-4 md:px-6 md:py-3 lg:py-4 flex items-center justify-between gap-2 sm:gap-3">
+                    <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                         <!-- Mobile Menu Button -->
-                        <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all" aria-label="Toggle menu" type="button">
+                        <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden shrink-0 p-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all" aria-label="Toggle menu" type="button">
                             <i data-lucide="menu" class="w-6 h-6"></i>
                         </button>
-                        <div>
-                            <p class="text-[11px] text-slate-400 uppercase tracking-wide font-semibold">@yield('header_category', __('menu.applications'))</p>
-                            <p class="text-xl font-bold text-slate-900 mt-0.5 flex items-center gap-2">
+                        <div class="min-w-0">
+                            <p class="text-[10px] sm:text-[11px] text-slate-400 uppercase tracking-wide font-semibold truncate">@yield('header_category', __('menu.applications'))</p>
+                            <p class="text-base sm:text-xl font-bold text-slate-900 mt-0.5 truncate flex items-center gap-2">
                                 @yield('page_title', __('menu.applications'))
                             </p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                       
-                        <a href="{{ route('notifications.index') }}" class="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title="{{ __('menu.notifications') }}">
+                    <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                        <a href="{{ route('notifications.index') }}" class="relative p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title="{{ __('menu.notifications') }}">
                             <i data-lucide="bell" class="w-5 h-5"></i>
                             @php
                                 $notificationCount = \App\Models\Notification::where('user_id', auth()->id())
@@ -594,7 +594,7 @@
                             @endif
                         </a>
                         <div class="relative group">
-                            <button class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title="{{ __('common.settings') }}">
+                            <button class="p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title="{{ __('common.settings') }}">
                                 <i data-lucide="globe" class="w-5 h-5"></i>
                             </button>
                             <div class="absolute right-0 top-full mt-2 w-32 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
@@ -630,7 +630,7 @@
                 </div>
             </header>
 
-            <main class="flex-1 px-3 py-4  md:py-5 max-w-[1600px] w-full mx-auto">
+            <main class="flex-1 px-3 py-4 sm:px-4 md:px-6 md:py-5 max-w-[1600px] w-full mx-auto">
                 @if (session('status'))
                     <div class="mb-6 text-sm text-emerald-800 bg-emerald-50 border-l-4 border-emerald-500 rounded px-4 py-3 shadow-sm">
                         <div class="flex items-center gap-2">

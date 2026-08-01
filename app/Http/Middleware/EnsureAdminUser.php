@@ -23,6 +23,10 @@ class EnsureAdminUser
         $admin = $user->adminUser()->withTrashed()->first();
 
         if (!$admin || $admin->trashed() || $admin->isBlocked()) {
+            if ($user->customerUser) {
+                return redirect()->route('dashboard')
+                    ->with('error', 'カマタニ管理画面へのアクセス権限がありません。');
+            }
             abort(403, '管理者権限がありません。');
         }
 

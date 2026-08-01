@@ -6,6 +6,7 @@
 @section('content')
     @php
         $data = $snapshot->data ?? [];
+        $isPlanBased = ($data['model'] ?? null) === 'plan_based';
         $summary = $data['summary'] ?? [
             'total_targets' => 0,
             'total_loan_points' => 0,
@@ -14,21 +15,24 @@
             'billing_amount' => 0,
             'employees_with_loans' => 0,
             'unit_price' => 0,
+            'plan_count' => 0,
         ];
         $contract = $data['contract'] ?? null;
         $departmentBreakdown = $data['department_breakdown'] ?? [];
+        $planSummary = $data['plan_summary'] ?? [];
+        $staffRows = $data['staff_rows'] ?? [];
         $itemBreakdown = $data['item_breakdown'] ?? [];
         $invoice = $data['invoice'] ?? [
             'invoice_number' => '-',
             'issue_date' => '-',
             'payment_due_date' => '-',
             'created_at_formatted' => $snapshot->created_at->format('Y年n月j日 G時i分'),
-            'subtotal' => 0,
+            'subtotal' => $summary['billing_amount'] ?? 0,
             'tax_rate' => 10,
-            'tax_amount' => 0,
-            'total_amount' => 0,
+            'tax_amount' => (int) floor(($summary['billing_amount'] ?? 0) * 0.1),
+            'total_amount' => ($summary['billing_amount'] ?? 0) + (int) floor(($summary['billing_amount'] ?? 0) * 0.1),
         ];
-        $targetMonth = $data['target_month'] ?? \Carbon\Carbon::parse($snapshot->target_date)->format('Y年n月');
+        $targetMonth = $data['reference_date'] ?? $data['target_month'] ?? \Carbon\Carbon::parse($snapshot->target_date)->format('Y-m-d');
     @endphp
 
     {{-- Header --}}
@@ -59,10 +63,10 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <button onclick="exportToExcel()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all">
+                <a href="{{ route('admin.billing.export', $snapshot) }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all">
                     <i data-lucide="download" class="w-4 h-4"></i>
                     {{ __('pages.excel_export') }}
-                </button>
+                </a>
                 <a href="{{ route('admin.billing.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     {{ __('pages.past_billing_history') }}
@@ -87,17 +91,21 @@
             </div>
         </div>
         
-        {{-- 総与点数 Card --}}
+        {{-- 総与点数 / プラン数 Card --}}
         <div class="relative overflow-hidden rounded-lg bg-gradient-to-br from-emerald-50/50 via-emerald-50/30 to-emerald-50/50 border border-emerald-100/50 p-3 shadow-sm hover:shadow transition-all duration-200">
             <div class="relative z-10">
                 <div class="flex items-center justify-between mb-2">
                     <div class="h-8 w-8 rounded-lg bg-emerald-100/50 flex items-center justify-center">
                         <i data-lucide="package" class="w-4 h-4 text-emerald-600"></i>
                     </div>
-                    <span class="px-1.5 py-0.5 rounded-full bg-emerald-100/50 text-emerald-700 text-[10px] font-semibold">貸与中</span>
                 </div>
-                <p class="text-2xl font-bold text-slate-900 mb-0.5">{{ number_format($summary['total_loan_points'] ?? $summary['return_points'] ?? 0) }}{{ __('pages.points') }}</p>
-                <p class="text-slate-600 text-[12px] font-medium">{{ __('pages.total_loan_points') }} ({{ __('pages.items_on_loan') }})</p>
+                @if($isPlanBased)
+                    <p class="text-2xl font-bold text-slate-900 mb-0.5">{{ number_format($summary['plan_count'] ?? count($planSummary)) }}</p>
+                    <p class="text-slate-600 text-[12px] font-medium">契約プラン数</p>
+                @else
+                    <p class="text-2xl font-bold text-slate-900 mb-0.5">{{ number_format($summary['total_loan_points'] ?? $summary['return_points'] ?? 0) }}{{ __('pages.points') }}</p>
+                    <p class="text-slate-600 text-[12px] font-medium">{{ __('pages.total_loan_points') }} ({{ __('pages.items_on_loan') }})</p>
+                @endif
             </div>
         </div>
         
@@ -145,7 +153,89 @@
         </div>
     </div>
 
+    {{-- Plan Summary (SPEC) --}}
+    @if($isPlanBased)
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <h2 class="text-lg font-semibold text-slate-900">請求明細（契約プラン集計）</h2>
+            <p class="text-[13px] text-slate-600 mt-1">基準日: {{ $data['reference_date'] ?? $snapshot->target_date?->format('Y-m-d') }}　／　締め日: {{ $data['closing_day'] ?? '-' }}日</p>
+            <p class="text-[12px] text-slate-500 mt-1">【公式】請求金額 = 対象人数（割当）× 単価。契約口数×単価は参考値です。</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-[14px]">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3 text-left">プラン名</th>
+                        <th class="px-4 py-3 text-left">コード</th>
+                        <th class="px-4 py-3 text-right">契約口数</th>
+                        <th class="px-4 py-3 text-right">対象人数</th>
+                        <th class="px-4 py-3 text-right">単価（税抜）</th>
+                        <th class="px-4 py-3 text-right">請求金額</th>
+                        <th class="px-4 py-3 text-right">契約口数×単価</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($planSummary as $plan)
+                        <tr>
+                            <td class="px-4 py-3">{{ $plan['plan_name'] }}</td>
+                            <td class="px-4 py-3">{{ $plan['plan_code'] }}</td>
+                            <td class="px-4 py-3 text-right">{{ number_format($plan['contracted_slots'] ?? 0) }}</td>
+                            <td class="px-4 py-3 text-right">{{ number_format($plan['assigned_count'] ?? 0) }}</td>
+                            <td class="px-4 py-3 text-right">¥{{ number_format($plan['unit_price_ex_tax'] ?? 0) }}</td>
+                            <td class="px-4 py-3 text-right font-semibold">¥{{ number_format($plan['amount_ex_tax'] ?? 0) }}</td>
+                            <td class="px-4 py-3 text-right text-slate-500">¥{{ number_format($plan['amount_by_contract_slots'] ?? 0) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">プラン集計なし</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <h2 class="text-lg font-semibold text-slate-900">個人明細（プラン割当）</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-[13px]">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-3 py-2 text-left">職員番号</th>
+                        <th class="px-3 py-2 text-left">氏名</th>
+                        <th class="px-3 py-2 text-left">部署</th>
+                        <th class="px-3 py-2 text-left">入職</th>
+                        <th class="px-3 py-2 text-left">退職</th>
+                        <th class="px-3 py-2 text-left">プラン</th>
+                        <th class="px-3 py-2 text-left">コード</th>
+                        <th class="px-3 py-2 text-right">単価</th>
+                        <th class="px-3 py-2 text-right">金額</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($staffRows as $row)
+                        <tr>
+                            <td class="px-3 py-2">{{ $row['staff_no'] }}</td>
+                            <td class="px-3 py-2">{{ $row['person_name'] }}</td>
+                            <td class="px-3 py-2">{{ $row['department_name'] ?? '-' }}</td>
+                            <td class="px-3 py-2">{{ $row['join_date'] ?? '-' }}</td>
+                            <td class="px-3 py-2">{{ $row['retire_date'] ?? '-' }}</td>
+                            <td class="px-3 py-2">{{ $row['plan_name'] }}</td>
+                            <td class="px-3 py-2">{{ $row['plan_code'] }}</td>
+                            <td class="px-3 py-2 text-right">¥{{ number_format($row['unit_price_ex_tax'] ?? 0) }}</td>
+                            <td class="px-3 py-2 text-right font-semibold">¥{{ number_format($row['amount_ex_tax'] ?? 0) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="9" class="px-3 py-8 text-center text-slate-500">個人明細なし</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
     {{-- Department Breakdown Table --}}
+    @if(!$isPlanBased)
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
         <div class="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50">
             <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -270,8 +360,10 @@
             </table>
         </div>
     </div>
+    @endif
 
     {{-- Item Breakdown --}}
+    @if(!$isPlanBased)
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
         <div class="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50">
             <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -394,6 +486,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     {{-- Invoice Information --}}
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
@@ -490,9 +583,7 @@
         });
 
         function exportToExcel() {
-            // TODO: Implement Excel export
-            const message = '{{ app()->getLocale() === "ja" ? "Excelエクスポート機能は近日実装予定です。" : "Excel export functionality will be implemented soon." }}';
-            alert(message);
+            window.location.href = '{{ route('admin.billing.export', $snapshot) }}';
         }
 
         function confirmBilling() {

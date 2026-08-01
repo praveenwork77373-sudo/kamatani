@@ -5,6 +5,7 @@ return [
     'operation' => '運営管理者',
     'sales' => '営業管理者',
     'accounting' => '経理管理者',
+    'contract_plan_manager' => '契約プラン管理',
     'institution_admin' => '医療機関全体管理者',
     'department_admin' => '部署管理者',
     

@@ -70,7 +70,21 @@
                                 @endif
                             </td>
                             <td class="px-5 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
+                                <div class="flex items-center justify-end gap-2 flex-wrap">
+                                    @if($institution->institutionAdmin && $institution->institutionAdmin->user)
+                                        <form method="POST" action="{{ route('admin.masters.institutions.welcome_email', $institution) }}" class="inline" onsubmit="return confirm('利用開始メールを送信しますか？仮パスワードが再発行されます。');">
+                                            @csrf
+                                            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-[13px] font-medium transition-all">
+                                                <i data-lucide="send" class="w-4 h-4"></i>
+                                                利用開始メール
+                                            </button>
+                                        </form>
+                                        <a href="{{ route('admin.masters.institutions.welcome_email_history', $institution) }}"
+                                           class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] font-medium transition-all">
+                                            <i data-lucide="history" class="w-4 h-4"></i>
+                                            送信履歴
+                                        </a>
+                                    @endif
                                     <a href="{{ route('admin.masters.institutions.edit', $institution) }}"
                                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 text-[13px] font-medium transition-all">
                                         <i data-lucide="edit" class="w-4 h-4"></i>

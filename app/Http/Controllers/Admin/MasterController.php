@@ -53,10 +53,12 @@ class MasterController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:50', 'unique:medical_institutions,code'],
-            'billing_model' => ['required', 'in:fixed_per_person,point_based'],
+            'billing_model' => ['required', 'in:fixed_per_person,point_based,point_usage'],
             'notification_email' => ['required', 'email'],
             'per_person_loan_limit' => ['nullable', 'integer', 'min:0'],
             'point_unit_price' => ['nullable', 'numeric', 'min:0'],
+            'billing_closing_day' => ['nullable', 'integer', 'min:1', 'max:28'],
+            'sales_person_name' => ['nullable', 'string', 'max:255'],
             // Overall Manager Account fields
             'manager_name' => ['required', 'string', 'max:255'],
             'manager_email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -67,10 +69,12 @@ class MasterController extends Controller
         $institution = MedicalInstitution::create([
             'name' => $data['name'],
             'code' => $data['code'],
-            'billing_model' => $data['billing_model'],
+            'billing_model' => $data['billing_model'] === 'point_based' ? 'point_usage' : $data['billing_model'],
             'notification_email' => $data['notification_email'],
             'per_person_loan_limit' => $data['per_person_loan_limit'] ?? null,
             'point_unit_price' => $data['point_unit_price'] ?? null,
+            'billing_closing_day' => $data['billing_closing_day'] ?? 1,
+            'sales_person_name' => $data['sales_person_name'] ?? null,
         ]);
 
         // Create overall manager user account
@@ -93,6 +97,45 @@ class MasterController extends Controller
             ->with('status', '医療機関と全体管理者アカウントを登録しました。');
     }
 
+    public function sendWelcomeEmail(Request $request, MedicalInstitution $institution): RedirectResponse
+    {
+        $this->checkSystemAdmin();
+
+        $institution->load('institutionAdmin.user');
+        $manager = $institution->institutionAdmin?->user;
+
+        if (! $manager) {
+            return back()->with('error', '全体管理者が登録されていません。');
+        }
+
+        try {
+            app(\App\Services\WelcomeEmailService::class)->send(
+                $institution,
+                $manager,
+                $request->user()
+            );
+        } catch (\Throwable $e) {
+            return back()->with('error', '利用開始メールの送信に失敗しました: '.$e->getMessage());
+        }
+
+        return back()->with('status', '利用開始メールを送信しました（'.$manager->email.'）。仮パスワードで初回ログイン後に変更が必要です。');
+    }
+
+    public function welcomeEmailHistory(MedicalInstitution $institution): View
+    {
+        $this->checkSystemAdmin();
+
+        $histories = \App\Models\WelcomeEmailSendHistory::with(['user', 'sentBy'])
+            ->where('medical_institution_id', $institution->id)
+            ->orderByDesc('sent_at')
+            ->paginate(20);
+
+        return view('admin.masters.welcome-email-history', [
+            'institution' => $institution,
+            'histories' => $histories,
+        ]);
+    }
+
     public function institutionEdit(MedicalInstitution $institution): View
     {
         $this->checkSystemAdmin();
@@ -107,10 +150,12 @@ class MasterController extends Controller
         $validationRules = [
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:50'],
-            'billing_model' => ['required', 'in:fixed_per_person,point_based'],
+            'billing_model' => ['required', 'in:fixed_per_person,point_based,point_usage'],
             'notification_email' => ['required', 'email'],
             'per_person_loan_limit' => ['nullable', 'integer', 'min:0'],
             'point_unit_price' => ['nullable', 'numeric', 'min:0'],
+            'billing_closing_day' => ['nullable', 'integer', 'min:1', 'max:28'],
+            'sales_person_name' => ['nullable', 'string', 'max:255'],
             // Manager account update fields (optional)
             'manager_name' => ['nullable', 'string', 'max:255'],
             'manager_email' => ['nullable', 'email', 'max:255'],
@@ -129,10 +174,12 @@ class MasterController extends Controller
         $institution->update([
             'name' => $data['name'],
             'code' => $data['code'],
-            'billing_model' => $data['billing_model'],
+            'billing_model' => $data['billing_model'] === 'point_based' ? 'point_usage' : $data['billing_model'],
             'notification_email' => $data['notification_email'],
             'per_person_loan_limit' => $data['per_person_loan_limit'] ?? null,
             'point_unit_price' => $data['point_unit_price'] ?? null,
+            'billing_closing_day' => $data['billing_closing_day'] ?? 1,
+            'sales_person_name' => $data['sales_person_name'] ?? null,
         ]);
 
         // Update manager account if provided

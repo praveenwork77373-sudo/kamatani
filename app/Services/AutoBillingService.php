@@ -14,6 +14,11 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @deprecated SPEC 2026-07-31: FIXED/POINT application-triggered billing is superseded by
+ * PlanBillingService (plan × assigned employed staff × unit price as-of closing day).
+ * Kept for reference only — do not call from application accept / billing approve.
+ */
 class AutoBillingService
 {
     /**
@@ -215,7 +220,7 @@ class AutoBillingService
         $approvedApplications = Application::with(['items.uniformProduct', 'employee', 'department'])
             ->where('medical_institution_id', $institution->id)
             ->where('department_id', $department->id)
-            ->where('status', 'approved')
+            ->whereIn('status', [\App\Models\Application::STATUS_IN_PROGRESS, \App\Models\Application::STATUS_COMPLETED, 'approved'])
             ->whereNotNull('approved_at')
             ->where('approved_at', '<=', $monthEnd->format('Y-m-d') . ' 23:59:59')
             ->get();
@@ -335,7 +340,7 @@ class AutoBillingService
             ->where('medical_institution_id', $institution->id)
             ->where('department_id', $department->id)
             ->where('type', 'return')
-            ->where('status', 'approved')
+            ->whereIn('status', [\App\Models\Application::STATUS_IN_PROGRESS, \App\Models\Application::STATUS_COMPLETED, 'approved'])
             ->whereNotNull('approved_at')
             ->whereBetween('approved_at', [
                 $monthStart->format('Y-m-d') . ' 00:00:00',

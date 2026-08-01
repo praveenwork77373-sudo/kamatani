@@ -60,9 +60,11 @@
                         <dd>
                             @php
                                 $statusConfig = [
-                                    'pending' => ['label' => __('pages.status_pending'), 'class' => 'bg-slate-100 text-slate-700'],
+                                    'pending' => ['label' => '申請', 'class' => 'bg-slate-100 text-slate-700'],
                                     'waiting_special_approval' => ['label' => __('pages.status_waiting_special_approval'), 'class' => 'bg-amber-100 text-amber-700'],
-                                    'approved' => ['label' => __('pages.status_approved'), 'class' => 'bg-emerald-100 text-emerald-700'],
+                                    'in_progress' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700'],
+                                    'completed' => ['label' => '完了', 'class' => 'bg-emerald-100 text-emerald-700'],
+                                    'approved' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700'],
                                     'rejected' => ['label' => __('pages.status_rejected'), 'class' => 'bg-red-100 text-red-700'],
                                     'cancel_request' => ['label' => __('pages.status_cancel_request'), 'class' => 'bg-orange-100 text-orange-700'],
                                     'cancel_approved' => ['label' => __('pages.status_cancel_approved'), 'class' => 'bg-slate-100 text-slate-700'],
@@ -123,6 +125,95 @@
                     <p class="text-[13px] text-amber-700">{{ $application->special_approval_reason }}</p>
                 </div>
             @endif
+
+            {{-- メモ（帳票印字） --}}
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">メモ（帳票）</h2>
+                <form method="POST" action="{{ route('admin.applications.update_memos', $application) }}" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">メモ1</label>
+                        <input type="text" name="memo1" value="{{ old('memo1', $application->memo1) }}" maxlength="500"
+                               class="w-full px-3 py-2 rounded-lg border border-slate-300 text-[14px]">
+                    </div>
+                    <div>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">メモ2</label>
+                        <input type="text" name="memo2" value="{{ old('memo2', $application->memo2) }}" maxlength="500"
+                               class="w-full px-3 py-2 rounded-lg border border-slate-300 text-[14px]">
+                    </div>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-[13px] font-medium hover:bg-slate-900">
+                        メモを保存
+                    </button>
+                </form>
+            </div>
+
+            {{-- 帳票PDF --}}
+            @if(in_array($application->status, ['in_progress', 'completed'], true))
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+                    <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                        <h2 class="text-lg font-semibold text-slate-900">帳票PDF</h2>
+                        <form method="POST" action="{{ route('admin.applications.documents.issue', $application) }}">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 text-[13px] font-medium">
+                                <i class="ph ph-file-pdf text-base"></i>
+                                {{ ($latestDocuments ?? collect())->isEmpty() ? '5種を発行' : '5種を再発行' }}
+                            </button>
+                        </form>
+                    </div>
+                    <div class="space-y-2">
+                        @php
+                            $types = [
+                                'order_slip' => '受注伝票',
+                                'delivery_notice' => '納入予定ご連絡書',
+                                'shipping_sales' => '出荷指示書（営業所用）',
+                                'shipping_warehouse' => '出荷指示書（倉庫用）',
+                                'work_slip' => '作業用伝票',
+                            ];
+                            $latestDocuments = $latestDocuments ?? collect();
+                        @endphp
+                        @foreach($types as $type => $label)
+                            @php $doc = $latestDocuments->get($type); @endphp
+                            <div class="flex items-center justify-between gap-3 py-2.5 px-3 rounded-lg bg-slate-50 border border-slate-100">
+                                <div>
+                                    <p class="text-[13px] font-medium text-slate-900">{{ $label }}</p>
+                                    @if($doc)
+                                        <p class="text-[11px] text-slate-500">v{{ $doc->version }} · {{ optional($doc->issued_at)->format('Y-m-d H:i') }}</p>
+                                    @else
+                                        <p class="text-[11px] text-slate-400">未発行</p>
+                                    @endif
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    @if($doc)
+                                        <a href="{{ route('admin.application-documents.preview', $doc) }}" target="_blank"
+                                           class="px-2.5 py-1 rounded border border-slate-300 text-[12px] text-slate-700 hover:bg-white">表示</a>
+                                        <a href="{{ route('admin.application-documents.download', $doc) }}"
+                                           class="px-2.5 py-1 rounded border border-slate-300 text-[12px] text-slate-700 hover:bg-white">DL</a>
+                                    @endif
+                                    <form method="POST" action="{{ route('admin.applications.documents.reissue', [$application, $type]) }}">
+                                        @csrf
+                                        <button type="submit" class="px-2.5 py-1 rounded border border-emerald-300 text-[12px] text-emerald-700 hover:bg-emerald-50">
+                                            {{ $doc ? '再発行' : '発行' }}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    @if(($documentHistory ?? collect())->where('is_latest', false)->isNotEmpty())
+                        <details class="mt-4">
+                            <summary class="text-[13px] text-slate-600 cursor-pointer">過去バージョン履歴</summary>
+                            <ul class="mt-2 space-y-1 text-[12px] text-slate-600">
+                                @foreach(($documentHistory ?? collect())->where('is_latest', false)->sortByDesc('issued_at') as $old)
+                                    <li class="flex justify-between gap-2">
+                                        <span>{{ $old->label() }} v{{ $old->version }} · {{ optional($old->issued_at)->format('Y-m-d H:i') }}</span>
+                                        <a href="{{ route('admin.application-documents.download', $old) }}" class="text-primary-600 hover:underline">DL</a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </details>
+                    @endif
+                </div>
+            @endif
         </div>
 
         {{-- アクションサイドバー --}}
@@ -135,13 +226,23 @@
                             @csrf
                             <button type="submit" class="w-full px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
                                 <i class="ph ph-check-circle text-base"></i>
-                                承認する
+                                受付する（対応中）
                             </button>
                         </form>
                         <button type="button" onclick="openRejectModal()" class="w-full px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
                             <i class="ph ph-x-circle text-base"></i>
                             却下する
                         </button>
+                    @endif
+
+                    @if($application->status === 'in_progress')
+                        <form method="POST" action="{{ route('admin.applications.complete', $application) }}" class="inline-block w-full" onsubmit="return confirm('出荷完了として申請を完了にしますか？');">
+                            @csrf
+                            <button type="submit" class="w-full px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
+                                <i class="ph ph-truck text-base"></i>
+                                出荷登録（完了）
+                            </button>
+                        </form>
                     @endif
 
                     @if($application->status === 'cancel_request')

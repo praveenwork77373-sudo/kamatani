@@ -120,6 +120,7 @@ class AdminUserController extends Controller
         $operationAdmins = (clone $statsQuery)->where('role', 'operation')->whereNull('deleted_at')->count();
         $salesAdmins = (clone $statsQuery)->where('role', 'sales')->whereNull('deleted_at')->count();
         $accountingAdmins = (clone $statsQuery)->where('role', 'accounting')->whereNull('deleted_at')->count();
+        $contractPlanManagers = (clone $statsQuery)->where('role', 'contract_plan_manager')->whereNull('deleted_at')->count();
 
         return view('admin.admin-users.index', [
             'adminUsers' => $adminUsers,
@@ -135,6 +136,7 @@ class AdminUserController extends Controller
                 'operation_admins' => $operationAdmins,
                 'sales_admins' => $salesAdmins,
                 'accounting_admins' => $accountingAdmins,
+                'contract_plan_managers' => $contractPlanManagers,
             ],
         ]);
     }
@@ -162,7 +164,7 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:system_admin,operation,sales,accounting'],
+            'role' => ['required', 'in:system_admin,operation,sales,accounting,contract_plan_manager'],
         ]);
 
         // password は User の hashed キャストに任せる（二重ハッシュ防止）
@@ -206,7 +208,7 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($adminUser->user_id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:system_admin,operation,sales,accounting'],
+            'role' => ['required', 'in:system_admin,operation,sales,accounting,contract_plan_manager'],
         ]);
 
         $this->assertRoleChangeAllowed($adminUser, $data['role']);

@@ -49,9 +49,11 @@
                         <dd>
                             @php
                                 $statusConfig = [
-                                    'pending' => ['label' => __('pages.pending_status'), 'class' => 'bg-slate-100 text-slate-700'],
+                                    'pending' => ['label' => '申請', 'class' => 'bg-slate-100 text-slate-700'],
                                     'waiting_special_approval' => ['label' => __('pages.waiting_special_approval'), 'class' => 'bg-amber-100 text-amber-700'],
-                                    'approved' => ['label' => __('pages.approved_status'), 'class' => 'bg-emerald-100 text-emerald-700'],
+                                    'in_progress' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700'],
+                                    'completed' => ['label' => '完了', 'class' => 'bg-emerald-100 text-emerald-700'],
+                                    'approved' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700'],
                                     'rejected' => ['label' => __('pages.rejected_status'), 'class' => 'bg-red-100 text-red-700'],
                                     'cancel_request' => ['label' => 'キャンセル依頼中', 'class' => 'bg-orange-100 text-orange-700'],
                                     'cancel_approved' => ['label' => 'キャンセル承認', 'class' => 'bg-slate-100 text-slate-700'],
@@ -139,8 +141,8 @@
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 sticky top-6">
                 <h2 class="text-lg font-semibold text-slate-900 mb-4">操作</h2>
                 <div class="space-y-3">
-                    {{-- Cancel request button - only available for approved applications --}}
-                    @if($application->status === 'approved')
+                    {{-- Cancel request — allowed until completed --}}
+                    @if($application->isCancellableByHospital())
                         <form method="POST" action="{{ route('applications.request_cancel', $application) }}" class="inline-block w-full">
                             @csrf
                             <button type="submit" 

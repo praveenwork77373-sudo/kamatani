@@ -230,30 +230,75 @@ class ApplicationController extends Controller
         $deptId = $request->input('department_id');
         $jobTypeId = $request->input('job_type_id');
         $gender = $request->input('gender');
+        $employeeId = $request->input('employee_id');
 
         $customer = $request->user()->customerUser;
         if (!$customer) {
             return response()->json([]);
         }
 
+        $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
+
+        // Prefer plan-linked products when employee is selected (SPEC)
+        if ($employeeId) {
+            $employee = Employee::where('id', $employeeId)
+                ->where('medical_institution_id', $customer->medical_institution_id)
+                ->first();
+
+            if (!$employee) {
+                return response()->json([]);
+            }
+
+            if ($customer->role === 'department_admin' && $customer->department_id
+                && (int) $employee->primary_department_id !== (int) $customer->department_id) {
+                return response()->json([]);
+            }
+
+            $products = $eligibility->eligibleProducts($employee, now(), $gender ?: null);
+
+            return response()->json($products->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'product_code' => $product->product_code,
+                    'name' => $product->name,
+                    'category' => $product->category,
+                    'size' => $product->size,
+                    'gender' => $product->gender,
+                    'stock_quantity' => $product->stock_quantity,
+                    'image_path' => $product->image_path ? asset('storage/'.$product->image_path) : null,
+                ];
+            })->values());
+        }
+
+        // Departmental / fallback: union of products from institution's confirmed plans
+        $planProductIds = \App\Models\CustomerContractPlan::query()
+            ->where('medical_institution_id', $customer->medical_institution_id)
+            ->where('status', 'confirmed')
+            ->with('contractPlan.uniformProducts')
+            ->get()
+            ->flatMap(fn ($ccp) => $ccp->isActiveOn(now())
+                ? ($ccp->contractPlan?->uniformProducts?->pluck('id') ?? collect())
+                : collect())
+            ->unique()
+            ->values()
+            ->all();
+
         $query = UniformProduct::query();
+        if (! empty($planProductIds)) {
+            $query->whereIn('id', $planProductIds);
+        } else {
+            // No confirmed plans → nothing applyable
+            return response()->json([]);
+        }
 
-        // Note: Uniform recommendations have been removed
-        // Products are global and not tied to specific departments
-        // All products are available for selection regardless of department
-        // However, we can filter by gender if provided
-
-        // Filter by gender if provided
         if ($gender) {
-            $query->where(function($q) use ($gender) {
+            $query->where(function ($q) use ($gender) {
                 $q->where('gender', $gender)
                   ->orWhere('gender', 'unisex');
             });
         }
 
-        // Get all products (since they're global and not department-specific)
-        // Return products with all necessary fields for frontend grouping
-        $uniforms = $query->orderBy('product_code')->get()->map(function($product) {
+        $uniforms = $query->orderBy('product_code')->get()->map(function ($product) {
             return [
                 'id' => $product->id,
                 'product_code' => $product->product_code,
@@ -305,7 +350,11 @@ class ApplicationController extends Controller
 
         $query = Employee::where('medical_institution_id', $customer->medical_institution_id)
             ->where('status', 'employed')
-            ->with(['primaryDepartment', 'positions.jobType']);
+            ->with([
+                'primaryDepartment',
+                'positions.jobType',
+                'contractPlanAssignments.customerContractPlan.contractPlan',
+            ]);
 
         // 権限チェック
         if ($customer->role === 'department_admin' && $customer->department_id) {
@@ -322,8 +371,20 @@ class ApplicationController extends Controller
         }
 
         $employees = $query->orderBy('staff_no')->limit(20)->get();
+        $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
 
-        return response()->json($employees->map(function ($emp) {
+        return response()->json($employees->map(function ($emp) use ($eligibility) {
+            $assignments = $eligibility->activeAssignments($emp);
+            $plans = $assignments->map(function ($a) {
+                $plan = $a->customerContractPlan?->contractPlan;
+
+                return $plan ? [
+                    'code' => $plan->code,
+                    'name' => $plan->name,
+                    'rentable_points' => $plan->rentable_points,
+                ] : null;
+            })->filter()->values();
+
             return [
                 'id' => $emp->id,
                 'name' => $emp->name,
@@ -332,10 +393,15 @@ class ApplicationController extends Controller
                 'top_size' => $emp->top_size,
                 'bottom_size' => $emp->bottom_size,
                 'shoe_size' => $emp->shoe_size,
+                'inseam_cm' => $emp->inseam_cm,
+                'body_type' => $emp->body_type,
                 'department_id' => $emp->primary_department_id,
                 'department_name' => $emp->primaryDepartment?->name,
                 'job_type_id' => $emp->positions->first()?->job_type_id,
                 'job_type_name' => $emp->positions->first()?->jobType?->name,
+                'plans' => $plans,
+                'plan_names' => $plans->pluck('name')->implode(' / '),
+                'rentable_limit' => $eligibility->rentableLimit($emp),
             ];
         }));
     }
@@ -402,6 +468,8 @@ class ApplicationController extends Controller
             'return_items.*.uniform_product_id' => ['required_with:return_items', 'exists:uniform_products,id'],
             'return_items.*.quantity' => ['required_with:return_items', 'integer', 'min:1'],
             'special_approval_reason' => ['nullable', 'string', 'max:1000'],
+            'memo1' => ['nullable', 'string', 'max:500'],
+            'memo2' => ['nullable', 'string', 'max:500'],
         ], [
             'employee_id.required_if' => '職員を選択してください。',
             'transfer_to_employee_id.required_if' => '移管先の職員を選択してください。',
@@ -502,14 +570,31 @@ class ApplicationController extends Controller
             $transferToId = $transferTo->id;
         }
 
-        // 上限チェック（新品貸与分のみ）
+        $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
+        if (! $eligibility->hasActivePlan($employee)) {
+            return redirect()->back()->withInput()->with('error', 'この職員に有効な契約プランが割り当てられていません。カマタニへプラン割当を依頼してください。');
+        }
+
+        $allowedProductIds = $eligibility->productIdsAllowed($employee);
+        foreach ($data['items'] as $item) {
+            if (! in_array((int) $item['uniform_product_id'], array_map('intval', $allowedProductIds), true)) {
+                return redirect()->back()->withInput()->with('error', '選択したユニフォームは職員の契約プラン対象外です。');
+            }
+        }
+
+        // 上限チェック（プラン貸与ポイント／旧契約フォールバック）
         $totalQuantity = array_sum(array_column($data['items'], 'quantity'));
         $currentLoans = EmployeeLoan::where('employee_id', $employee->id)
             ->where('status', 'in_use')
             ->sum('quantity');
 
         $exceedsLimit = false;
-        if ($contract && $contract->per_person_loan_limit && in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
+        $rentableLimit = $eligibility->rentableLimit($employee);
+        if ($rentableLimit !== null && $rentableLimit > 0 && in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
+            if (($currentLoans + $totalQuantity) > $rentableLimit) {
+                $exceedsLimit = true;
+            }
+        } elseif ($contract && $contract->per_person_loan_limit && in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
             if (($currentLoans + $totalQuantity) > $contract->per_person_loan_limit) {
                 $exceedsLimit = true;
             }
@@ -550,6 +635,8 @@ class ApplicationController extends Controller
                 'delivery_location_id' => $data['delivery_location_id'],
                 'requested_by_user_id' => $request->user()->id,
                 'special_approval_reason' => $data['special_approval_reason'] ?? null,
+                'memo1' => $data['memo1'] ?? null,
+                'memo2' => $data['memo2'] ?? null,
             ]);
 
             // 旧品（返却／交換アウト）
@@ -614,14 +701,34 @@ class ApplicationController extends Controller
         $itemAction = $this->itemActionForType($data['type']);
 
         DB::transaction(function () use ($data, $request, $customer, $employees, $contract, $itemAction, &$createdCount, &$errors) {
+            $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
+
             foreach ($employees as $employee) {
+                if (! $eligibility->hasActivePlan($employee)) {
+                    $errors[] = "職員 {$employee->name} ({$employee->staff_no}): 有効な契約プランが未割当のためスキップしました。";
+                    continue;
+                }
+
+                $allowedProductIds = array_map('intval', $eligibility->productIdsAllowed($employee));
+                foreach ($data['items'] as $item) {
+                    if (! in_array((int) $item['uniform_product_id'], $allowedProductIds, true)) {
+                        $errors[] = "職員 {$employee->name} ({$employee->staff_no}): 選択商品が契約プラン対象外のためスキップしました。";
+                        continue 2;
+                    }
+                }
+
                 $totalQuantity = array_sum(array_column($data['items'], 'quantity'));
                 $currentLoans = EmployeeLoan::where('employee_id', $employee->id)
                     ->where('status', 'in_use')
                     ->sum('quantity');
 
                 $exceedsLimit = false;
-                if ($contract && $contract->per_person_loan_limit) {
+                $rentableLimit = $eligibility->rentableLimit($employee);
+                if ($rentableLimit !== null && $rentableLimit > 0) {
+                    if (($currentLoans + $totalQuantity) > $rentableLimit) {
+                        $exceedsLimit = true;
+                    }
+                } elseif ($contract && $contract->per_person_loan_limit) {
                     if (($currentLoans + $totalQuantity) > $contract->per_person_loan_limit) {
                         $exceedsLimit = true;
                     }
@@ -658,6 +765,8 @@ class ApplicationController extends Controller
                     'delivery_location_id' => $data['delivery_location_id'],
                     'requested_by_user_id' => $request->user()->id,
                     'special_approval_reason' => $data['special_approval_reason'] ?? null,
+                    'memo1' => $data['memo1'] ?? null,
+                    'memo2' => $data['memo2'] ?? null,
                 ]);
 
                 foreach ($data['items'] as $item) {
@@ -710,12 +819,15 @@ class ApplicationController extends Controller
     {
         $this->authorize('cancel', $application);
 
-        // Only allow cancel request for approved applications
-        if ($application->status !== 'approved') {
-            return redirect()->back()->with('error', '承認済みの申請のみキャンセル申請が可能です。');
+        if ($application->status === Application::STATUS_COMPLETED) {
+            return redirect()->back()->with('error', '完了済みの申請はキャンセルできません。');
         }
 
-        $application->update(['status' => 'cancel_request']);
+        if (! $application->isCancellableByHospital()) {
+            return redirect()->back()->with('error', 'この申請はキャンセル申請できません。');
+        }
+
+        $application->update(['status' => Application::STATUS_CANCEL_REQUEST]);
 
         \App\Services\NotificationService::notifyCancelRequested($application);
 

@@ -28,3 +28,4 @@ Thumbs.db
 /db.sql
 /storage/app/backups/*
 !/storage/app/backups/.gitignore
+/storage/app/private/application-pdfs/
