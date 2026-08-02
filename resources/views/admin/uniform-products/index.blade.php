@@ -75,63 +75,12 @@
     </div>
 
     {{-- Statistics Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {{-- Total Products --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 border border-blue-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                        <i data-lucide="package" class="w-5 h-5 text-blue-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 text-[10px] font-semibold">{{ __('pages.total') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['total_products'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.total_products') }}</p>
-            </div>
-        </div>
-
-        {{-- Total Stock --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                        <i data-lucide="layers" class="w-5 h-5 text-emerald-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-semibold">在庫</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['total_stock'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">総在庫数</p>
-            </div>
-        </div>
-
-        {{-- In Stock Products --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border border-green-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                        <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-green-500/10 text-green-700 text-[10px] font-semibold">{{ __('pages.in_stock') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['in_stock_products'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.in_stock_products') }}</p>
-            </div>
-        </div>
-
-        {{-- Out of Stock Products --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-50 via-rose-50 to-pink-50 border border-red-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                        <i data-lucide="x-circle" class="w-5 h-5 text-red-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-red-500/10 text-red-700 text-[10px] font-semibold">{{ __('pages.out_of_stock') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['out_of_stock_products'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.out_of_stock_products') }}</p>
-            </div>
-        </div>
-    </div>
+    <x-stat-grid :cols="4">
+        <x-stat-card tone="blue" icon="package" :value="$stats['total_products'] ?? 0" :label="__('pages.total_products')" :badge="__('pages.total')" />
+        <x-stat-card tone="emerald" icon="layers" :value="$stats['total_stock'] ?? 0" label="総在庫数" badge="在庫" />
+        <x-stat-card tone="green" icon="check-circle" :value="$stats['in_stock_products'] ?? 0" :label="__('pages.in_stock_products')" :badge="__('pages.in_stock')" />
+        <x-stat-card tone="red" icon="x-circle" :value="$stats['out_of_stock_products'] ?? 0" :label="__('pages.out_of_stock_products')" :badge="__('pages.out_of_stock')" />
+    </x-stat-grid>
 
     {{-- Main Layout: Sidebar + Products Grid --}}
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">

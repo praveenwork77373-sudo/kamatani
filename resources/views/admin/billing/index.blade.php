@@ -39,63 +39,12 @@
     @endif
 
     {{-- Statistics Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {{-- Total Waiting --}}
-        <div class="relative overflow-hidden rounded-lg bg-gradient-to-br from-amber-50/50 via-amber-50/30 to-amber-50/50 border border-amber-100/50 p-3 shadow-sm hover:shadow transition-all duration-200">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="h-8 w-8 rounded-lg bg-amber-100/50 flex items-center justify-center">
-                        <i data-lucide="clock" class="w-4 h-4 text-amber-600"></i>
-                    </div>
-                    <span class="px-1.5 py-0.5 rounded-full bg-amber-100/50 text-amber-700 text-[10px] font-semibold">{{ __('pages.total') }}</span>
-                </div>
-                <p class="text-2xl font-bold text-slate-900 mb-0.5">{{ number_format($stats['total_billing_snapshots'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[12px] font-medium">{{ __('pages.billing_snapshots') }}</p>
-            </div>
-        </div>
-
-        {{-- This Month Waiting --}}
-        <div class="relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-50/50 via-blue-50/30 to-blue-50/50 border border-blue-100/50 p-3 shadow-sm hover:shadow transition-all duration-200">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="h-8 w-8 rounded-lg bg-blue-100/50 flex items-center justify-center">
-                        <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i>
-                    </div>
-                    <span class="px-1.5 py-0.5 rounded-full bg-blue-100/50 text-blue-700 text-[10px] font-semibold">今月</span>
-                </div>
-                <p class="text-2xl font-bold text-slate-900 mb-0.5">{{ number_format($stats['this_month_billing_snapshots'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[12px] font-medium">{{ __('pages.this_month_billing_snapshots') }}</p>
-            </div>
-        </div>
-
-        {{-- Total Billing Amount --}}
-        <div class="relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-50/50 via-purple-50/30 to-purple-50/50 border border-purple-100/50 p-3 shadow-sm hover:shadow transition-all duration-200">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="h-8 w-8 rounded-lg bg-purple-100/50 flex items-center justify-center">
-                        <i data-lucide="yen-sign" class="w-4 h-4 text-purple-600"></i>
-                    </div>
-                    <span class="px-1.5 py-0.5 rounded-full bg-purple-100/50 text-purple-700 text-[10px] font-semibold">{{ __('pages.total') }}</span>
-                </div>
-                <p class="text-2xl font-bold text-slate-900 mb-0.5">¥{{ number_format($stats['total_billing_amount'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[12px] font-medium">{{ __('pages.total_billing_amount') }}</p>
-            </div>
-        </div>
-
-        {{-- This Month Billing Amount --}}
-        <div class="relative overflow-hidden rounded-lg bg-gradient-to-br from-emerald-50/50 via-emerald-50/30 to-emerald-50/50 border border-emerald-100/50 p-3 shadow-sm hover:shadow transition-all duration-200">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="h-8 w-8 rounded-lg bg-emerald-100/50 flex items-center justify-center">
-                        <i data-lucide="yen-sign" class="w-4 h-4 text-emerald-600"></i>
-                    </div>
-                    <span class="px-1.5 py-0.5 rounded-full bg-emerald-100/50 text-emerald-700 text-[10px] font-semibold">今月</span>
-                </div>
-                <p class="text-2xl font-bold text-slate-900 mb-0.5">¥{{ number_format($stats['this_month_billing_amount'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[12px] font-medium">{{ __('pages.this_month_billing_amount') ?? '今月の請求金額' }}</p>
-            </div>
-        </div>
-    </div>
+    <x-stat-grid :cols="4">
+        <x-stat-card tone="amber" icon="clock" :value="$stats['total_billing_snapshots'] ?? 0" :label="__('pages.billing_snapshots')" :badge="__('pages.total')" />
+        <x-stat-card tone="blue" icon="calendar" :value="$stats['this_month_billing_snapshots'] ?? 0" :label="__('pages.this_month_billing_snapshots')" badge="今月" />
+        <x-stat-card tone="purple" icon="japanese-yen" :value="$stats['total_billing_amount'] ?? 0" :label="__('pages.total_billing_amount')" :badge="__('pages.total')" prefix="¥" />
+        <x-stat-card tone="emerald" icon="japanese-yen" :value="$stats['this_month_billing_amount'] ?? 0" :label="__('pages.this_month_billing_amount')" badge="今月" prefix="¥" />
+    </x-stat-grid>
 
     {{-- Main Content: Tree Structure + Billing List --}}
     <div class="flex gap-6">

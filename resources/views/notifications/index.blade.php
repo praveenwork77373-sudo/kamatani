@@ -10,47 +10,12 @@
         $totalCount = $notifications->total();
         $readCount = $totalCount - $unreadCount;
     @endphp
-    
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {{-- Total Notifications Card --}}
-        <div class="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 border border-blue-100 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[12px] text-slate-600 font-medium mb-1">{{ __('pages.total_notifications') }}</p>
-                    <p class="text-2xl font-bold text-slate-900">{{ number_format($totalCount) }}</p>
-                </div>
-                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <i data-lucide="bell" class="w-6 h-6 text-blue-600"></i>
-                </div>
-            </div>
-        </div>
-        
-        {{-- Unread Notifications Card --}}
-        <div class="bg-gradient-to-br from-amber-50/50 to-orange-50/50 border border-amber-100 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[12px] text-slate-600 font-medium mb-1">{{ __('pages.unread_notifications') }}</p>
-                    <p class="text-2xl font-bold text-slate-900">{{ number_format($unreadCount) }}</p>
-                </div>
-                <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                    <i data-lucide="bell-ring" class="w-6 h-6 text-amber-600"></i>
-                </div>
-            </div>
-        </div>
-        
-        {{-- Read Notifications Card --}}
-        <div class="bg-gradient-to-br from-green-50/50 to-emerald-50/50 border border-green-100 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[12px] text-slate-600 font-medium mb-1">{{ __('pages.read_notifications') }}</p>
-                    <p class="text-2xl font-bold text-slate-900">{{ number_format($readCount) }}</p>
-                </div>
-                <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                    <i data-lucide="check-circle" class="w-6 h-6 text-green-600"></i>
-                </div>
-            </div>
-        </div>
-    </div>
+
+    <x-stat-grid :cols="3">
+        <x-stat-card tone="blue" icon="bell" :value="$totalCount" :label="__('pages.total_notifications')" />
+        <x-stat-card tone="amber" icon="bell-ring" :value="$unreadCount" :label="__('pages.unread_notifications')" />
+        <x-stat-card tone="emerald" icon="check-circle" :value="$readCount" :label="__('pages.read_notifications')" />
+    </x-stat-grid>
 
     {{-- Header --}}
     <div class="mb-6">

@@ -213,6 +213,8 @@ Route::prefix('admin')
         // システム管理者: 全職員管理
         Route::prefix('employees')->name('employees.')->middleware('admin.role:system_admin')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'index'])->name('index');
+            Route::post('/export-csv', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'exportCsv'])->name('export_csv');
+            Route::post('/import-csv', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'importCsv'])->name('import_csv');
             Route::get('/{employee}', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'show'])->name('show');
         });
 

@@ -442,6 +442,15 @@ class ApplicationApprovalController extends Controller
             $application->save();
         });
 
+        try {
+            \App\Services\NotificationService::notifyCancelApproved($application->fresh());
+        } catch (\Exception $e) {
+            Log::error('Cancel approved notification failed', [
+                'application_id' => $application->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return back()->with('status', 'キャンセルを承認しました。');
     }
 
@@ -458,6 +467,15 @@ class ApplicationApprovalController extends Controller
         $application->approved_by_admin_user_id = $request->user()->id; // users.id
         $application->rejection_reason = $request->input('rejection_reason');
         $application->save();
+
+        try {
+            \App\Services\NotificationService::notifyCancelRejected($application);
+        } catch (\Exception $e) {
+            Log::error('Cancel rejected notification failed', [
+                'application_id' => $application->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return back()->with('status', 'キャンセルを却下しました。');
     }

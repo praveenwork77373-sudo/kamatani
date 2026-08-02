@@ -50,84 +50,27 @@
     @endif
 
     {{-- Statistics Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        {{-- Total Employees --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 border border-blue-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                        <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 text-[10px] font-semibold">{{ __('pages.total') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['total_employees'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.total_employees') }}</p>
-            </div>
-        </div>
-
-        {{-- Employed Employees --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-semibold">{{ __('pages.employed') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['employed_employees'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.employed') }}</p>
-                <p class="text-slate-500 text-[12px] mt-1.5">
-                    {{ $stats['total_employees'] > 0 ? round(($stats['employed_employees'] / $stats['total_employees']) * 100, 1) : 0 }}% {{ __('pages.percentage') }}
-                </p>
-            </div>
-        </div>
-
-        {{-- On Leave Employees --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 border border-amber-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                        <i data-lucide="pause-circle" class="w-5 h-5 text-amber-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-[10px] font-semibold">{{ __('pages.on_leave') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['on_leave_employees'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.on_leave') }}</p>
-            </div>
-        </div>
-
-        {{-- Retired Employees --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-50 via-slate-100 to-slate-100 border border-slate-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-slate-500/10 flex items-center justify-center">
-                        <i data-lucide="x-circle" class="w-5 h-5 text-slate-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-700 text-[10px] font-semibold">{{ __('pages.retired') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['retired_employees'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.retired') }}</p>
-            </div>
-        </div>
-
-        {{-- New Employees This Month --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 border border-purple-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                        <i data-lucide="plus-circle" class="w-5 h-5 text-purple-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700 text-[10px] font-semibold">{{ __('pages.this_month') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['new_employees_this_month'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.new_registration') }}</p>
-                <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                    <i data-lucide="trending-up" class="w-4 h-4"></i>
-                    <span>{{ __('pages.new_this_month') }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-stat-grid :cols="5">
+        <x-stat-card tone="blue" icon="users" :value="$stats['total_employees'] ?? 0" :label="__('pages.total_employees')" :badge="__('pages.total')" />
+        <x-stat-card
+            tone="emerald"
+            icon="check-circle"
+            :value="$stats['employed_employees'] ?? 0"
+            :label="__('pages.employed')"
+            :badge="__('pages.employed')"
+            :hint="(($stats['total_employees'] ?? 0) > 0 ? round(($stats['employed_employees'] / $stats['total_employees']) * 100, 1) : 0).'% '.__('pages.percentage')"
+        />
+        <x-stat-card tone="amber" icon="pause-circle" :value="$stats['on_leave_employees'] ?? 0" :label="__('pages.on_leave')" :badge="__('pages.on_leave')" />
+        <x-stat-card tone="slate" icon="x-circle" :value="$stats['retired_employees'] ?? 0" :label="__('pages.retired')" :badge="__('pages.retired')" />
+        <x-stat-card
+            tone="purple"
+            icon="plus-circle"
+            :value="$stats['new_employees_this_month'] ?? 0"
+            :label="__('pages.new_registration')"
+            :badge="__('pages.this_month')"
+            :hint="__('pages.new_this_month')"
+        />
+    </x-stat-grid>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {{-- Filter Sidebar --}}

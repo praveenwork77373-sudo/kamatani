@@ -246,11 +246,18 @@
                 </div>
 
                 <div class="mt-6 mb-4">
-                    <h3 class="text-[15px] font-semibold text-slate-700 mb-2">契約プラン割当（任意・後から可）</h3>
-                    <p class="text-[13px] text-slate-500 mb-3">申請時には割当が必要です。本登録済みプランから選択してください。</p>
+                    <h3 class="text-[15px] font-semibold text-slate-700 mb-2">共通契約プラン（所属指定なし）</h3>
+                    <p class="text-[13px] text-slate-500 mb-3">兼務に紐づけないプラン。所属ごとのプランは下の兼務行で設定します。</p>
                     <div class="space-y-2 border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto">
                         @php
-                            $selectedPlanIds = old('customer_contract_plan_ids', $employee->contractPlanAssignments->pluck('customer_contract_plan_id')->all());
+                            $today = now()->toDateString();
+                            $selectedPlanIds = old(
+                                'customer_contract_plan_ids',
+                                $employee->contractPlanAssignments
+                                    ->filter(fn ($a) => $a->employee_position_id === null && $a->isActiveOn($today))
+                                    ->pluck('customer_contract_plan_id')
+                                    ->all()
+                            );
                         @endphp
                         @forelse(($availablePlans ?? []) as $ccp)
                             <label class="flex items-center gap-2 text-sm">
@@ -274,15 +281,30 @@
                         <i data-lucide="briefcase" class="w-4 h-4 text-slate-500"></i>
                         <h3 class="text-[15px] font-semibold text-slate-700">{{ __('pages.multiple_positions') }}</h3>
                     </div>
-                    <p class="text-[13px] text-slate-500 mb-4">{{ __('pages.multiple_positions_description') }}</p>
+                    <p class="text-[13px] text-slate-500 mb-4">兼務ごとに異なる契約プランを割当できます。</p>
                 </div>
 
                 <div id="positions-area" class="space-y-4">
                     @php
                         $positions = $employee->positions->count() > 0 ? $employee->positions : collect([new \App\Models\EmployeePosition()]);
+                        $oldPositions = old('positions');
                     @endphp
                     @foreach($positions as $idx => $pos)
-                        <div class="position-row bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        @php
+                            $posPlanIds = old(
+                                "positions.$idx.customer_contract_plan_ids",
+                                $pos->id
+                                    ? $employee->contractPlanAssignments
+                                        ->filter(fn ($a) => (int) $a->employee_position_id === (int) $pos->id && $a->isActiveOn($today))
+                                        ->pluck('customer_contract_plan_id')
+                                        ->all()
+                                    : []
+                            );
+                        @endphp
+                        <div class="position-row bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+                            @if($pos->id)
+                                <input type="hidden" name="positions[{{ $idx }}][id]" value="{{ $pos->id }}">
+                            @endif
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                                 <div>
                                     <label class="block text-slate-700 text-[13px] font-semibold mb-2">
@@ -326,6 +348,23 @@
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                            <div class="position-plans border-t border-slate-200 pt-3">
+                                <p class="text-[12px] font-semibold text-slate-600 mb-2">この所属の契約プラン</p>
+                                <div class="space-y-1.5 max-h-36 overflow-y-auto">
+                                    @forelse(($availablePlans ?? []) as $ccp)
+                                        <label class="flex items-center gap-2 text-sm">
+                                            <input type="checkbox"
+                                                   name="positions[{{ $idx }}][customer_contract_plan_ids][]"
+                                                   value="{{ $ccp->id }}"
+                                                   {{ in_array($ccp->id, (array) $posPlanIds) ? 'checked' : '' }}>
+                                            <span class="font-mono text-xs">{{ $ccp->contractPlan->code ?? '' }}</span>
+                                            <span>{{ $ccp->contractPlan->name ?? '' }}</span>
+                                        </label>
+                                    @empty
+                                        <p class="text-slate-500 text-xs">本登録の契約プランがありません</p>
+                                    @endforelse
                                 </div>
                             </div>
                         </div>
@@ -379,6 +418,13 @@
                 clone.querySelectorAll('select').forEach(function (sel) {
                     sel.value = '';
                     sel.name = sel.name.replace(/positions\[\d+]/, 'positions[' + index + ']');
+                });
+                clone.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+                    cb.checked = false;
+                    cb.name = cb.name.replace(/positions\[\d+]/, 'positions[' + index + ']');
+                });
+                clone.querySelectorAll('input[type="hidden"]').forEach(function (inp) {
+                    inp.remove();
                 });
                 const removeBtn = clone.querySelector('.remove-position-btn');
                 if (removeBtn) {

@@ -59,79 +59,40 @@
         {{-- ============================================ --}}
         
         {{-- Summary Cards --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {{-- Total Applications --}}
-            <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 border border-blue-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="relative z-10">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                            <i data-lucide="file-text" class="w-5 h-5 text-blue-600"></i>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 text-[10px] font-semibold">{{ __('pages.total') }}</span>
-                    </div>
-                    <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['total_applications'] ?? 0) }}</p>
-                    <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.total_applications') }}</p>
-                    <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                        <i data-lucide="trending-up" class="w-4 h-4"></i>
-                        <span>{{ __('pages.month_over_month') }}</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Pending Approvals --}}
-            <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 border border-amber-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="relative z-10">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                            <i data-lucide="clock" class="w-5 h-5 text-amber-600"></i>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-[10px] font-semibold">{{ __('pages.action_required_badge') }}</span>
-                    </div>
-                    <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['pending_approvals'] ?? 0) }}</p>
-                    <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.pending_approval') }}</p>
-                    <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                        <i data-lucide="alert-circle" class="w-4 h-4"></i>
-                        <span>{{ __('pages.immediate_action_required') }}</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Total Employees --}}
-            <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="relative z-10">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                            <i data-lucide="users" class="w-5 h-5 text-emerald-600"></i>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-semibold">{{ __('pages.active_employees') }}</span>
-                    </div>
-                    <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['total_employees'] ?? 0) }}</p>
-                    <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.registered_employees') }}</p>
-                    <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                        <i data-lucide="user-check" class="w-4 h-4"></i>
-                        <span>{{ __('pages.all_institutions_total') }}</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Inventory Alerts --}}
-            <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-50 via-rose-50 to-pink-50 border border-red-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="relative z-10">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                            <i data-lucide="shopping-cart" class="w-5 h-5 text-red-600"></i>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-full bg-red-500/10 text-red-700 text-[10px] font-semibold">補充必要</span>
-                    </div>
-                    <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['inventory_alerts'] ?? 0) }}</p>
-                    <p class="text-slate-600 text-[13px] font-medium">在庫アラート</p>
-                    <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-                        <span>在庫不足商品</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <x-stat-grid :cols="4">
+            <x-stat-card
+                tone="blue"
+                icon="file-text"
+                :value="$stats['total_applications'] ?? 0"
+                :label="__('pages.total_applications')"
+                :badge="__('pages.total')"
+                :hint="__('pages.month_over_month')"
+            />
+            <x-stat-card
+                tone="amber"
+                icon="clock"
+                :value="$stats['pending_approvals'] ?? 0"
+                :label="__('pages.pending_approval')"
+                :badge="__('pages.action_required_badge')"
+                :hint="__('pages.immediate_action_required')"
+            />
+            <x-stat-card
+                tone="emerald"
+                icon="users"
+                :value="$stats['total_employees'] ?? 0"
+                :label="__('pages.registered_employees')"
+                :badge="__('pages.active_employees')"
+                :hint="__('pages.all_institutions_total')"
+            />
+            <x-stat-card
+                tone="red"
+                icon="shopping-cart"
+                :value="$stats['inventory_alerts'] ?? 0"
+                label="在庫アラート"
+                badge="補充必要"
+                hint="在庫不足商品"
+            />
+        </x-stat-grid>
 
         {{-- Charts and Recent Applications --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
@@ -353,87 +314,46 @@
         {{-- ============================================ --}}
         
         {{-- Summary Cards --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {{-- Registered Employees --}}
-            <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="relative z-10">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                            <i data-lucide="users" class="w-5 h-5 text-emerald-600"></i>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-semibold">+{{ $stats['new_employees_this_month'] ?? 0 }}</span>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-900 mb-1">{{ number_format($stats['total_employees'] ?? 0) }}</p>
-                    <p class="text-slate-600 text-[13px] font-medium">登録従業員数</p>
-                    <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                        <i data-lucide="user-check" class="w-4 h-4"></i>
-                        <span>在籍中: {{ $stats['employed_employees'] ?? 0 }}名</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Active Loans --}}
-            <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="relative z-10">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                            <i data-lucide="shirt" class="w-5 h-5 text-blue-600"></i>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 text-[10px] font-semibold">今月</span>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-900 mb-1">{{ number_format($stats['active_loans'] ?? 0) }}</p>
-                    <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.loaned_uniforms') }}</p>
-                    <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                        <i data-lucide="shield-check" class="w-4 h-4"></i>
-                        <span>{{ __('pages.contract_limit') }}: {{ number_format($stats['contract_limit'] ?? 0) }}{{ __('pages.points') }}</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Applications This Month --}}
-            <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 border border-purple-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="relative z-10">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                            <i data-lucide="file-text" class="w-5 h-5 text-purple-600"></i>
-                        </div>
-                        @php
-                            $appChange = ($stats['applications_this_month'] ?? 0) - ($stats['applications_last_month'] ?? 0);
-                            $appChangePercent = ($stats['applications_last_month'] ?? 0) > 0 
-                                ? round(($appChange / ($stats['applications_last_month'] ?? 1)) * 100) 
-                                : ($appChange > 0 ? 100 : 0);
-                        @endphp
-                        <span class="px-2 py-0.5 rounded-full {{ $appChange >= 0 ? 'bg-purple-500/10 text-purple-700' : 'bg-slate-500/10 text-slate-700' }} text-[10px] font-semibold">
-                            {{ $appChange >= 0 ? '+' : '' }}{{ $appChangePercent }}%
-                        </span>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-900 mb-1">{{ number_format($stats['applications_this_month'] ?? 0) }}</p>
-                    <p class="text-slate-600 text-[13px] font-medium">今月の申請数</p>
-                    <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                        <i data-lucide="trending-up" class="w-4 h-4"></i>
-                        <span>前月比: {{ $appChange >= 0 ? '+' : '' }}{{ $appChange }}件</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Pending Approvals --}}
-            <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 border border-amber-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="relative z-10">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                            <i data-lucide="file-check" class="w-5 h-5 text-amber-600"></i>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-[10px] font-semibold">要対応</span>
-                    </div>
-                    <p class="text-2xl font-bold text-slate-900 mb-1">{{ number_format($stats['pending_approvals'] ?? 0) }}</p>
-                    <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.pending_approval_applications') }}</p>
-                    <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-                        <span>{{ __('pages.special_approval_pending_count') }}: {{ $stats['special_approval_pending'] ?? 0 }}{{ __('pages.items') }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        @php
+            $appChange = ($stats['applications_this_month'] ?? 0) - ($stats['applications_last_month'] ?? 0);
+            $appChangePercent = ($stats['applications_last_month'] ?? 0) > 0
+                ? round(($appChange / ($stats['applications_last_month'] ?? 1)) * 100)
+                : ($appChange > 0 ? 100 : 0);
+        @endphp
+        <x-stat-grid :cols="4">
+            <x-stat-card
+                tone="emerald"
+                icon="users"
+                :value="$stats['total_employees'] ?? 0"
+                label="登録従業員数"
+                :badge="'+'.($stats['new_employees_this_month'] ?? 0)"
+                :hint="'在籍中: '.($stats['employed_employees'] ?? 0).'名'"
+            />
+            <x-stat-card
+                tone="blue"
+                icon="shirt"
+                :value="$stats['active_loans'] ?? 0"
+                :label="__('pages.loaned_uniforms')"
+                badge="今月"
+                :hint="__('pages.contract_limit').': '.number_format($stats['contract_limit'] ?? 0).__('pages.points')"
+            />
+            <x-stat-card
+                tone="purple"
+                icon="file-text"
+                :value="$stats['applications_this_month'] ?? 0"
+                label="今月の申請数"
+                :badge="($appChange >= 0 ? '+' : '').$appChangePercent.'%'"
+                :hint="'前月比: '.($appChange >= 0 ? '+' : '').$appChange.'件'"
+            />
+            <x-stat-card
+                tone="amber"
+                icon="file-check"
+                :value="$stats['pending_approvals'] ?? 0"
+                :label="__('pages.pending_approval_applications')"
+                badge="要対応"
+                :hint="__('pages.special_approval_pending_count').': '.($stats['special_approval_pending'] ?? 0).__('pages.items')"
+            />
+        </x-stat-grid>
 
         {{-- Quick Actions and Department Stats --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">

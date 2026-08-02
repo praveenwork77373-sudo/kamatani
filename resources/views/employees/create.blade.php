@@ -160,34 +160,55 @@
                     職員が所属する部署と職種を設定します。複数の部署・職種を追加することで、兼務（複数ポジション）に対応できます。
                 </p>
                 <div id="positions-area" class="space-y-3">
-                    <div class="position-row grid grid-cols-1 md:grid-cols-2 gap-3 items-end bg-slate-50 border border-slate-200 rounded-lg p-3">
-                        <div>
-                            <label class="block text-slate-700 text-[13px] font-semibold mb-1">
-                                <span class="inline-flex items-center gap-1.5">
-                                    <i class="ph ph-buildings text-sm text-slate-500"></i>
-                                    <span>部署</span>
-                                </span>
-                            </label>
-                            <select name="positions[0][department_id]" class="position-department-select w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
-                                <option value="">{{ __('pages.select_please') }}</option>
-                                @foreach($departments as $dept)
-                                    <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-                                @endforeach
-                            </select>
+                    <div class="position-row bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                            <div>
+                                <label class="block text-slate-700 text-[13px] font-semibold mb-1">
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <i class="ph ph-buildings text-sm text-slate-500"></i>
+                                        <span>部署</span>
+                                    </span>
+                                </label>
+                                <select name="positions[0][department_id]" class="position-department-select w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
+                                    <option value="">{{ __('pages.select_please') }}</option>
+                                    @foreach($departments as $dept)
+                                        <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-700 text-[13px] font-semibold mb-1">
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <i class="ph ph-briefcase text-sm text-slate-500"></i>
+                                        <span>職種</span>
+                                    </span>
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <select name="positions[0][job_type_id]" class="position-job-type-select flex-1 w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
+                                        <option value="">{{ __('pages.select_please') }}</option>
+                                        @foreach($jobTypes as $jobType)
+                                            <option value="{{ $jobType->id }}">{{ $jobType->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="button" class="remove-position-btn hidden inline-flex items-center justify-center h-10 w-10 rounded-lg border border-red-300 text-red-600 hover:bg-red-50">
+                                        <i class="ph ph-trash text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-slate-700 text-[13px] font-semibold mb-1">
-                                <span class="inline-flex items-center gap-1.5">
-                                    <i class="ph ph-briefcase text-sm text-slate-500"></i>
-                                    <span>職種</span>
-                                </span>
-                            </label>
-                            <select name="positions[0][job_type_id]" class="position-job-type-select w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
-                                <option value="">{{ __('pages.select_please') }}</option>
-                                @foreach($jobTypes as $jobType)
-                                    <option value="{{ $jobType->id }}">{{ $jobType->name }}</option>
-                                @endforeach
-                            </select>
+                        <div class="position-plans border-t border-slate-200 pt-3">
+                            <p class="text-[12px] font-semibold text-slate-600 mb-2">この所属の契約プラン</p>
+                            <div class="space-y-1.5 max-h-36 overflow-y-auto">
+                                @forelse(($availablePlans ?? []) as $ccp)
+                                    <label class="flex items-center gap-2 text-sm">
+                                        <input type="checkbox" name="positions[0][customer_contract_plan_ids][]" value="{{ $ccp->id }}" class="position-plan-checkbox">
+                                        <span class="font-mono text-xs text-slate-500">{{ $ccp->contractPlan->code ?? '' }}</span>
+                                        <span>{{ $ccp->contractPlan->name ?? '' }}</span>
+                                    </label>
+                                @empty
+                                    <p class="text-slate-500 text-xs">本登録の契約プランがありません</p>
+                                @endforelse
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -197,7 +218,7 @@
                     兼務ポジションを追加
                 </button>
                 <p class="mt-2 text-[11px] text-slate-500">
-                    ※ 最初の行が主たる所属として扱われます。部署・職種を両方選択した行のみ保存されます。
+                    ※ 最初の行が主たる所属として扱われます。兼務ごとに異なる契約プランを割当できます。
                 </p>
             </div>
 
@@ -315,10 +336,10 @@
                 </div>
             </div>
 
-            {{-- 契約プラン割当 --}}
+            {{-- 契約プラン割当（所属指定なし・任意） --}}
             <div class="p-6 border-b border-slate-200">
-                <h2 class="text-lg font-semibold text-slate-900 mb-2">契約プラン割当</h2>
-                <p class="text-[13px] text-slate-500 mb-3">登録時は任意です（後から割当可）。申請・請求では割当が必要です。本登録済みプランから選択してください。</p>
+                <h2 class="text-lg font-semibold text-slate-900 mb-2">共通契約プラン（所属指定なし）</h2>
+                <p class="text-[13px] text-slate-500 mb-3">兼務に紐づけないプランはこちら。所属ごとのプランは上の兼務行で設定できます。登録時は任意です。</p>
                 <div class="space-y-2 border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto bg-slate-50">
                     @php
                         $selectedPlanIds = old('customer_contract_plan_ids', []);
@@ -467,9 +488,29 @@
                     sel.value = '';
                     sel.name = sel.name.replace(/positions\[\d+]/, 'positions[' + index + ']');
                 });
+                clone.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+                    cb.checked = false;
+                    cb.name = cb.name.replace(/positions\[\d+]/, 'positions[' + index + ']');
+                });
+                clone.querySelectorAll('input[type="hidden"]').forEach(function (inp) {
+                    inp.remove();
+                });
+                const removeBtn = clone.querySelector('.remove-position-btn');
+                if (removeBtn) {
+                    removeBtn.classList.remove('hidden');
+                }
 
                 area.appendChild(clone);
                 index++;
+            });
+
+            area.addEventListener('click', function (e) {
+                const btn = e.target.closest('.remove-position-btn');
+                if (!btn) return;
+                const row = btn.closest('.position-row');
+                if (row && area.querySelectorAll('.position-row').length > 1) {
+                    row.remove();
+                }
             });
         });
     </script>

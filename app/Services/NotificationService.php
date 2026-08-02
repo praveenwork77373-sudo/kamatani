@@ -5,6 +5,10 @@ namespace App\Services;
 use App\Mail\ApplicationApprovedMail;
 use App\Mail\ApplicationCreatedMail;
 use App\Mail\ApplicationRejectedMail;
+use App\Mail\CancelApprovedMail;
+use App\Mail\CancelRejectedMail;
+use App\Mail\CancelRequestedMail;
+use App\Mail\SpecialApprovalRequestedMail;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -134,11 +138,14 @@ class NotificationService
     }
 
     /**
-     * キャンセル申請通知
+     * キャンセル申請通知（管理者へ in-app + email）
      */
     public static function notifyCancelRequested($application): void
     {
+        $application->loadMissing('medicalInstitution', 'employee');
+
         $adminUsers = self::activeAdminUsers(['system_admin', 'operation']);
+        $adminEmails = [];
 
         foreach ($adminUsers as $admin) {
             self::create(
@@ -149,15 +156,35 @@ class NotificationService
                 route('admin.applications.show', $application),
                 ['application_id' => $application->id]
             );
+            if ($admin->email) {
+                $adminEmails[] = $admin->email;
+            }
+        }
+
+        $recipients = $adminEmails;
+        $institutionEmail = $application->medicalInstitution?->notification_email;
+        if ($institutionEmail && ! in_array($institutionEmail, $recipients, true)) {
+            $recipients[] = $institutionEmail;
+        }
+
+        if (! empty($recipients)) {
+            try {
+                Mail::to($recipients)->send(new CancelRequestedMail($application));
+            } catch (\Exception $e) {
+                Log::error('メール送信エラー: '.$e->getMessage());
+            }
         }
     }
 
     /**
-     * 特別承認通知
+     * 特別承認通知（管理者へ in-app + email）
      */
     public static function notifySpecialApprovalRequested($application): void
     {
+        $application->loadMissing('medicalInstitution', 'employee');
+
         $adminUsers = self::activeAdminUsers(['system_admin', 'operation']);
+        $adminEmails = [];
 
         foreach ($adminUsers as $admin) {
             self::create(
@@ -168,6 +195,81 @@ class NotificationService
                 route('admin.applications.show', $application),
                 ['application_id' => $application->id]
             );
+            if ($admin->email) {
+                $adminEmails[] = $admin->email;
+            }
+        }
+
+        $recipients = $adminEmails;
+        $institutionEmail = $application->medicalInstitution?->notification_email;
+        if ($institutionEmail && ! in_array($institutionEmail, $recipients, true)) {
+            $recipients[] = $institutionEmail;
+        }
+
+        if (! empty($recipients)) {
+            try {
+                Mail::to($recipients)->send(new SpecialApprovalRequestedMail($application));
+            } catch (\Exception $e) {
+                Log::error('メール送信エラー: '.$e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * キャンセル承認通知（申請者へ）
+     */
+    public static function notifyCancelApproved($application): void
+    {
+        $application->loadMissing('requestedBy', 'employee');
+
+        if (! $application->requestedBy) {
+            return;
+        }
+
+        self::create(
+            $application->requestedBy,
+            'cancel_approved',
+            'キャンセル申請が承認されました',
+            "申請ID: #APP-{$application->id} のキャンセルが承認されました",
+            route('applications.show', $application),
+            ['application_id' => $application->id]
+        );
+
+        if ($application->requestedBy->email) {
+            try {
+                Mail::to($application->requestedBy->email)->send(new CancelApprovedMail($application));
+            } catch (\Exception $e) {
+                Log::error('メール送信エラー: '.$e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * キャンセル却下通知（申請者へ）
+     */
+    public static function notifyCancelRejected($application): void
+    {
+        $application->loadMissing('requestedBy', 'employee');
+
+        if (! $application->requestedBy) {
+            return;
+        }
+
+        self::create(
+            $application->requestedBy,
+            'cancel_rejected',
+            'キャンセル申請が却下されました',
+            "申請ID: #APP-{$application->id} のキャンセルが却下されました",
+            route('applications.show', $application),
+            ['application_id' => $application->id]
+        );
+
+        if ($application->requestedBy->email) {
+            try {
+                Mail::to($application->requestedBy->email)->send(new CancelRejectedMail($application));
+            } catch (\Exception $e) {
+                Log::error('メール送信エラー: '.$e->getMessage());
+            }
         }
     }
 }

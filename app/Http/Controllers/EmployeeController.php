@@ -201,6 +201,12 @@ class EmployeeController extends Controller
             'retire_date' => ['nullable', 'date', 'after_or_equal:join_date'],
             'customer_contract_plan_ids' => ['nullable', 'array'],
             'customer_contract_plan_ids.*' => ['integer', 'exists:customer_contract_plans,id'],
+            'positions' => ['nullable', 'array'],
+            'positions.*.id' => ['nullable', 'integer'],
+            'positions.*.department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'positions.*.job_type_id' => ['nullable', 'integer', 'exists:job_types,id'],
+            'positions.*.customer_contract_plan_ids' => ['nullable', 'array'],
+            'positions.*.customer_contract_plan_ids.*' => ['integer', 'exists:customer_contract_plans,id'],
         ];
 
         // Add institution validation for admin users
@@ -218,59 +224,27 @@ class EmployeeController extends Controller
         $data = $request->validate($rules);
 
         $data['medical_institution_id'] = $institutionId;
-        $planIds = $data['customer_contract_plan_ids'] ?? [];
-        unset($data['customer_contract_plan_ids']);
+        $widePlanIds = $data['customer_contract_plan_ids'] ?? [];
+        unset($data['customer_contract_plan_ids'], $data['positions']);
 
         if ($isCustomer && $customer->role === 'department_admin') {
             $data['primary_department_id'] = $customer->department_id;
         }
 
-        DB::transaction(function () use ($data, $request, $customer, $isCustomer, $institutionId, $planIds, &$employee) {
+        DB::transaction(function () use ($data, $request, $customer, $isCustomer, $institutionId, $widePlanIds, &$employee) {
             $employee = Employee::create($data);
 
             EmployeeStatusHistoryService::record($employee, $employee->status, 'initial');
 
-            $positions = $request->input('positions', []);
-            $index = 0;
-            foreach ($positions as $pos) {
-                $deptId = $pos['department_id'] ?? null;
-                $jobTypeId = $pos['job_type_id'] ?? null;
-                if (!$deptId || !$jobTypeId) {
-                    continue;
-                }
+            $desiredPairs = $this->syncPositionsAndCollectPlanPairs(
+                $employee,
+                $request->input('positions', []),
+                $widePlanIds,
+                $institutionId,
+                $isCustomer ? $customer : null
+            );
 
-                // 部署管理者は自部署のみ
-                if ($isCustomer && $customer->role === 'department_admin' && $customer->department_id && (int)$deptId !== (int)$customer->department_id) {
-                    continue;
-                }
-
-                // Validate department belongs to the institution
-                $dept = Department::find($deptId);
-                if (!$dept || $dept->medical_institution_id != $institutionId) {
-                    continue;
-                }
-
-                // Validate job type belongs to the institution
-                $jobType = JobType::find($jobTypeId);
-                if (!$jobType || $jobType->medical_institution_id != $institutionId) {
-                    continue;
-                }
-
-                EmployeePosition::create([
-                    'employee_id' => $employee->id,
-                    'department_id' => $deptId,
-                    'job_type_id' => $jobTypeId,
-                ]);
-
-                // 最初のポジションを主部署として設定（まだ設定されていない場合）
-                if ($index === 0 && !$employee->primary_department_id) {
-                    $employee->primary_department_id = $deptId;
-                    $employee->save();
-                }
-                $index++;
-            }
-
-            $this->syncEmployeeContractPlans($employee, $planIds, $institutionId);
+            $this->syncEmployeeContractPlanAssignments($employee, $desiredPairs, $institutionId);
         });
 
         return redirect()
@@ -300,7 +274,7 @@ class EmployeeController extends Controller
         $user = request()->user();
         $customer = $user->customerUser;
 
-        $employee->load('contractPlanAssignments');
+        $employee->load(['positions.contractPlanAssignments', 'contractPlanAssignments']);
 
         $availablePlans = CustomerContractPlan::with('contractPlan')
             ->where('medical_institution_id', $customer->medical_institution_id)
@@ -348,6 +322,12 @@ class EmployeeController extends Controller
             'retire_date' => ['nullable', 'date', 'after_or_equal:join_date'],
             'customer_contract_plan_ids' => ['nullable', 'array'],
             'customer_contract_plan_ids.*' => ['integer', 'exists:customer_contract_plans,id'],
+            'positions' => ['nullable', 'array'],
+            'positions.*.id' => ['nullable', 'integer'],
+            'positions.*.department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'positions.*.job_type_id' => ['nullable', 'integer', 'exists:job_types,id'],
+            'positions.*.customer_contract_plan_ids' => ['nullable', 'array'],
+            'positions.*.customer_contract_plan_ids.*' => ['integer', 'exists:customer_contract_plans,id'],
         ];
 
         // 全体管理者のみ部署変更可能
@@ -356,10 +336,10 @@ class EmployeeController extends Controller
         }
 
         $data = $request->validate($rules);
-        $planIds = $data['customer_contract_plan_ids'] ?? [];
-        unset($data['customer_contract_plan_ids']);
+        $widePlanIds = $data['customer_contract_plan_ids'] ?? [];
+        unset($data['customer_contract_plan_ids'], $data['positions']);
 
-        DB::transaction(function () use ($data, $request, $employee, $customer, $planIds) {
+        DB::transaction(function () use ($data, $request, $employee, $customer, $widePlanIds) {
             $oldStatus = $employee->status;
             $employee->update($data);
 
@@ -367,38 +347,19 @@ class EmployeeController extends Controller
                 EmployeeStatusHistoryService::record($employee, $employee->status, 'status_change');
             }
 
-            // 職種・兼務ポジションを更新（既存を一旦削除して再作成）
-            $employee->positions()->delete();
+            $desiredPairs = $this->syncPositionsAndCollectPlanPairs(
+                $employee,
+                $request->input('positions', []),
+                $widePlanIds,
+                (int) $customer->medical_institution_id,
+                $customer
+            );
 
-            $positions = $request->input('positions', []);
-            $index = 0;
-            foreach ($positions as $pos) {
-                $deptId = $pos['department_id'] ?? null;
-                $jobTypeId = $pos['job_type_id'] ?? null;
-                if (!$deptId || !$jobTypeId) {
-                    continue;
-                }
-
-                // 部署管理者は自部署のみ
-                if ($customer->role === 'department_admin' && $customer->department_id && (int)$deptId !== (int)$customer->department_id) {
-                    continue;
-                }
-
-                EmployeePosition::create([
-                    'employee_id' => $employee->id,
-                    'department_id' => $deptId,
-                    'job_type_id' => $jobTypeId,
-                ]);
-
-                // 最初のポジションを主部署として設定（全体管理者のみ変更可能）
-                if ($index === 0 && $customer->role === 'institution_admin') {
-                    $employee->primary_department_id = $deptId;
-                    $employee->save();
-                }
-                $index++;
-            }
-
-            $this->syncEmployeeContractPlans($employee, $planIds, $customer->medical_institution_id);
+            $this->syncEmployeeContractPlanAssignments(
+                $employee,
+                $desiredPairs,
+                (int) $customer->medical_institution_id
+            );
         });
 
         return redirect()
@@ -407,16 +368,137 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Assign confirmed customer contract plans to an employee (optional at registration).
-     * Preserves history by closing prior assignments with assigned_until instead of delete.
+     * Upsert concurrent positions and build desired plan assignment pairs.
+     *
+     * @param  array<int, array<string, mixed>>  $positionsInput
+     * @param  array<int, int|string>  $widePlanIds
+     * @return array<int, array{customer_contract_plan_id:int, employee_position_id:?int}>
      */
-    private function syncEmployeeContractPlans(Employee $employee, array $planIds, int $institutionId): void
+    private function syncPositionsAndCollectPlanPairs(
+        Employee $employee,
+        array $positionsInput,
+        array $widePlanIds,
+        int $institutionId,
+        ?CustomerUser $customer = null
+    ): array {
+        $desiredPairs = [];
+        foreach ($widePlanIds as $ccpId) {
+            $desiredPairs[] = [
+                'customer_contract_plan_id' => (int) $ccpId,
+                'employee_position_id' => null,
+            ];
+        }
+
+        $keptPositionIds = [];
+        $index = 0;
+
+        foreach ($positionsInput as $pos) {
+            $deptId = $pos['department_id'] ?? null;
+            $jobTypeId = $pos['job_type_id'] ?? null;
+            if (! $deptId || ! $jobTypeId) {
+                continue;
+            }
+
+            if ($customer && $customer->role === 'department_admin' && $customer->department_id
+                && (int) $deptId !== (int) $customer->department_id) {
+                continue;
+            }
+
+            $dept = Department::find($deptId);
+            if (! $dept || (int) $dept->medical_institution_id !== $institutionId) {
+                continue;
+            }
+
+            $jobType = JobType::find($jobTypeId);
+            if (! $jobType || (int) $jobType->medical_institution_id !== $institutionId) {
+                continue;
+            }
+
+            $positionId = isset($pos['id']) ? (int) $pos['id'] : null;
+            $position = null;
+            if ($positionId) {
+                $position = EmployeePosition::where('employee_id', $employee->id)
+                    ->where('id', $positionId)
+                    ->first();
+            }
+
+            if ($position) {
+                $position->update([
+                    'department_id' => $deptId,
+                    'job_type_id' => $jobTypeId,
+                ]);
+            } else {
+                $position = EmployeePosition::create([
+                    'employee_id' => $employee->id,
+                    'department_id' => $deptId,
+                    'job_type_id' => $jobTypeId,
+                ]);
+            }
+
+            $keptPositionIds[] = $position->id;
+
+            if ($index === 0) {
+                if (! $employee->primary_department_id || ($customer && $customer->role === 'institution_admin')) {
+                    $employee->primary_department_id = $deptId;
+                    $employee->save();
+                }
+            }
+
+            foreach (($pos['customer_contract_plan_ids'] ?? []) as $ccpId) {
+                $desiredPairs[] = [
+                    'customer_contract_plan_id' => (int) $ccpId,
+                    'employee_position_id' => (int) $position->id,
+                ];
+            }
+
+            $index++;
+        }
+
+        // Remove dropped positions (nulls FK on plan rows via nullOnDelete)
+        if (! empty($keptPositionIds)) {
+            EmployeePosition::where('employee_id', $employee->id)
+                ->whereNotIn('id', $keptPositionIds)
+                ->delete();
+        } else {
+            EmployeePosition::where('employee_id', $employee->id)->delete();
+        }
+
+        return $desiredPairs;
+    }
+
+    /**
+     * Assign confirmed customer contract plans (optionally per concurrent position).
+     * Preserves history by closing prior assignments with assigned_until instead of delete.
+     *
+     * @param  array<int, array{customer_contract_plan_id:int, employee_position_id:?int}|int>  $desiredPairsOrPlanIds
+     */
+    private function syncEmployeeContractPlanAssignments(Employee $employee, array $desiredPairsOrPlanIds, int $institutionId): void
     {
         $validIds = CustomerContractPlan::where('medical_institution_id', $institutionId)
             ->where('status', 'confirmed')
-            ->whereIn('id', $planIds)
             ->pluck('id')
             ->all();
+
+        $desired = [];
+        foreach ($desiredPairsOrPlanIds as $item) {
+            if (is_array($item)) {
+                $ccpId = (int) ($item['customer_contract_plan_id'] ?? 0);
+                $posId = $item['employee_position_id'] ?? null;
+                $posId = $posId !== null && $posId !== '' ? (int) $posId : null;
+            } else {
+                $ccpId = (int) $item;
+                $posId = null;
+            }
+
+            if ($ccpId <= 0 || ! in_array($ccpId, $validIds, true)) {
+                continue;
+            }
+
+            $desired[$this->planAssignmentKey($ccpId, $posId)] = [
+                'customer_contract_plan_id' => $ccpId,
+                'employee_position_id' => $posId,
+            ];
+        }
 
         $today = now()->toDateString();
         $yesterday = now()->subDay()->toDateString();
@@ -429,26 +511,79 @@ class EmployeeController extends Controller
             ->get();
 
         foreach ($activeAssignments as $assignment) {
-            if (! in_array($assignment->customer_contract_plan_id, $validIds, true)) {
+            $key = $this->planAssignmentKey(
+                (int) $assignment->customer_contract_plan_id,
+                $assignment->employee_position_id !== null ? (int) $assignment->employee_position_id : null
+            );
+            if (! isset($desired[$key])) {
                 $assignment->update(['assigned_until' => $yesterday]);
             }
         }
 
-        foreach ($validIds as $ccpId) {
-            $hasActive = $employee->contractPlanAssignments()
-                ->where('customer_contract_plan_id', $ccpId)
-                ->get()
-                ->contains(fn (EmployeeContractPlan $a) => $a->isActiveOn($today));
+        foreach ($desired as $pair) {
+            $hasActive = $activeAssignments->contains(function (EmployeeContractPlan $a) use ($pair, $today) {
+                if (! $a->isActiveOn($today)) {
+                    return false;
+                }
+                if ((int) $a->customer_contract_plan_id !== (int) $pair['customer_contract_plan_id']) {
+                    return false;
+                }
+                $aPos = $a->employee_position_id !== null ? (int) $a->employee_position_id : null;
+                $dPos = $pair['employee_position_id'];
+
+                return $aPos === $dPos;
+            });
 
             if (! $hasActive) {
                 EmployeeContractPlan::create([
                     'employee_id' => $employee->id,
-                    'customer_contract_plan_id' => $ccpId,
+                    'customer_contract_plan_id' => $pair['customer_contract_plan_id'],
+                    'employee_position_id' => $pair['employee_position_id'],
                     'assigned_from' => $today,
                     'assigned_until' => null,
                 ]);
             }
         }
+    }
+
+    private function planAssignmentKey(int $ccpId, ?int $positionId): string
+    {
+        return $ccpId.':'.($positionId ?? '0');
+    }
+
+    /**
+     * @deprecated Use syncEmployeeContractPlanAssignments
+     */
+    private function syncEmployeeContractPlans(Employee $employee, array $planIds, int $institutionId): void
+    {
+        // CSV / legacy: replace employee-wide (null position) plans only; keep position-linked.
+        $today = now()->toDateString();
+        $existingPositionPairs = $employee->contractPlanAssignments()
+            ->whereNotNull('employee_position_id')
+            ->where(function ($q) use ($today) {
+                $q->whereNull('assigned_until')
+                    ->orWhere('assigned_until', '>=', $today);
+            })
+            ->get()
+            ->map(fn (EmployeeContractPlan $a) => [
+                'customer_contract_plan_id' => (int) $a->customer_contract_plan_id,
+                'employee_position_id' => (int) $a->employee_position_id,
+            ])
+            ->all();
+
+        $widePairs = array_map(
+            fn ($id) => [
+                'customer_contract_plan_id' => (int) $id,
+                'employee_position_id' => null,
+            ],
+            $planIds
+        );
+
+        $this->syncEmployeeContractPlanAssignments(
+            $employee,
+            array_merge($existingPositionPairs, $widePairs),
+            $institutionId
+        );
     }
 
     public function destroy(Employee $employee): RedirectResponse

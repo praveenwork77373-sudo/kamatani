@@ -36,63 +36,12 @@
     @endif
 
     {{-- Statistics Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {{-- Total Admins --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 border border-blue-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                        <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 text-[10px] font-semibold">{{ __('pages.total') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['total_admins'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.total_admins') }}</p>
-            </div>
-        </div>
-
-        {{-- Active Admins --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                        <i data-lucide="user-check" class="w-5 h-5 text-emerald-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-semibold">{{ __('pages.active') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['active_admins'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.active') }}</p>
-            </div>
-        </div>
-
-        {{-- Blocked Admins --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 border border-amber-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                        <i data-lucide="user-x" class="w-5 h-5 text-amber-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-[10px] font-semibold">{{ __('pages.blocked') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['blocked_admins'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.blocked_admins') }}</p>
-            </div>
-        </div>
-
-        {{-- System Admins --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 border border-purple-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                        <i data-lucide="shield" class="w-5 h-5 text-purple-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700 text-[10px] font-semibold">{{ __('roles.system_admin') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['system_admins'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.system_admins') }}</p>
-            </div>
-        </div>
-    </div>
+    <x-stat-grid :cols="4">
+        <x-stat-card tone="blue" icon="users" :value="$stats['total_admins'] ?? 0" :label="__('pages.total_admins')" :badge="__('pages.total')" />
+        <x-stat-card tone="emerald" icon="user-check" :value="$stats['active_admins'] ?? 0" :label="__('pages.active')" :badge="__('pages.active')" />
+        <x-stat-card tone="amber" icon="user-x" :value="$stats['blocked_admins'] ?? 0" :label="__('pages.blocked_admins')" :badge="__('pages.blocked')" />
+        <x-stat-card tone="purple" icon="shield" :value="$stats['system_admins'] ?? 0" :label="__('pages.system_admins')" :badge="__('roles.system_admin')" />
+    </x-stat-grid>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {{-- Filter Sidebar --}}

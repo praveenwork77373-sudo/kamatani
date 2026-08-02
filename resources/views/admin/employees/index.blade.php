@@ -10,7 +10,36 @@
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('menu.all_employees') }}</h1>
                 <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.all_employees_description') }}</p>
             </div>
+            <div class="flex items-center gap-3 flex-wrap">
+                <form method="POST" action="{{ route('admin.employees.export_csv') }}" class="inline">
+                    @csrf
+                    <input type="hidden" name="medical_institution_id" value="{{ $selectedInstitutionId }}">
+                    <input type="hidden" name="department_id" value="{{ $selectedDepartmentId }}">
+                    <input type="hidden" name="status" value="{{ $selectedStatus }}">
+                    <input type="hidden" name="q" value="{{ $searchQuery }}">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium shadow-sm transition-all {{ $selectedInstitutionId ? '' : 'opacity-50 cursor-not-allowed' }}"
+                            @if(!$selectedInstitutionId) disabled title="医療機関を選択してから出力してください" @endif>
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        CSV出力
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.employees.import_csv') }}" enctype="multipart/form-data" class="inline" id="admin-csv-import-form">
+                    @csrf
+                    <input type="hidden" name="medical_institution_id" value="{{ $selectedInstitutionId }}">
+                    <label class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium shadow-sm transition-all {{ $selectedInstitutionId ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed' }}">
+                        <i data-lucide="upload" class="w-4 h-4"></i>
+                        CSV取込
+                        <input type="file" name="csv_file" accept=".csv,.txt" class="hidden"
+                               @if(!$selectedInstitutionId) disabled @endif
+                               onchange="if(this.files.length){ document.getElementById('admin-csv-import-form').submit(); }">
+                    </label>
+                </form>
+            </div>
         </div>
+        @if(!$selectedInstitutionId)
+            <p class="text-[13px] text-amber-700 mt-2">CSV出力・取込には左のフィルタで医療機関を選択してください。</p>
+        @endif
     </div>
 
     @if(session('status'))
@@ -22,85 +51,47 @@
         </div>
     @endif
 
+    @if(session('error'))
+        <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+            <div class="flex items-center gap-2">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-red-600"></i>
+                <span class="text-[14px] text-red-800 font-medium">{{ session('error') }}</span>
+            </div>
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+            <ul class="text-[14px] text-red-800 list-disc pl-5 space-y-1">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- Statistics Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        {{-- Total Employees --}}
-        <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 border border-blue-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                        <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 text-[10px] font-semibold">{{ __('pages.total') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['total_employees'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.total_employees') }}</p>
-            </div>
-        </div>
-
-        {{-- Employed Employees --}}
-        <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-semibold">{{ __('pages.employed') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['employed_employees'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.employed') }}</p>
-                <p class="text-slate-500 text-[12px] mt-1.5">
-                    {{ $stats['total_employees'] > 0 ? round(($stats['employed_employees'] / $stats['total_employees']) * 100, 1) : 0 }}% {{ __('pages.percentage') }}
-                </p>
-            </div>
-        </div>
-
-        {{-- On Leave Employees --}}
-        <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 border border-amber-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                        <i data-lucide="pause-circle" class="w-5 h-5 text-amber-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-[10px] font-semibold">{{ __('pages.on_leave') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['on_leave_employees'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.on_leave') }}</p>
-            </div>
-        </div>
-
-        {{-- Retired Employees --}}
-        <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-50 via-slate-100 to-slate-100 border border-slate-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-slate-500/10 flex items-center justify-center">
-                        <i data-lucide="x-circle" class="w-5 h-5 text-slate-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-700 text-[10px] font-semibold">{{ __('pages.retired') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['retired_employees'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.retired') }}</p>
-            </div>
-        </div>
-
-        {{-- New Employees This Month --}}
-        <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 border border-purple-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                        <i data-lucide="plus-circle" class="w-5 h-5 text-purple-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700 text-[10px] font-semibold">{{ __('pages.this_month') ?? '今月' }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['new_employees_this_month'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.new_registration') ?? '新規登録' }}</p>
-                <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                    <i data-lucide="trending-up" class="w-4 h-4"></i>
-                    <span>{{ __('pages.new_this_month') ?? '今月の新規' }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-stat-grid :cols="5">
+        <x-stat-card tone="blue" icon="users" :value="$stats['total_employees'] ?? 0" :label="__('pages.total_employees')" :badge="__('pages.total')" />
+        <x-stat-card
+            tone="emerald"
+            icon="check-circle"
+            :value="$stats['employed_employees'] ?? 0"
+            :label="__('pages.employed')"
+            :badge="__('pages.employed')"
+            :hint="(($stats['total_employees'] ?? 0) > 0 ? round(($stats['employed_employees'] / $stats['total_employees']) * 100, 1) : 0).'% '.__('pages.percentage')"
+        />
+        <x-stat-card tone="amber" icon="pause-circle" :value="$stats['on_leave_employees'] ?? 0" :label="__('pages.on_leave')" :badge="__('pages.on_leave')" />
+        <x-stat-card tone="slate" icon="x-circle" :value="$stats['retired_employees'] ?? 0" :label="__('pages.retired')" :badge="__('pages.retired')" />
+        <x-stat-card
+            tone="purple"
+            icon="plus-circle"
+            :value="$stats['new_employees_this_month'] ?? 0"
+            :label="__('pages.new_registration')"
+            :badge="__('pages.this_month')"
+            :hint="__('pages.new_this_month')"
+        />
+    </x-stat-grid>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {{-- Filter Sidebar --}}

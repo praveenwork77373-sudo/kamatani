@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/ui-kit.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/ui-kit.css') }}?v={{ filemtime(public_path('css/ui-kit.css')) }}">
     {{-- Tailwind CSS CDN --}}
     <script src="https://cdn.tailwindcss.com"></script>
     {{-- Lucide Icons - Modern, Beautiful Icons --}}

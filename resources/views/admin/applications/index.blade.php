@@ -11,79 +11,40 @@
     </div>
 
     {{-- Statistics Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {{-- Pending Applications Card --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 border border-amber-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                        <i data-lucide="clock" class="w-5 h-5 text-amber-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-[10px] font-semibold">{{ __('pages.action_required_badge') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['pending'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.pending_applications') }}</p>
-                <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                    <i data-lucide="alert-circle" class="w-4 h-4"></i>
-                    <span>{{ __('pages.action_required') }}</span>
-                </div>
-            </div>
-        </div>
-
-        {{-- Special Approval Pending Card --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 border border-orange-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                        <i data-lucide="alert-triangle" class="w-5 h-5 text-orange-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-700 text-[10px] font-semibold">{{ __('pages.special_approval_pending') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['special'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.special_approval_pending') }}</p>
-                <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                    <i data-lucide="alert-octagon" class="w-4 h-4"></i>
-                    <span>{{ __('pages.limit_exceeded_applications') }}</span>
-                </div>
-            </div>
-        </div>
-
-        {{-- Approved This Month Card --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-semibold">{{ __('pages.approved_this_month') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['approved_this_month'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.approved_this_month') }}</p>
-                <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                    <i data-lucide="trending-up" class="w-4 h-4"></i>
-                    <span>{{ __('pages.this_month_count') }}</span>
-                </div>
-            </div>
-        </div>
-
-        {{-- Cancellation Requests Card --}}
-        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-50 via-rose-50 to-pink-50 border border-red-200/50 p-4 shadow-sm hover:shadow-md transition-all duration-300">
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                        <i data-lucide="x-circle" class="w-5 h-5 text-red-600"></i>
-                    </div>
-                    <span class="px-2 py-0.5 rounded-full bg-red-500/10 text-red-700 text-[10px] font-semibold">{{ __('pages.cancellation_requests') }}</span>
-                </div>
-                <p class="text-3xl font-bold text-slate-900 mb-1">{{ number_format($stats['cancellations'] ?? 0) }}</p>
-                <p class="text-slate-600 text-[13px] font-medium">{{ __('pages.cancellation_requests') }}</p>
-                <div class="mt-1.5 flex items-center gap-2 text-slate-500 text-[12px]">
-                    <i data-lucide="clock" class="w-4 h-4"></i>
-                    <span>{{ __('pages.awaiting_approval') }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-stat-grid :cols="4">
+        <x-stat-card
+            tone="amber"
+            icon="clock"
+            :value="$stats['pending'] ?? 0"
+            :label="__('pages.pending_applications')"
+            :badge="__('pages.action_required_badge')"
+            :hint="__('pages.action_required')"
+        />
+        <x-stat-card
+            tone="orange"
+            icon="alert-triangle"
+            :value="$stats['special'] ?? 0"
+            :label="__('pages.special_approval_pending')"
+            :badge="__('pages.special_approval_pending')"
+            :hint="__('pages.limit_exceeded_applications')"
+        />
+        <x-stat-card
+            tone="emerald"
+            icon="check-circle"
+            :value="$stats['approved_this_month'] ?? 0"
+            :label="__('pages.approved_this_month')"
+            :badge="__('pages.approved_this_month')"
+            :hint="__('pages.this_month_count')"
+        />
+        <x-stat-card
+            tone="red"
+            icon="x-circle"
+            :value="$stats['cancellations'] ?? 0"
+            :label="__('pages.cancellation_requests')"
+            :badge="__('pages.cancellation_requests')"
+            :hint="__('pages.awaiting_approval')"
+        />
+    </x-stat-grid>
 
     {{-- テーブルセクション --}}
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
