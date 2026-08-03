@@ -10,7 +10,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\Schema;
 
 class UniformProductController extends Controller
 {
@@ -30,10 +29,6 @@ class UniformProductController extends Controller
         if ($category = $request->string('category')->toString()) {
             $query->where('category', $category);
         }
-
-        // Note: Medical institution and department filters removed
-        // Uniform recommendations have been removed, so products are no longer
-        // filtered by institution/department. All products are shown.
 
         // Status filter (in stock / out of stock)
         if ($status = $request->string('status')->toString()) {
@@ -96,16 +91,6 @@ class UniformProductController extends Controller
                 'has_stock' => $group->sum('stock_quantity') > 0,
             ];
         })->values();
-
-        // Get filter options
-        $medicalInstitutions = \App\Models\MedicalInstitution::orderBy('name')->get();
-        $selectedInstitutionId = $request->input('medical_institution_id');
-        $departments = collect();
-        if ($selectedInstitutionId) {
-            $departments = \App\Models\Department::where('medical_institution_id', $selectedInstitutionId)
-                ->orderBy('name')
-                ->get();
-        }
 
         // Standard sizes that should always be available
         $standardTopBottomSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -184,10 +169,6 @@ class UniformProductController extends Controller
 
         return view('admin.uniform-products.index', [
             'products' => $products,
-            'medicalInstitutions' => $medicalInstitutions,
-            'departments' => $departments,
-            'selectedInstitutionId' => $selectedInstitutionId,
-            'selectedDepartmentId' => $request->input('department_id'),
             'selectedCategory' => $category,
             'selectedStatus' => $status,
             'selectedSize' => $size,
@@ -273,9 +254,6 @@ class UniformProductController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        // Catalog products — clear legacy institution/department binding if columns exist
-        $hasMedicalInstitutionColumn = Schema::hasColumn('uniform_products', 'medical_institution_id');
-        $hasDepartmentColumn = Schema::hasColumn('uniform_products', 'department_id');
         
         // Log raw request data for debugging
         \Log::info('=== UNIFORM PRODUCT STORE REQUEST ===', [
@@ -455,12 +433,6 @@ class UniformProductController extends Controller
                     ];
                     
                     // Clear legacy institution/department binding (catalog products)
-                    if ($hasMedicalInstitutionColumn) {
-                        $createData['medical_institution_id'] = null;
-                    }
-                    if ($hasDepartmentColumn) {
-                        $createData['department_id'] = null;
-                    }
                     
                     $product = UniformProduct::create($createData);
                     $createdCount++;
@@ -503,12 +475,6 @@ class UniformProductController extends Controller
                         ];
                         
                         // Clear legacy institution/department binding (catalog products)
-                        if ($hasMedicalInstitutionColumn) {
-                            $createData['medical_institution_id'] = null;
-                        }
-                        if ($hasDepartmentColumn) {
-                            $createData['department_id'] = null;
-                        }
                         
                         $product = UniformProduct::create($createData);
                         $createdCount++;
@@ -656,10 +622,6 @@ class UniformProductController extends Controller
             'all_input' => $request->all(),
         ]);
         
-        // Catalog products — clear legacy institution/department binding if columns exist
-        $hasMedicalInstitutionColumn = Schema::hasColumn('uniform_products', 'medical_institution_id');
-        $hasDepartmentColumn = Schema::hasColumn('uniform_products', 'department_id');
-        
         // Extract base product code
         $baseProductCode = $uniformProduct->product_code;
         $lastDashPos = strrpos($baseProductCode, '-');
@@ -735,12 +697,6 @@ class UniformProductController extends Controller
             ];
             
             // Clear legacy institution/department binding (catalog products)
-            if ($hasMedicalInstitutionColumn) {
-                $updateData['medical_institution_id'] = null;
-            }
-            if ($hasDepartmentColumn) {
-                $updateData['department_id'] = null;
-            }
             
             $uniformProduct->update($updateData);
             $updatedCount = 1;
@@ -798,12 +754,6 @@ class UniformProductController extends Controller
                         ];
                         
                         // Clear legacy institution/department binding (catalog products)
-                        if ($hasMedicalInstitutionColumn) {
-                            $updateData['medical_institution_id'] = null;
-                        }
-                        if ($hasDepartmentColumn) {
-                            $updateData['department_id'] = null;
-                        }
                         
                         $existingProduct->update($updateData);
                         $updatedCount++;
@@ -845,12 +795,6 @@ class UniformProductController extends Controller
                         ];
                         
                         // Clear legacy institution/department binding (catalog products)
-                        if ($hasMedicalInstitutionColumn) {
-                            $createData['medical_institution_id'] = null;
-                        }
-                        if ($hasDepartmentColumn) {
-                            $createData['department_id'] = null;
-                        }
                         
                         $newProduct = UniformProduct::create($createData);
                         $createdCount++;

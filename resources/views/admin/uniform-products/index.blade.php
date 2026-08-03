@@ -95,28 +95,6 @@
                                class="ui-input">
                     </div>
                     <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.medical_institution') }}</label>
-                        <select name="medical_institution_id" id="medical-institution-select" class="ui-select">
-                            <option value="">{{ __('pages.all') }}</option>
-                            @foreach($medicalInstitutions as $institution)
-                                <option value="{{ $institution->id }}" @selected($selectedInstitutionId == $institution->id)>
-                                    {{ $institution->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.department') }}</label>
-                        <select name="department_id" id="department-select" class="ui-select">
-                            <option value="">{{ __('pages.all') }}</option>
-                            @foreach($departments as $department)
-                                <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>
-                                    {{ $department->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="flex-1 min-w-0">
                         <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.status') }}</label>
                         <select name="status" class="ui-select">
                             <option value="">{{ __('pages.all') }}</option>
@@ -395,36 +373,6 @@
                     document.getElementById('filter-form').submit();
                 });
             });
-
-            // Dynamic department loading
-            const institutionSelect = document.getElementById('medical-institution-select');
-            const departmentSelect = document.getElementById('department-select');
-            
-            if (institutionSelect) {
-                institutionSelect.addEventListener('change', function() {
-                    const institutionId = this.value;
-                    
-                    // Clear department options
-                    departmentSelect.innerHTML = '<option value="">{{ __('pages.all') }}</option>';
-                    
-                    if (institutionId) {
-                        // Fetch departments
-                        fetch(`{{ route('api.departments') }}?medical_institution_id=${institutionId}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                data.forEach(dept => {
-                                    const option = document.createElement('option');
-                                    option.value = dept.id;
-                                    option.textContent = dept.name;
-                                    departmentSelect.appendChild(option);
-                                });
-                            })
-                            .catch(error => {
-                                console.error('Error fetching departments:', error);
-                            });
-                    }
-                });
-            }
 
             // Filter products by category on page load
             const currentCategory = '{{ $selectedCategory }}';

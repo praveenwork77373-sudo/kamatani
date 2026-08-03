@@ -59,7 +59,9 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::post('/employees/import-csv', [EmployeeController::class, 'importCsv'])->name('employees.import_csv');
     Route::resource('applications', ApplicationController::class)->only(['index', 'create', 'store', 'show']);
     Route::post('/applications/{application}/request-cancel', [ApplicationController::class, 'requestCancel'])->name('applications.request_cancel');
-    Route::get('/api/uniforms-by-dept-job', [ApplicationController::class, 'getUniformsByDeptJob'])->name('api.uniforms_by_dept_job');
+    Route::get('/api/uniforms-by-plan', [ApplicationController::class, 'getUniformsByPlan'])->name('api.uniforms_by_plan');
+    // Legacy alias (plan-based; not dept/job recommendations)
+    Route::get('/api/uniforms-by-dept-job', [ApplicationController::class, 'getUniformsByPlan'])->name('api.uniforms_by_dept_job');
     Route::get('/api/employees-by-department', [ApplicationController::class, 'getEmployeesByDepartment'])->name('api.employees_by_department');
     Route::get('/api/employees/search', [ApplicationController::class, 'searchEmployees'])->name('api.employees.search');
     Route::get('/api/employees/{employee}/loans', [ApplicationController::class, 'getEmployeeLoans'])->name('api.employees.loans');

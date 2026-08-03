@@ -35,68 +35,24 @@ class BillingController extends Controller
     {
         $this->checkViewPermission();
 
-        $query = BillingSnapshot::with(['medicalInstitution', 'department', 'generatedBy'])
+        $query = BillingSnapshot::with(['medicalInstitution', 'generatedBy'])
             ->orderByDesc('target_date')
             ->orderByDesc('created_at');
 
         $institutionId = $request->integer('medical_institution_id');
-        $departmentId = $request->integer('department_id');
-
         if ($institutionId) {
             $query->where('medical_institution_id', $institutionId);
         }
 
-        if ($departmentId) {
-            $query->where('department_id', $departmentId);
-        }
-
         $billingSnapshots = $query->paginate(Pagination::perPage($request))->withQueryString();
 
-        $institutionsWithDepartments = MedicalInstitution::with('departments')
-            ->orderBy('name')
-            ->get();
+        $institutions = MedicalInstitution::orderBy('name')->get();
 
-        $billingCounts = [
-            'institution' => [],
-            'department' => [],
-        ];
-
-        foreach ($institutionsWithDepartments as $institution) {
+        $billingCounts = ['institution' => []];
+        foreach ($institutions as $institution) {
             $snapshotCount = BillingSnapshot::where('medical_institution_id', $institution->id)->count();
             if ($snapshotCount > 0) {
                 $billingCounts['institution'][$institution->id] = $snapshotCount;
-            }
-
-            foreach ($institution->departments as $department) {
-                $deptCount = BillingSnapshot::where('medical_institution_id', $institution->id)
-                    ->where('department_id', $department->id)
-                    ->count();
-
-                $deptBillingAmount = 0;
-                $deptEmployeeCount = 0;
-                $deptReturnPoints = 0;
-
-                if ($deptCount > 0) {
-                    $latestSnapshot = BillingSnapshot::where('medical_institution_id', $institution->id)
-                        ->where('department_id', $department->id)
-                        ->orderByDesc('target_date')
-                        ->orderByDesc('created_at')
-                        ->first();
-
-                    if ($latestSnapshot) {
-                        $summary = ($latestSnapshot->data ?? [])['summary'] ?? [];
-                        $deptBillingAmount = $summary['billing_amount'] ?? 0;
-                        $deptEmployeeCount = $summary['total_targets'] ?? 0;
-                        $deptReturnPoints = $summary['return_points'] ?? 0;
-                    }
-                }
-
-                $billingCounts['department'][$department->id] = [
-                    'count' => $deptCount,
-                    'billing_amount' => $deptBillingAmount,
-                    'employee_count' => $deptEmployeeCount,
-                    'return_points' => $deptReturnPoints,
-                ];
             }
         }
 
@@ -106,7 +62,7 @@ class BillingController extends Controller
             now()->endOfMonth()->format('Y-m-d'),
         ])->count();
 
-        $totalBillingAmount = BillingSnapshot::get()->sum(function ($snapshot) {
+        $totalBillingAmount = BillingSnapshot::query()->get()->sum(function ($snapshot) {
             return ($snapshot->data['summary']['billing_amount'] ?? 0);
         });
 
@@ -119,8 +75,8 @@ class BillingController extends Controller
 
         return view('admin.billing.index', [
             'billingSnapshots' => $billingSnapshots,
-            'institutions' => $institutionsWithDepartments,
-            'institutionsWithDepartments' => $institutionsWithDepartments,
+            'institutions' => $institutions,
+            'institutionsWithDepartments' => $institutions,
             'billingCounts' => $billingCounts,
             'stats' => [
                 'total_billing_snapshots' => $totalBillingSnapshots,

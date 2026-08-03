@@ -27,8 +27,9 @@
             <input type="number" step="0.01" name="unit_price_ex_tax" min="0" value="{{ old('unit_price_ex_tax', $plan->unit_price_ex_tax ?? 0) }}" required class="ui-input">
         </div>
         <div>
-            <label class="ui-label">職種ラベル</label>
-            <input type="text" name="job_type_label" value="{{ old('job_type_label', $plan->job_type_label ?? '') }}" class="ui-input">
+            <label class="ui-label">職種ラベル（表示用）</label>
+            <input type="text" name="job_type_label" value="{{ old('job_type_label', $plan->job_type_label ?? '') }}" class="ui-input" placeholder="例: 看護師（女性）">
+            <p class="ui-hint mt-1">請求・プラン一覧の表示名です。病院の「職種マスタ」とは別項目です（紐付けなし）。</p>
         </div>
         <div>
             <label class="ui-label">勤務体制</label>

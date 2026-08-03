@@ -102,93 +102,41 @@ class EmployeeController extends Controller
 
     public function create(Request $request): View
     {
-        $user = $request->user();
-        $customer = $user->customerUser;
-        $adminUser = $user->adminUser;
+        $customer = $request->user()->customerUser;
 
-        // Check if user is customer user (institution_admin or department_admin) or admin user
-        $isCustomer = $customer && in_array($customer->role, ['institution_admin', 'department_admin'], true);
-        $isAdmin = $adminUser && in_array($adminUser->role, ['system_admin', 'operation', 'sales', 'accounting', 'contract_plan_manager'], true);
-
-        if (!$isCustomer && !$isAdmin) {
+        if (! $customer || ! in_array($customer->role, ['institution_admin', 'department_admin'], true)) {
             abort(403, '職員を追加できる権限がありません。');
         }
 
-        // Get institution ID
-        $institutionId = null;
-        $institutions = collect();
+        $institutionId = $customer->medical_institution_id;
 
-        if ($isCustomer) {
-            // Customer users: use their institution
-            $institutionId = $customer->medical_institution_id;
-        } elseif ($isAdmin) {
-            // Admin users: can select any institution
-            $institutions = MedicalInstitution::orderBy('name')->get();
-            // If institution is provided in request, use it
-            $institutionId = $request->input('medical_institution_id');
-        }
-
-        // Get departments and job types based on institution
-        $departments = collect();
-        $jobTypes = collect();
-        $availablePlans = collect();
-
-        if ($institutionId) {
-            $departmentsQuery = Department::where('medical_institution_id', $institutionId);
-
-            // 部署管理者は自部署のみ選択肢として表示
-            if ($isCustomer && $customer->role === 'department_admin' && $customer->department_id) {
-                $departmentsQuery->where('id', $customer->department_id);
-            }
-
-            $departments = $departmentsQuery->get();
-            $jobTypes = JobType::where('medical_institution_id', $institutionId)->get();
-            $availablePlans = CustomerContractPlan::with('contractPlan')
-                ->where('medical_institution_id', $institutionId)
-                ->where('status', 'confirmed')
-                ->orderBy('id')
-                ->get();
+        $departmentsQuery = Department::where('medical_institution_id', $institutionId);
+        if ($customer->role === 'department_admin' && $customer->department_id) {
+            $departmentsQuery->where('id', $customer->department_id);
         }
 
         return view('employees.create', [
-            'departments' => $departments,
-            'jobTypes' => $jobTypes,
+            'departments' => $departmentsQuery->orderBy('name')->get(),
+            'jobTypes' => JobType::where('medical_institution_id', $institutionId)->orderBy('name')->get(),
             'customer' => $customer,
-            'adminUser' => $adminUser,
-            'institutions' => $institutions,
-            'selectedInstitutionId' => $institutionId,
-            'availablePlans' => $availablePlans,
+            'availablePlans' => CustomerContractPlan::with('contractPlan')
+                ->where('medical_institution_id', $institutionId)
+                ->where('status', 'confirmed')
+                ->orderBy('id')
+                ->get(),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $user = $request->user();
-        $customer = $user->customerUser;
-        $adminUser = $user->adminUser;
+        $customer = $request->user()->customerUser;
+        $isCustomer = true;
 
-        // Check if user is customer user or admin user
-        $isCustomer = $customer && in_array($customer->role, ['institution_admin', 'department_admin'], true);
-        $isAdmin = $adminUser && in_array($adminUser->role, ['system_admin', 'operation', 'sales', 'accounting', 'contract_plan_manager'], true);
-
-        if (!$isCustomer && !$isAdmin) {
+        if (! $customer || ! in_array($customer->role, ['institution_admin', 'department_admin'], true)) {
             abort(403);
         }
 
-        // Determine institution ID
-        $institutionId = null;
-        if ($isCustomer) {
-            $institutionId = $customer->medical_institution_id;
-        } elseif ($isAdmin) {
-            $institutionId = $request->input('medical_institution_id');
-            if (!$institutionId) {
-                return back()->withErrors(['medical_institution_id' => '医療機関を選択してください。']);
-            }
-            // Validate institution exists
-            if (!MedicalInstitution::find($institutionId)) {
-                return back()->withErrors(['medical_institution_id' => '選択された医療機関が存在しません。']);
-            }
-        }
+        $institutionId = $customer->medical_institution_id;
 
         $rules = [
             'staff_no' => [
@@ -217,15 +165,7 @@ class EmployeeController extends Controller
             'positions.*.customer_contract_plan_ids.*' => ['integer', 'exists:customer_contract_plans,id'],
         ];
 
-        // Add institution validation for admin users
-        if ($isAdmin) {
-            $rules['medical_institution_id'] = ['required', 'exists:medical_institutions,id'];
-        }
-
-        // 全体管理者のみ部署選択可能。部署管理者は自部署に固定。
-        if ($isCustomer && $customer->role === 'institution_admin') {
-            $rules['primary_department_id'] = ['required', 'exists:departments,id'];
-        } elseif ($isAdmin) {
+        if ($customer->role === 'institution_admin') {
             $rules['primary_department_id'] = ['required', 'exists:departments,id'];
         }
 

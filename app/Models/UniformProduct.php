@@ -11,8 +11,6 @@ class UniformProduct extends Model
 
     protected $fillable = [
         'maker_id',
-        'medical_institution_id',
-        'department_id',
         'product_code',
         'maker_product_code',
         'name',
@@ -25,28 +23,12 @@ class UniformProduct extends Model
     ];
 
     protected $casts = [
-        'size' => 'string', // Ensure size is always stored as string (letter format: XS, S, M, L, XL, XXL for tops/bottoms, numeric strings for shoes)
+        'size' => 'string',
     ];
 
     public function maker()
     {
         return $this->belongsTo(Maker::class);
-    }
-
-    /**
-     * Get the medical institution that owns the uniform product.
-     */
-    public function medicalInstitution()
-    {
-        return $this->belongsTo(\App\Models\MedicalInstitution::class);
-    }
-
-    /**
-     * Get the department that owns the uniform product.
-     */
-    public function department()
-    {
-        return $this->belongsTo(\App\Models\Department::class);
     }
 
     public function contractPlans()
@@ -55,5 +37,3 @@ class UniformProduct extends Model
             ->withTimestamps();
     }
 }
-
-

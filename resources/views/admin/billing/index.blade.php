@@ -48,11 +48,6 @@
 
     @php
         $selectedInstitutionId = request('medical_institution_id');
-        $selectedDepartmentId = request('department_id');
-        $departmentsForFilter = collect($institutionsWithDepartments ?? [])
-            ->when($selectedInstitutionId, fn ($c) => $c->where('id', (int) $selectedInstitutionId))
-            ->flatMap(fn ($inst) => $inst->departments ?? collect())
-            ->values();
     @endphp
 
     <div class="space-y-6">
@@ -63,25 +58,14 @@
                 <div class="flex flex-col lg:flex-row lg:items-end gap-3">
                     <div class="flex-1 min-w-0">
                         <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.medical_institution') }}</label>
-                        <select name="medical_institution_id" id="billing-institution-select" class="ui-select" onchange="document.getElementById('billing-department-select').value=''; this.form.submit();">
+                        <select name="medical_institution_id" id="billing-institution-select" class="ui-select" onchange="this.form.submit();">
                             <option value="">{{ __('pages.all_institutions') }}</option>
-                            @foreach($institutionsWithDepartments ?? [] as $institution)
+                            @foreach($institutions ?? [] as $institution)
                                 <option value="{{ $institution->id }}" @selected($selectedInstitutionId == $institution->id)>
                                     {{ $institution->name }}
                                     @if(isset($billingCounts['institution'][$institution->id]) && $billingCounts['institution'][$institution->id] > 0)
                                         ({{ $billingCounts['institution'][$institution->id] }})
                                     @endif
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.department') }}</label>
-                        <select name="department_id" id="billing-department-select" class="ui-select" onchange="this.form.submit()">
-                            <option value="">{{ __('pages.all') }}</option>
-                            @foreach($departmentsForFilter as $department)
-                                <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>
-                                    {{ $department->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -103,7 +87,6 @@
                         <tr>
                             <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.billing_id') }}</th>
                             <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.medical_institution_label') }}</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.department') }}</th>
                             <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.target_month') }}</th>
                             <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.invoice_number') }}</th>
                             <th class="px-5 py-3.5 text-right font-semibold text-slate-700">{{ __('pages.billing_amount') }}</th>
@@ -125,12 +108,6 @@
                                     <div class="flex items-center gap-2">
                                         <i data-lucide="building" class="w-4 h-4 text-slate-400"></i>
                                         <span>{{ $snapshot->medicalInstitution?->name ?? '-' }}</span>
-                                    </div>
-                                </td>
-                                <td class="px-5 py-4 text-slate-700">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="building-2" class="w-4 h-4 text-slate-400"></i>
-                                        <span>{{ $snapshot->department?->name ?? ($snapshot->data['department']['name'] ?? '-') }}</span>
                                     </div>
                                 </td>
                                 <td class="px-5 py-4 text-slate-700">

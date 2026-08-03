@@ -211,10 +211,8 @@ class ApplicationController extends Controller
         ]);
     }
 
-    public function getUniformsByDeptJob(Request $request)
+    public function getUniformsByPlan(Request $request)
     {
-        $deptId = $request->input('department_id');
-        $jobTypeId = $request->input('job_type_id');
         $gender = $request->input('gender');
         $employeeId = $request->input('employee_id');
 
@@ -269,13 +267,11 @@ class ApplicationController extends Controller
             ->values()
             ->all();
 
-        $query = UniformProduct::query();
-        if (! empty($planProductIds)) {
-            $query->whereIn('id', $planProductIds);
-        } else {
-            // No confirmed plans → nothing applyable
+        if (empty($planProductIds)) {
             return response()->json([]);
         }
+
+        $query = UniformProduct::query()->whereIn('id', $planProductIds);
 
         if ($gender) {
             $query->where(function ($q) use ($gender) {
@@ -305,23 +301,22 @@ class ApplicationController extends Controller
         $departmentId = $request->input('department_id');
         $customer = $request->user()->customerUser;
 
-        if (!$customer || !$departmentId) {
+        if (! $customer) {
             return response()->json([]);
         }
 
-        // 権限チェック（文字列／整数の型差を吸収）
-        if ($customer->role === 'department_admin' && (int) $departmentId !== (int) $customer->department_id) {
-            return response()->json([]);
-        }
-
-        $employees = Employee::where('medical_institution_id', $customer->medical_institution_id)
-            ->where('primary_department_id', $departmentId)
+        $query = Employee::where('medical_institution_id', $customer->medical_institution_id)
             ->where('status', 'employed')
             ->with('positions.jobType')
-            ->orderBy('staff_no')
-            ->get();
+            ->orderBy('staff_no');
 
-        return response()->json($employees);
+        if ($customer->role === 'department_admin' && $customer->department_id) {
+            $query->where('primary_department_id', $customer->department_id);
+        } elseif ($departmentId) {
+            $query->where('primary_department_id', $departmentId);
+        }
+
+        return response()->json($query->get());
     }
 
     public function searchEmployees(Request $request)
@@ -494,10 +489,10 @@ class ApplicationController extends Controller
             'application_mode' => ['required', 'in:individual,departmental'],
             'employee_id' => ['required_if:application_mode,individual', 'nullable', 'exists:employees,id'],
             'transfer_to_employee_id' => ['nullable', 'required_if:type,transfer', 'exists:employees,id', 'different:employee_id'],
-            'department_id' => ['required', 'exists:departments,id'],
+            'department_id' => ['required_if:application_mode,departmental', 'nullable', 'exists:departments,id'],
             'type' => ['required', 'in:new_loan,resize,return,exchange,transfer'],
             'start_date' => ['required', 'date'],
-            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'delivery_location_id' => ['required', 'exists:delivery_locations,id'],
             'items' => ['nullable', 'array'],
             'items.*.uniform_product_id' => ['required_with:items', 'exists:uniform_products,id'],
@@ -512,9 +507,31 @@ class ApplicationController extends Controller
             'employee_id.required_if' => '職員を選択してください。',
             'transfer_to_employee_id.required_if' => '移管先の職員を選択してください。',
             'transfer_to_employee_id.different' => '移管先は申請元と別の職員を選択してください。',
-            'department_id.required' => '部署を選択してください。',
-            'end_date.required' => '貸出終了日を入力してください。',
+            'department_id.required_if' => '部署を選択してください。',
         ]);
+
+        // Loan-period types still need an end date
+        if (in_array($data['type'], ['new_loan', 'exchange', 'resize'], true) && empty($data['end_date'])) {
+            return redirect()->back()->withInput()->withErrors([
+                'end_date' => '貸出終了日を入力してください。',
+            ]);
+        }
+
+        // Individual apps: department defaults to employee's primary department
+        if ($data['application_mode'] === 'individual' && empty($data['department_id']) && ! empty($data['employee_id'])) {
+            $emp = Employee::find($data['employee_id']);
+            $data['department_id'] = $emp?->primary_department_id;
+        }
+
+        if (empty($data['department_id'])) {
+            return redirect()->back()->withInput()->withErrors([
+                'department_id' => '部署を選択してください。',
+            ]);
+        }
+
+        if (empty($data['end_date'])) {
+            $data['end_date'] = $data['start_date'];
+        }
 
         $data['items'] = $data['items'] ?? [];
         $data['return_items'] = $data['return_items'] ?? [];

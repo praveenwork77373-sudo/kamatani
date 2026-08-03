@@ -29,32 +29,8 @@
                     基本情報
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {{-- Institution Selection (for admin users) --}}
-                    @if(isset($adminUser) && $adminUser)
-                        <div class="md:col-span-2">
-                            <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
-                                <i data-lucide="building-2" class="w-4 h-4 text-slate-500"></i>
-                                {{ __('pages.medical_institution') }} <span class="text-red-500">*</span>
-                            </label>
-                            <select name="medical_institution_id" id="institution-select" required
-                                    class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
-                                <option value="">{{ __('pages.select_please') }}</option>
-                                @foreach($institutions as $institution)
-                                    <option value="{{ $institution->id }}" 
-                                            @selected(old('medical_institution_id', $selectedInstitutionId) == $institution->id)>
-                                        {{ $institution->name }} ({{ $institution->code }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('medical_institution_id')
-                                <p class="text-[13px] text-red-600 mt-1.5 flex items-center gap-1">
-                                    <i class="ph ph-warning text-xs"></i>
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-                    @elseif(isset($customer) && $customer)
-                        {{-- Display institution for customer users (read-only) --}}
+                    {{-- Institution (always from logged-in hospital user) --}}
+                    @if(isset($customer) && $customer)
                         <div class="md:col-span-2">
                             <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
                                 <i data-lucide="building-2" class="w-4 h-4 text-slate-500"></i>
@@ -67,24 +43,13 @@
                         </div>
                     @endif
 
-                    @if(isset($customer) && $customer)
-                        <x-master-code-field
-                            type="staff_no"
-                            name="staff_no"
-                            :value="old('staff_no')"
-                            :institution-id="$customer->medical_institution_id"
-                            :label="__('pages.staff_no')"
-                        />
-                    @else
-                        <x-master-code-field
-                            type="staff_no"
-                            name="staff_no"
-                            :value="old('staff_no')"
-                            institution-input="#institution-select"
-                            :institution-id="old('medical_institution_id', $selectedInstitutionId)"
-                            :label="__('pages.staff_no')"
-                        />
-                    @endif
+                    <x-master-code-field
+                        type="staff_no"
+                        name="staff_no"
+                        :value="old('staff_no')"
+                        :institution-id="$customer->medical_institution_id ?? null"
+                        :label="__('pages.staff_no')"
+                    />
 
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
@@ -404,85 +369,11 @@
         document.addEventListener('DOMContentLoaded', function () {
             const addBtn = document.getElementById('add-position-btn');
             const area = document.getElementById('positions-area');
-            const institutionSelect = document.getElementById('institution-select');
-            
+
             if (!addBtn || !area) return;
 
             let index = area.querySelectorAll('.position-row').length;
 
-            // Function to load departments and job types by institution
-            function loadInstitutionData(institutionId) {
-                if (!institutionId) {
-                    // Clear all selects
-                    document.querySelectorAll('.position-department-select, .position-job-type-select, #primary-department-select').forEach(sel => {
-                        sel.innerHTML = '<option value="">{{ __('pages.select_please') }}</option>';
-                    });
-                    return;
-                }
-
-                fetch(`{{ route('api.departments') }}?medical_institution_id=${institutionId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        // Update primary department select
-                        const primaryDeptSelect = document.getElementById('primary-department-select');
-                        if (primaryDeptSelect) {
-                            primaryDeptSelect.innerHTML = '<option value="">{{ __('pages.select_please') }}</option>';
-                            data.forEach(dept => {
-                                const option = document.createElement('option');
-                                option.value = dept.id;
-                                option.textContent = dept.name;
-                                primaryDeptSelect.appendChild(option);
-                            });
-                        }
-
-                        // Update all position department selects
-                        document.querySelectorAll('.position-department-select').forEach(sel => {
-                            const currentValue = sel.value;
-                            sel.innerHTML = '<option value="">{{ __('pages.select_please') }}</option>';
-                            data.forEach(dept => {
-                                const option = document.createElement('option');
-                                option.value = dept.id;
-                                option.textContent = dept.name;
-                                if (dept.id == currentValue) option.selected = true;
-                                sel.appendChild(option);
-                            });
-                        });
-
-                        // Update all position job type selects
-                        document.querySelectorAll('.position-job-type-select').forEach(sel => {
-                            const currentValue = sel.value;
-                            sel.innerHTML = '<option value="">{{ __('pages.select_please') }}</option>';
-                            data.job_types.forEach(jobType => {
-                                const option = document.createElement('option');
-                                option.value = jobType.id;
-                                option.textContent = jobType.name;
-                                if (jobType.id == currentValue) option.selected = true;
-                                sel.appendChild(option);
-                            });
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error loading institution data:', error);
-                    });
-            }
-
-            // Listen to institution change (for admin users) — reload so plans load
-            if (institutionSelect) {
-                institutionSelect.addEventListener('change', function() {
-                    const id = this.value;
-                    if (id) {
-                        window.location.href = '{{ route('employees.create') }}?medical_institution_id=' + id;
-                        return;
-                    }
-                    loadInstitutionData(this.value);
-                });
-
-                if (institutionSelect.value) {
-                    loadInstitutionData(institutionSelect.value);
-                }
-            }
-
-            // Add position row
             addBtn.addEventListener('click', function () {
                 const firstRow = area.querySelector('.position-row');
                 if (!firstRow) return;
@@ -490,11 +381,11 @@
                 const clone = firstRow.cloneNode(true);
                 clone.querySelectorAll('select').forEach(function (sel) {
                     sel.value = '';
-                    sel.name = sel.name.replace(/positions\[\d+]/, 'positions[' + index + ']');
+                    sel.name = sel.name.replace(/positions\[\d+\]/, 'positions[' + index + ']');
                 });
                 clone.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
                     cb.checked = false;
-                    cb.name = cb.name.replace(/positions\[\d+]/, 'positions[' + index + ']');
+                    cb.name = cb.name.replace(/positions\[\d+\]/, 'positions[' + index + ']');
                 });
                 clone.querySelectorAll('input[type="hidden"]').forEach(function (inp) {
                     inp.remove();
@@ -518,4 +409,5 @@
             });
         });
     </script>
+
 @endsection

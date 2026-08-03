@@ -102,10 +102,10 @@
                     <div id="department-selection-field">
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
                             <i data-lucide="building-2" class="w-4 h-4 text-slate-500"></i>
-                            {{ __('pages.select_department') }} <span class="text-red-500">*</span>
+                            {{ __('pages.select_department') }} <span id="department-required-mark" class="text-red-500">*</span>
                         </label>
                         <div class="relative">
-                            <select required name="department_id" id="department-select"
+                            <select name="department_id" id="department-select"
                                     class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm cursor-pointer">
                                 <option value="">{{ __('pages.select_please') }}</option>
                                 @foreach($departments as $dept)
@@ -115,6 +115,7 @@
                                 @endforeach
                             </select>
                         </div>
+                        <p class="text-[12px] text-slate-500 mt-1">個別申請では職員の主部署が使われます（絞り込み用）。部署一括では必須です。</p>
                         
                         {{-- Department Employees List (for departmental mode) --}}
                         <div id="department-employees-list" class="mt-4 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg border border-slate-200 hidden">
@@ -263,14 +264,15 @@
                         @enderror
                     </div>
 
-                    {{-- Loan End Date --}}
+                    {{-- Loan End Date (required for new loan / exchange / resize) --}}
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
                             <i data-lucide="calendar-days" class="w-4 h-4 text-slate-500"></i>
-                            {{ __('pages.loan_end_date') }} <span class="text-red-500">*</span>
+                            {{ __('pages.loan_end_date') }} <span id="end-date-required-mark" class="text-red-500">*</span>
                         </label>
-                        <input type="date" name="end_date" id="end-date-input" value="{{ old('end_date') }}" required
+                        <input type="date" name="end_date" id="end-date-input" value="{{ old('end_date') }}"
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm">
+                        <p class="text-[12px] text-slate-500 mt-1">返却・移管では任意（未入力時は開始日と同じ扱いになります）</p>
                         @error('end_date')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror
@@ -688,9 +690,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (category === 'individual') {
                 departmentSelectionField.classList.remove('hidden');
                 departmentEmployeesList.classList.add('hidden');
-                // Department is always required
-                departmentSelect.required = true;
-                departmentRequiredIndicator.classList.remove('hidden');
+                // Individual: department is filter-only (server uses employee primary dept)
+                departmentSelect.required = false;
+                const deptMark = document.getElementById('department-required-mark');
+                if (deptMark) deptMark.classList.add('hidden');
                 // Clear employee selection when switching modes
                 selectedEmployeeCard.classList.add('hidden');
                 selectedEmployeeId.value = '';
@@ -700,13 +703,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     employeeSearchField.classList.remove('hidden');
                     loadEmployeesForSelect(departmentSelect.value);
                 } else {
-                    employeeSearchField.classList.add('hidden');
+                    employeeSearchField.classList.remove('hidden');
+                    loadEmployeesForSelect('');
                 }
             } else {
                 employeeSearchField.classList.add('hidden');
                 departmentSelectionField.classList.remove('hidden');
                 departmentSelect.required = true;
-                departmentRequiredIndicator.classList.remove('hidden');
+                const deptMark = document.getElementById('department-required-mark');
+                if (deptMark) deptMark.classList.remove('hidden');
                 selectedEmployeeCard.classList.add('hidden');
                 selectedEmployeeId.value = '';
                 resetEmployeeSelect();
@@ -911,7 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             // Get uniforms for this department
-            const response = await fetch(`{{ route('api.uniforms_by_dept_job') }}?department_id=${departmentId}`);
+            const response = await fetch(`{{ route('api.uniforms_by_plan') }}?department_id=${departmentId}`);
             
             if (!response.ok) {
                 console.error('API response not OK:', response.status, response.statusText);
@@ -1157,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Prefer plan-linked products for the selected employee
         if (employeeId) {
             try {
-                let apiUrl = `{{ route('api.uniforms_by_dept_job') }}?employee_id=${employeeId}`;
+                let apiUrl = `{{ route('api.uniforms_by_plan') }}?employee_id=${employeeId}`;
                 if (gender) {
                     apiUrl += `&gender=${gender}`;
                 }
@@ -1240,8 +1245,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Build API URL - if jobId is missing, API will return department-based recommendations
-            let apiUrl = `{{ route('api.uniforms_by_dept_job') }}?department_id=${deptId}`;
+            // Build API URL — products come from confirmed Contract Plans (not dept/job recommendations)
+            let apiUrl = `{{ route('api.uniforms_by_plan') }}?department_id=${deptId}`;
             if (jobId) {
                 apiUrl += `&job_type_id=${jobId}`;
             }
@@ -1372,7 +1377,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             // Get uniforms for this department
-            const response = await fetch(`{{ route('api.uniforms_by_dept_job') }}?department_id=${departmentId}`);
+            const response = await fetch(`{{ route('api.uniforms_by_plan') }}?department_id=${departmentId}`);
             
             if (!response.ok) {
                 console.error('API response not OK:', response.status, response.statusText);
@@ -2337,6 +2342,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const type = applicationTypeSelect?.value || '';
         const needsLoans = ['return', 'exchange', 'resize', 'transfer'].includes(type);
         const needsTransfer = type === 'transfer';
+        const needsEndDate = ['new_loan', 'exchange', 'resize'].includes(type);
+
+        const endDateInput = document.getElementById('end-date-input');
+        const endDateMark = document.getElementById('end-date-required-mark');
+        if (endDateInput) {
+            endDateInput.required = needsEndDate;
+        }
+        if (endDateMark) {
+            endDateMark.classList.toggle('hidden', !needsEndDate);
+        }
 
         if (currentLoansPanel) {
             currentLoansPanel.classList.toggle('hidden', !needsLoans);
@@ -2528,16 +2543,25 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset department selection
         if (departmentSelect) {
             departmentSelect.value = '';
-            departmentSelect.required = true;
+            departmentSelect.required = false;
         }
+        const deptMark = document.getElementById('department-required-mark');
+        if (deptMark) deptMark.classList.add('hidden');
         departmentEmployeesList?.classList.add('hidden');
-        employeeSearchField?.classList.add('hidden');
+        employeeSearchField?.classList.remove('hidden');
+        loadEmployeesForSelect('');
         
         // Reset dates
         const startDateInput = document.getElementById('start-date-input');
         const endDateInput = document.getElementById('end-date-input');
-        if (startDateInput) startDateInput.value = '';
-        if (endDateInput) endDateInput.value = '';
+        if (startDateInput) startDateInput.value = new Date().toISOString().slice(0, 10);
+        if (endDateInput) {
+            endDateInput.value = '';
+            endDateInput.required = true;
+        }
+        const endMark = document.getElementById('end-date-required-mark');
+        if (endMark) endMark.classList.remove('hidden');
+        syncTypeDependentUi();
         
         // Reset application type
         const typeInputs = document.querySelectorAll('input[name="type"]');
@@ -2657,9 +2681,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
         
-        // Validate end_date is after start_date
+        // Validate end_date is after start_date when both present
         const startDateInput = document.getElementById('start-date-input');
         const endDateInput = document.getElementById('end-date-input');
+        const needsEndDate = ['new_loan', 'exchange', 'resize'].includes(appType);
+        if (needsEndDate && endDateInput && !endDateInput.value) {
+            e.preventDefault();
+            if (window.showToast) {
+                window.showToast('貸出終了日を入力してください。', 'error');
+            }
+            endDateInput.focus();
+            return false;
+        }
         if (startDateInput && endDateInput && endDateInput.value) {
             const startDate = new Date(startDateInput.value);
             const endDate = new Date(endDateInput.value);
