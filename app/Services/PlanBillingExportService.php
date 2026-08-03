@@ -129,14 +129,15 @@ class PlanBillingExportService
             'G5' => '退職日',
             'H5' => 'プラン名',
             'I5' => 'プランコード',
-            'J5' => '契約口数（行）',
-            'K5' => '単価（税抜）',
-            'L5' => '金額（税抜）',
+            'J5' => '請求単位',
+            'K5' => '契約口数（参考）',
+            'L5' => '単価（税抜）',
+            'M5' => '金額（税抜）',
         ];
         foreach ($headers as $cell => $label) {
             $sheet->setCellValue($cell, $label);
         }
-        $this->styleHeaderRow($sheet, 'A5:L5');
+        $this->styleHeaderRow($sheet, 'A5:M5');
 
         $row = 6;
         foreach ($data['staff_rows'] ?? [] as $staff) {
@@ -149,13 +150,14 @@ class PlanBillingExportService
             $sheet->setCellValue("G{$row}", $staff['retire_date'] ?? '');
             $sheet->setCellValue("H{$row}", $staff['plan_name'] ?? '');
             $sheet->setCellValue("I{$row}", $staff['plan_code'] ?? '');
-            $sheet->setCellValue("J{$row}", $staff['contract_count'] ?? 1);
-            $sheet->setCellValue("K{$row}", $staff['unit_price_ex_tax'] ?? 0);
-            $sheet->setCellValue("L{$row}", $staff['amount_ex_tax'] ?? 0);
+            $sheet->setCellValue("J{$row}", $staff['billing_units'] ?? $staff['contract_count'] ?? 1);
+            $sheet->setCellValue("K{$row}", $staff['contracted_slots'] ?? '');
+            $sheet->setCellValue("L{$row}", $staff['unit_price_ex_tax'] ?? 0);
+            $sheet->setCellValue("M{$row}", $staff['amount_ex_tax'] ?? 0);
             $row++;
         }
 
-        foreach (range('A', 'L') as $col) {
+        foreach (range('A', 'M') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
     }

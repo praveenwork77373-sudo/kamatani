@@ -8,7 +8,6 @@
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.generate_billing_data') }}</h1>
-                <p class="text-[14px] text-slate-600 mt-1.5">毎月、医療機関の締め日を基準日に「割当在籍人数 × 単価（税抜）」で作成します。顧客契約プランの終了日までの一括請求ではありません。</p>
             </div>
             <a href="{{ route('admin.billing.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
@@ -47,7 +46,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">対象月</label>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.target_month') }}</label>
                         <input type="month" name="target_month" id="target-month"
                                value="{{ old('target_month', \Carbon\Carbon::parse($targetDate)->format('Y-m')) }}"
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
@@ -55,19 +54,18 @@
 
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2">
-                            {{ __('pages.reference_date') }}（基準日） <span class="text-red-500">*</span>
+                            {{ __('pages.reference_date') }} <span class="text-red-500">*</span>
                         </label>
                         <input type="date" name="target_date" id="target-date" value="{{ old('target_date', $targetDate) }}" required
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
-                        <p class="text-[12px] text-slate-500 mt-1">医療機関マスタの締め日（毎月n日）がデフォルト基準日です。契約プランの終了日とは別です。</p>
                         @error('target_date')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">請求モデル</label>
-                        <input type="text" value="契約プラン × 割当人数" readonly
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.billing_model') }}</label>
+                        <input type="text" value="{{ __('pages.billing_model_plan_assigned') }}" readonly
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 bg-slate-50 text-[14px] text-slate-600">
                     </div>
                 </div>
@@ -75,19 +73,19 @@
                 @if($previewData)
                     <div class="mt-6 border border-slate-200 rounded-xl overflow-hidden">
                         <div class="px-5 py-3 bg-slate-50 border-b border-slate-200">
-                            <h3 class="font-semibold text-slate-900">プレビュー（基準日: {{ $previewData['reference_date'] ?? $targetDate }}）</h3>
+                            <h3 class="font-semibold text-slate-900">{{ __('pages.billing_preview_title', ['date' => $previewData['reference_date'] ?? $targetDate]) }}</h3>
                         </div>
                         <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div class="rounded-lg bg-blue-50 border border-blue-100 p-4">
-                                <p class="text-[12px] text-blue-700">割当人数合計</p>
-                                <p class="text-2xl font-bold text-slate-900">{{ number_format($previewData['summary']['total_targets'] ?? 0) }}人</p>
+                                <p class="text-[12px] text-blue-700">{{ __('pages.billing_billed_headcount') }}</p>
+                                <p class="text-2xl font-bold text-slate-900">{{ number_format($previewData['summary']['total_targets'] ?? 0) }}{{ __('pages.people') }}</p>
                             </div>
                             <div class="rounded-lg bg-emerald-50 border border-emerald-100 p-4">
-                                <p class="text-[12px] text-emerald-700">プラン数</p>
+                                <p class="text-[12px] text-emerald-700">{{ __('pages.billing_plan_count') }}</p>
                                 <p class="text-2xl font-bold text-slate-900">{{ number_format($previewData['summary']['plan_count'] ?? 0) }}</p>
                             </div>
                             <div class="rounded-lg bg-amber-50 border border-amber-100 p-4">
-                                <p class="text-[12px] text-amber-700">請求金額（税抜）</p>
+                                <p class="text-[12px] text-amber-700">{{ __('pages.billing_amount_excl_tax') }}</p>
                                 <p class="text-2xl font-bold text-slate-900">¥{{ number_format($previewData['summary']['billing_amount'] ?? 0) }}</p>
                             </div>
                         </div>
@@ -95,14 +93,14 @@
                             <table class="min-w-full text-[13px]">
                                 <thead class="bg-slate-50">
                                     <tr>
-                                        <th class="px-3 py-2 text-left">プラン</th>
-                                        <th class="px-3 py-2 text-left">コード</th>
-                                        <th class="px-3 py-2 text-left">契約期間</th>
-                                        <th class="px-3 py-2 text-right">契約口数</th>
-                                        <th class="px-3 py-2 text-right">対象人数</th>
-                                        <th class="px-3 py-2 text-right">単価</th>
-                                        <th class="px-3 py-2 text-right">請求金額</th>
-                                        <th class="px-3 py-2 text-right">契約×単価</th>
+                                        <th class="px-3 py-2 text-left">{{ __('pages.plan_name') }}</th>
+                                        <th class="px-3 py-2 text-left">{{ __('pages.plan_code') }}</th>
+                                        <th class="px-3 py-2 text-left">{{ __('pages.contract_period_label') }}</th>
+                                        <th class="px-3 py-2 text-right">{{ __('pages.billing_contract_slots') }}</th>
+                                        <th class="px-3 py-2 text-right">{{ __('pages.assigned_count') }}</th>
+                                        <th class="px-3 py-2 text-right">{{ __('pages.unit_price') }}</th>
+                                        <th class="px-3 py-2 text-right">{{ __('pages.billing_official_amount') }}</th>
+                                        <th class="px-3 py-2 text-right">{{ __('pages.billing_reference_capacity') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
@@ -113,7 +111,7 @@
                                             <td class="px-3 py-2 text-[12px] text-slate-600">
                                                 {{ $plan['contract_start_date'] ?? '—' }}
                                                 〜
-                                                {{ $plan['contract_end_date'] ?? '継続' }}
+                                                {{ $plan['contract_end_date'] ?? __('pages.billing_continued') }}
                                             </td>
                                             <td class="px-3 py-2 text-right">{{ number_format($plan['contracted_slots'] ?? 0) }}</td>
                                             <td class="px-3 py-2 text-right">{{ number_format($plan['assigned_count'] ?? 0) }}</td>
@@ -122,7 +120,7 @@
                                             <td class="px-3 py-2 text-right text-slate-500">¥{{ number_format($plan['amount_by_contract_slots'] ?? 0) }}</td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="8" class="px-3 py-6 text-center text-slate-500">割当データがありません</td></tr>
+                                        <tr><td colspan="8" class="px-3 py-6 text-center text-slate-500">{{ __('pages.billing_no_plan_rows') }}</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>

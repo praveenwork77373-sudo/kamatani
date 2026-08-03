@@ -134,22 +134,18 @@ class BillingController extends Controller
             }
         }
 
-        $totalBillingSnapshots = BillingSnapshot::count();
-        $thisMonthBillingSnapshots = BillingSnapshot::whereBetween('target_date', [
-            $monthStart->toDateString(),
-            $monthEnd->toDateString(),
-        ])->count();
+        $totalBillingSnapshots = BillingSnapshot::query()
+            ->whereIn('id', BillingSnapshot::latestIds())
+            ->count();
+        $thisMonthBillingSnapshots = BillingSnapshot::query()
+            ->whereIn('id', BillingSnapshot::latestIds($monthStart->toDateString(), $monthEnd->toDateString()))
+            ->count();
 
-        $totalBillingAmount = BillingSnapshot::query()->get()->sum(function ($snapshot) {
-            return ($snapshot->data['summary']['billing_amount'] ?? $snapshot->data['summary']['total_amount_ex_tax'] ?? 0);
-        });
-
-        $thisMonthBillingAmount = BillingSnapshot::whereBetween('target_date', [
+        $totalBillingAmount = BillingSnapshot::sumBillingAmount();
+        $thisMonthBillingAmount = BillingSnapshot::sumBillingAmount(
             $monthStart->toDateString(),
-            $monthEnd->toDateString(),
-        ])->get()->sum(function ($snapshot) {
-            return ($snapshot->data['summary']['billing_amount'] ?? $snapshot->data['summary']['total_amount_ex_tax'] ?? 0);
-        });
+            $monthEnd->toDateString()
+        );
 
         return view('admin.billing.index', [
             'billingSnapshots' => $billingSnapshots,
@@ -232,17 +228,43 @@ class BillingController extends Controller
 
         $billingData = app(PlanBillingService::class)->build($institution, $data['target_date']);
 
-        $snapshot = BillingSnapshot::create([
-            'medical_institution_id' => $institution->id,
-            'department_id' => null,
-            'target_date' => $data['target_date'],
-            'data' => $billingData,
-            'generated_by_admin_user_id' => $request->user()->id,
-        ]);
+        $existing = BillingSnapshot::query()
+            ->where('medical_institution_id', $institution->id)
+            ->whereDate('target_date', $data['target_date'])
+            ->whereNull('department_id')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($existing) {
+            $existing->update([
+                'data' => $billingData,
+                'generated_by_admin_user_id' => $request->user()->id,
+            ]);
+            $snapshot = $existing->fresh();
+
+            // Drop older duplicates for the same institution + closing date
+            BillingSnapshot::query()
+                ->where('medical_institution_id', $institution->id)
+                ->whereDate('target_date', $data['target_date'])
+                ->whereNull('department_id')
+                ->where('id', '!=', $snapshot->id)
+                ->delete();
+
+            $status = '請求データを更新しました。';
+        } else {
+            $snapshot = BillingSnapshot::create([
+                'medical_institution_id' => $institution->id,
+                'department_id' => null,
+                'target_date' => $data['target_date'],
+                'data' => $billingData,
+                'generated_by_admin_user_id' => $request->user()->id,
+            ]);
+            $status = '請求データを生成しました。';
+        }
 
         return redirect()
             ->route('admin.billing.show', $snapshot)
-            ->with('status', '契約プラン×割当人数の請求データを生成しました。');
+            ->with('status', $status);
     }
 
     public function export(BillingSnapshot $snapshot)

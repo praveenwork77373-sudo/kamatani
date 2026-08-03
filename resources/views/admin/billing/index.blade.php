@@ -28,7 +28,6 @@
                 <i data-lucide="receipt" class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 shrink-0"></i>
                 <span class="truncate">{{ __('pages.billing_approval') }}</span>
             </h1>
-            <p class="text-[13px] sm:text-[14px] text-slate-600 mt-1.5">{{ __('pages.billing_approval_description') }}</p>
         </div>
         @if($canManageBilling)
             <a href="{{ route('admin.billing.create') }}"
@@ -54,9 +53,6 @@
                     <i data-lucide="clipboard-list" class="w-4 h-4 text-primary-600 shrink-0"></i>
                     <span>{{ __('pages.billing_month_board') }}</span>
                 </h2>
-                <p class="text-[12px] sm:text-[13px] text-slate-500 mt-1.5 leading-relaxed max-w-3xl">
-                    {{ __('pages.billing_month_board_hint') }}
-                </p>
             </div>
             <form method="GET" action="{{ route('admin.billing.index') }}" class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 shrink-0 w-full lg:w-auto">
                 <div class="min-w-0 flex-1 lg:flex-none">

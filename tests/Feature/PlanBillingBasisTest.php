@@ -134,4 +134,110 @@ class PlanBillingBasisTest extends TestCase
         $this->assertSame(0.0, (float) $data['summary']['billing_amount']);
         $this->assertSame([], $data['plan_summary']);
     }
+
+    public function test_duplicate_assignments_to_same_plan_bill_once_per_employee(): void
+    {
+        $institution = MedicalInstitution::create([
+            'name' => 'Test Hospital 3',
+            'code' => 'H-BILL3',
+            'notification_email' => 'h3@example.com',
+            'billing_closing_day' => 1,
+        ]);
+
+        $plan = ContractPlan::create([
+            'code' => 'PLN-B3',
+            'name' => 'Shared Plan',
+            'rentable_points' => 3,
+            'unit_price_ex_tax' => 800,
+            'is_active' => true,
+        ]);
+
+        $ccp = CustomerContractPlan::create([
+            'medical_institution_id' => $institution->id,
+            'contract_plan_id' => $plan->id,
+            'contract_count' => 5,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'status' => 'confirmed',
+            'confirmed_at' => now(),
+        ]);
+
+        $emp = Employee::create([
+            'medical_institution_id' => $institution->id,
+            'staff_no' => 'E-DUP',
+            'name' => 'Dup',
+            'status' => 'employed',
+            'join_date' => '2025-01-01',
+        ]);
+
+        // Two active assignment rows to the same CCP (e.g. multi-position)
+        EmployeeContractPlan::create([
+            'employee_id' => $emp->id,
+            'customer_contract_plan_id' => $ccp->id,
+            'assigned_from' => '2026-01-01',
+        ]);
+        EmployeeContractPlan::create([
+            'employee_id' => $emp->id,
+            'customer_contract_plan_id' => $ccp->id,
+            'assigned_from' => '2026-02-01',
+        ]);
+
+        $data = app(PlanBillingService::class)->build($institution, '2026-08-01');
+
+        $this->assertSame(1, $data['summary']['total_assigned']);
+        $this->assertSame(800.0, (float) $data['summary']['billing_amount']);
+        $this->assertCount(1, $data['staff_rows']);
+    }
+
+    public function test_regenerate_updates_same_snapshot_instead_of_duplicating(): void
+    {
+        $user = User::factory()->create();
+        AdminUser::create([
+            'user_id' => $user->id,
+            'role' => 'system_admin',
+        ]);
+
+        $institution = MedicalInstitution::create([
+            'name' => 'Test Hospital 4',
+            'code' => 'H-BILL4',
+            'notification_email' => 'h4@example.com',
+            'billing_closing_day' => 1,
+        ]);
+
+        $plan = ContractPlan::create([
+            'code' => 'PLN-B4',
+            'name' => 'Plan',
+            'rentable_points' => 2,
+            'unit_price_ex_tax' => 500,
+            'is_active' => true,
+        ]);
+
+        CustomerContractPlan::create([
+            'medical_institution_id' => $institution->id,
+            'contract_plan_id' => $plan->id,
+            'contract_count' => 3,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'status' => 'confirmed',
+            'confirmed_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('admin.billing.generate'), [
+                'medical_institution_id' => $institution->id,
+                'target_date' => '2026-08-01',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($user)
+            ->post(route('admin.billing.generate'), [
+                'medical_institution_id' => $institution->id,
+                'target_date' => '2026-08-01',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(1, \App\Models\BillingSnapshot::where('medical_institution_id', $institution->id)
+            ->whereDate('target_date', '2026-08-01')
+            ->count());
+    }
 }

@@ -72,6 +72,7 @@ class PlanBillingService
 
         $staffRows = [];
         $planAgg = []; // key: customer_contract_plan_id
+        $billedKeys = []; // employee_id|ccp_id — one billable unit per person per plan
 
         foreach ($employees as $employee) {
             if (! $this->isEmployedAsOf($employee, $asOf)) {
@@ -92,9 +93,16 @@ class PlanBillingService
                 }
 
                 $plan = $ccp->contractPlan;
-                if (! $plan) {
+                if (! $plan || $plan->is_active === false) {
                     continue;
                 }
+
+                // Same person + same CCP (e.g. multi-position) must bill once
+                $dedupeKey = $employee->id.'|'.$ccp->id;
+                if (isset($billedKeys[$dedupeKey])) {
+                    continue;
+                }
+                $billedKeys[$dedupeKey] = true;
 
                 $unitPrice = (float) ($plan->unit_price_ex_tax ?? 0);
                 // One billing unit = one employed person assigned to this plan as of 基準日
@@ -116,7 +124,8 @@ class PlanBillingService
                     'contract_start_date' => optional($ccp->start_date)->format('Y-m-d'),
                     'contract_end_date' => optional($ccp->end_date)->format('Y-m-d'),
                     'contracted_slots' => (int) $ccp->contract_count,
-                    'contract_count' => $headcountUnit, // SPEC output field: units billed for this staff row
+                    'billing_units' => $headcountUnit,
+                    'contract_count' => $headcountUnit, // legacy alias for exports
                     'unit_price_ex_tax' => $unitPrice,
                     'amount_ex_tax' => $amount,
                     'job_type_label' => $plan->job_type_label,
@@ -162,7 +171,7 @@ class PlanBillingService
                 continue;
             }
             $plan = $ccp->contractPlan;
-            if (! $plan) {
+            if (! $plan || $plan->is_active === false) {
                 continue;
             }
             $unitPrice = (float) ($plan->unit_price_ex_tax ?? 0);

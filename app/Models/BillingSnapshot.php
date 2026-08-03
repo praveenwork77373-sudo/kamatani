@@ -37,10 +37,46 @@ class BillingSnapshot extends Model
     {
         return $this->belongsTo(User::class, 'generated_by_admin_user_id');
     }
-    
+
     public function generator(): BelongsTo
     {
         return $this->generatedBy();
+    }
+
+    /**
+     * Latest snapshot id per institution + target_date (+ department).
+     * Prevents duplicate regenerations from inflating KPI totals.
+     *
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    public static function latestIds(?string $fromDate = null, ?string $toDate = null)
+    {
+        $query = static::query()
+            ->selectRaw('MAX(id) as id')
+            ->groupBy('medical_institution_id', 'target_date', 'department_id');
+
+        if ($fromDate && $toDate) {
+            $query->whereBetween('target_date', [$fromDate, $toDate]);
+        }
+
+        return $query->pluck('id');
+    }
+
+    public static function sumBillingAmount(?string $fromDate = null, ?string $toDate = null): float
+    {
+        $ids = static::latestIds($fromDate, $toDate);
+        if ($ids->isEmpty()) {
+            return 0.0;
+        }
+
+        return (float) static::query()
+            ->whereIn('id', $ids)
+            ->get()
+            ->sum(function (self $snapshot) {
+                return $snapshot->data['summary']['billing_amount']
+                    ?? $snapshot->data['summary']['total_amount_ex_tax']
+                    ?? 0;
+            });
     }
 }
 
