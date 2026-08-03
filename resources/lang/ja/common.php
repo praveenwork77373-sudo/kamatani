@@ -35,6 +35,8 @@ return [
     'loading' => '読み込み中...',
     'error' => 'エラー',
     'success' => '成功',
+    'saved' => '保存しました',
+    'deleted' => '削除しました',
     'warning' => '警告',
     'info' => '情報',
     'settings' => '設定',

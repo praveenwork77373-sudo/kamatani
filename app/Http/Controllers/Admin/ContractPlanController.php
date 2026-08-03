@@ -8,14 +8,17 @@ use App\Models\UniformProduct;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Support\MasterCodeGenerator;
+use App\Support\Pagination;
+use Illuminate\Validation\Rule;
 
 class ContractPlanController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $plans = ContractPlan::withCount('uniformProducts')
             ->orderBy('code')
-            ->paginate(30);
+            ->paginate(Pagination::perPage($request))->withQueryString();
 
         return view('admin.contract-plans.index', compact('plans'));
     }
@@ -31,7 +34,7 @@ class ContractPlanController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50', 'unique:contract_plans,code'],
+            'code' => ['nullable', 'string', 'max:50', 'unique:contract_plans,code'],
             'rentable_points' => ['required', 'integer', 'min:0'],
             'unit_price_ex_tax' => ['required', 'numeric', 'min:0'],
             'job_type_label' => ['nullable', 'string', 'max:255'],
@@ -42,6 +45,7 @@ class ContractPlanController extends Controller
             'uniform_product_ids.*' => ['integer', 'exists:uniform_products,id'],
         ]);
 
+        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'contract_plan');
         $data['is_active'] = $request->boolean('is_active', true);
         $productIds = $data['uniform_product_ids'] ?? [];
         unset($data['uniform_product_ids']);
@@ -74,7 +78,7 @@ class ContractPlanController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50', 'unique:contract_plans,code,' . $contractPlan->id],
+            'code' => ['nullable', 'string', 'max:50', Rule::unique('contract_plans', 'code')->ignore($contractPlan->id)],
             'rentable_points' => ['required', 'integer', 'min:0'],
             'unit_price_ex_tax' => ['required', 'numeric', 'min:0'],
             'job_type_label' => ['nullable', 'string', 'max:255'],
@@ -85,6 +89,7 @@ class ContractPlanController extends Controller
             'uniform_product_ids.*' => ['integer', 'exists:uniform_products,id'],
         ]);
 
+        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'contract_plan');
         $data['is_active'] = $request->boolean('is_active');
         $productIds = $data['uniform_product_ids'] ?? [];
         unset($data['uniform_product_ids']);

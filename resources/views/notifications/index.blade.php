@@ -118,20 +118,7 @@
             @endforelse
         </div>
 
-        {{-- Pagination --}}
-        @if($notifications->hasPages())
-            <div class="px-6 py-4 border-t border-slate-200 bg-slate-50/50">
-                <div class="flex items-center justify-between text-[13px] text-slate-600">
-                    <span>
-                        {{ __('pages.showing') }} {{ $notifications->firstItem() ?? 0 }} - {{ $notifications->lastItem() ?? 0 }} 
-                        {{ __('pages.of') }} {{ number_format($notifications->total()) }} {{ __('pages.items') }}
-                    </span>
-                    <div class="flex items-center gap-2">
-                        {{ $notifications->onEachSide(1)->links('pagination::tailwind') }}
-                    </div>
-                </div>
-            </div>
-        @endif
+        <x-table-pagination :paginator="$notifications" />
     </div>
 @endsection
 

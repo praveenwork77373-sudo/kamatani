@@ -46,76 +46,57 @@
         <x-stat-card tone="emerald" icon="japanese-yen" :value="$stats['this_month_billing_amount'] ?? 0" :label="__('pages.this_month_billing_amount')" badge="今月" prefix="¥" />
     </x-stat-grid>
 
-    {{-- Main Content: Tree Structure + Billing List --}}
-    <div class="flex gap-6">
-        {{-- Left Sidebar: Organization/Department Tree --}}
-        <div class="w-80 flex-shrink-0 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
-                <h2 class="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="building-2" class="w-4 h-4 text-primary-600"></i>
-                    {{ __('pages.organizations_departments') }}
-                </h2>
-            </div>
-            <div class="p-4 overflow-y-auto max-h-[calc(100vh-300px)]">
-                <div class="space-y-1">
-                    @forelse($institutionsWithDepartments ?? [] as $institution)
-                        <div class="org-item" data-org-id="{{ $institution->id }}">
-                            <button type="button" class="org-header w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-all text-left {{ request('medical_institution_id') == $institution->id ? 'bg-primary-50 border border-primary-200' : '' }}" onclick="filterByOrg({{ $institution->id }})">
-                                <div class="flex items-center gap-2 flex-1 min-w-0">
-                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 org-chevron transition-transform {{ request('medical_institution_id') == $institution->id ? 'rotate-90' : '' }}"></i>
-                                    <i data-lucide="building" class="w-4 h-4 text-slate-500 flex-shrink-0"></i>
-                                    <span class="text-[14px] font-medium text-slate-900 truncate">{{ $institution->name }}</span>
-                                </div>
-                                @if(isset($billingCounts['institution'][$institution->id]) && $billingCounts['institution'][$institution->id] > 0)
-                                    <span class="px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 text-[11px] font-semibold flex-shrink-0">
-                                        {{ $billingCounts['institution'][$institution->id] }}
-                                    </span>
-                                @endif
-                            </button>
-                            <div class="org-departments ml-6 mt-1 space-y-1 {{ request('medical_institution_id') == $institution->id ? '' : 'hidden' }}" id="org-{{ $institution->id }}-depts">
-                                @foreach($institution->departments ?? [] as $department)
-                                    <button type="button" class="dept-item w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 transition-all text-left {{ request('department_id') == $department->id && request('medical_institution_id') == $institution->id ? 'bg-primary-50 border border-primary-200' : '' }}" 
-                                            onclick="filterByDept({{ $department->id }}, {{ $institution->id }})"
-                                            data-dept-id="{{ $department->id }}"
-                                            data-org-id="{{ $institution->id }}">
-                                        <div class="flex items-center gap-2 flex-1 min-w-0">
-                                            <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-400"></i>
-                                            <span class="text-[13px] text-slate-700 truncate">{{ $department->name }}</span>
-                                        </div>
-                                        @if(isset($billingCounts['department'][$department->id]) && $billingCounts['department'][$department->id]['count'] > 0)
-                                            <div class="flex items-center gap-1.5 flex-shrink-0">
-                                                <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-semibold" title="請求データ数: {{ $billingCounts['department'][$department->id]['count'] }}">
-                                                    {{ $billingCounts['department'][$department->id]['count'] }}
-                                                </span>
-                                            </div>
-                                        @endif
-                                    </button>
-                                @endforeach
-                            </div>
-                        </div>
-                    @empty
-                        <div class="p-4 text-center text-slate-500 text-[13px]">
-                            <i data-lucide="building-2" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
-                            <p>医療機関が登録されていません</p>
-                        </div>
-                    @endforelse
+    @php
+        $selectedInstitutionId = request('medical_institution_id');
+        $selectedDepartmentId = request('department_id');
+        $departmentsForFilter = collect($institutionsWithDepartments ?? [])
+            ->when($selectedInstitutionId, fn ($c) => $c->where('id', (int) $selectedInstitutionId))
+            ->flatMap(fn ($inst) => $inst->departments ?? collect())
+            ->values();
+    @endphp
+
+    <div class="space-y-6">
+        {{-- Horizontal filters above table --}}
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <form method="GET" action="{{ route('admin.billing.index') }}" class="p-4" id="billing-filter-form">
+                <x-per-page-field />
+                <div class="flex flex-col lg:flex-row lg:items-end gap-3">
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.medical_institution') }}</label>
+                        <select name="medical_institution_id" id="billing-institution-select" class="ui-select" onchange="document.getElementById('billing-department-select').value=''; this.form.submit();">
+                            <option value="">{{ __('pages.all_institutions') }}</option>
+                            @foreach($institutionsWithDepartments ?? [] as $institution)
+                                <option value="{{ $institution->id }}" @selected($selectedInstitutionId == $institution->id)>
+                                    {{ $institution->name }}
+                                    @if(isset($billingCounts['institution'][$institution->id]) && $billingCounts['institution'][$institution->id] > 0)
+                                        ({{ $billingCounts['institution'][$institution->id] }})
+                                    @endif
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.department') }}</label>
+                        <select name="department_id" id="billing-department-select" class="ui-select" onchange="this.form.submit()">
+                            <option value="">{{ __('pages.all') }}</option>
+                            @foreach($departmentsForFilter as $department)
+                                <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>
+                                    {{ $department->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <a href="{{ route('admin.billing.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </a>
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
 
-        {{-- Right Side: Billing List --}}
-        <div class="flex-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
-                        <i data-lucide="receipt" class="w-4 h-4 text-primary-600"></i>
-                        <span id="billing-list-title">{{ __('pages.billing_list_title') }}</span>
-                    </h2>
-                    <span class="text-[13px] text-slate-600">
-                        {{ __('pages.all_items_showing') }} <span id="billing-count">{{ $billingSnapshots->total() }}</span>{{ __('pages.items_showing') }} {{ $billingSnapshots->firstItem() ?? 0 }}-{{ $billingSnapshots->lastItem() ?? 0 }}{{ __('pages.items_displayed') }}
-                    </span>
-                </div>
-            </div>
+        {{-- Full-width Billing List --}}
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="min-w-full text-[14px]">
                     <thead class="bg-slate-50 border-b border-slate-200">
@@ -208,82 +189,14 @@
                 </table>
             </div>
 
-            @if($billingSnapshots->hasPages())
-                <div class="px-5 py-4 border-t border-slate-200 bg-slate-50">
-                    <div class="flex items-center justify-between text-[13px] text-slate-600">
-                        <span>{{ __('pages.all_items_showing') }} {{ $billingSnapshots->total() }} {{ __('pages.items_showing') }} {{ $billingSnapshots->firstItem() ?? 0 }} - {{ $billingSnapshots->lastItem() ?? 0 }} {{ __('pages.items_displayed') }}</span>
-                        <div class="flex items-center gap-2">
-                            {{ $billingSnapshots->onEachSide(1)->links('pagination::tailwind') }}
-                        </div>
-                    </div>
-                </div>
-            @endif
+            <x-table-pagination :paginator="$billingSnapshots" />
+
+
+
         </div>
     </div>
 
     <script>
-        function toggleOrg(orgId) {
-            const deptContainer = document.getElementById(`org-${orgId}-depts`);
-            const chevron = event.currentTarget.querySelector('.org-chevron');
-            
-            if (deptContainer) {
-                deptContainer.classList.toggle('hidden');
-                if (chevron) {
-                    chevron.classList.toggle('rotate-90');
-                }
-            }
-        }
-
-        function filterByDept(deptId, orgId) {
-            // Filter by both institution and department
-            const url = new URL(window.location.href);
-            url.searchParams.set('medical_institution_id', orgId);
-            url.searchParams.set('department_id', deptId);
-            url.searchParams.delete('page');
-            window.location.href = url.toString();
-        }
-        
-        function filterByOrg(orgId) {
-            // Toggle department list
-            const deptContainer = document.getElementById(`org-${orgId}-depts`);
-            const orgHeader = document.querySelector(`[data-org-id="${orgId}"] .org-header`);
-            const chevron = orgHeader?.querySelector('.org-chevron');
-            
-            if (deptContainer) {
-                deptContainer.classList.toggle('hidden');
-                if (chevron) {
-                    chevron.classList.toggle('rotate-90');
-                }
-            }
-            
-            // Reload page with filter
-            const url = new URL(window.location.href);
-            if (url.searchParams.get('medical_institution_id') == orgId) {
-                // If already selected, clear filter
-                url.searchParams.delete('medical_institution_id');
-            } else {
-                url.searchParams.set('medical_institution_id', orgId);
-            }
-            url.searchParams.delete('department_id');
-            url.searchParams.delete('page');
-            window.location.href = url.toString();
-        }
-
-        // Auto-expand org if filtered
-        @if(request('medical_institution_id'))
-            const orgId = {{ request('medical_institution_id') }};
-            const deptContainer = document.getElementById(`org-${orgId}-depts`);
-            if (deptContainer) {
-                deptContainer.classList.remove('hidden');
-                const orgHeader = document.querySelector(`[data-org-id="${orgId}"] .org-header`);
-                const chevron = orgHeader?.querySelector('.org-chevron');
-                if (chevron) {
-                    chevron.classList.add('rotate-90');
-                }
-            }
-        @endif
-
-        // Initialize icons
         document.addEventListener('DOMContentLoaded', function() {
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();

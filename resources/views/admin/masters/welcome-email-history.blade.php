@@ -45,7 +45,10 @@
                 </tbody>
             </table>
         </div>
+
+            <x-table-pagination :paginator="$histories" />
+
     </div>
 
-    <div class="mt-4">{{ $histories->links() }}</div>
+    
 @endsection

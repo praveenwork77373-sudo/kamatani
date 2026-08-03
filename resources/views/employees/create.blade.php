@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', '職員追加 | ユニフォーム管理システム')
+@section('header_category', __('menu.employees'))
 @section('page_title', '職員追加')
 
 @section('content')
@@ -66,21 +67,24 @@
                         </div>
                     @endif
 
-                    <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
-                            <i class="ph ph-identification-card text-slate-500"></i>
-                            職員番号 <span class="text-red-500">*</span>
-                        </label>
-                        <input type="text" name="staff_no" value="{{ old('staff_no') }}" required
-                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all"
-                               placeholder="例: 10001">
-                        @error('staff_no')
-                            <p class="text-[13px] text-red-600 mt-1.5 flex items-center gap-1">
-                                <i class="ph ph-warning text-xs"></i>
-                                {{ $message }}
-                            </p>
-                        @enderror
-                    </div>
+                    @if(isset($customer) && $customer)
+                        <x-master-code-field
+                            type="staff_no"
+                            name="staff_no"
+                            :value="old('staff_no')"
+                            :institution-id="$customer->medical_institution_id"
+                            :label="__('pages.staff_no')"
+                        />
+                    @else
+                        <x-master-code-field
+                            type="staff_no"
+                            name="staff_no"
+                            :value="old('staff_no')"
+                            institution-input="#institution-select"
+                            :institution-id="old('medical_institution_id', $selectedInstitutionId)"
+                            :label="__('pages.staff_no')"
+                        />
+                    @endif
 
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">

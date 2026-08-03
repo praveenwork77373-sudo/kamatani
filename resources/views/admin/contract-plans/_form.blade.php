@@ -7,11 +7,13 @@
     @csrf
     @if($isEdit) @method('PUT') @endif
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-            <label class="ui-label">プランコード</label>
-            <input type="text" name="code" value="{{ old('code', $plan->code ?? '') }}" required class="ui-input">
-            @error('code')<p class="ui-error">{{ $message }}</p>@enderror
-        </div>
+        <x-master-code-field
+            type="contract_plan"
+            name="code"
+            :value="old('code', $plan->code ?? '')"
+            :exclude-id="$isEdit ? $plan->id : null"
+            label="プランコード"
+        />
         <div>
             <label class="ui-label">プラン名</label>
             <input type="text" name="name" value="{{ old('name', $plan->name ?? '') }}" required class="ui-input">
@@ -43,6 +45,7 @@
     </label>
     <div>
         <label class="ui-label">適用可能ユニフォーム</label>
+        <p class="ui-hint mb-2">ここでチェックした商品が、このプランを割り当てられた職員の申請対象になります。（商品画面でプランは選びません）</p>
         <div class="max-h-64 overflow-y-auto border border-slate-200 rounded-lg p-3 space-y-1 bg-slate-50/50">
             @forelse($products as $product)
                 <label class="flex items-start sm:items-center gap-2 text-[13px] sm:text-sm py-1.5">
@@ -54,7 +57,11 @@
                     </span>
                 </label>
             @empty
-                <p class="text-slate-500 text-sm">商品マスタがありません</p>
+                <p class="text-slate-500 text-sm">
+                    商品マスタがありません。先に
+                    <a href="{{ route('admin.uniform-products.create') }}" class="text-primary-600 underline">ユニフォーム商品</a>
+                    を登録してください。
+                </p>
             @endforelse
         </div>
     </div>

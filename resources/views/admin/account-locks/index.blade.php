@@ -19,6 +19,7 @@
 
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
         <form method="GET" action="{{ route('admin.account-locks.index') }}" class="p-4 flex gap-3 items-end">
+                <x-per-page-field />
             <div class="flex-1">
                 <label class="block text-[13px] font-semibold text-slate-700 mb-1">検索（氏名・メール）</label>
                 <input type="text" name="q" value="{{ $searchQuery }}"
@@ -90,10 +91,9 @@
                 </tbody>
             </table>
         </div>
-        @if($lockedUsers->hasPages())
-            <div class="px-5 py-4 border-t border-slate-200">
-                {{ $lockedUsers->links() }}
-            </div>
-        @endif
+
+            <x-table-pagination :paginator="$lockedUsers" />
+
+
     </div>
 @endsection

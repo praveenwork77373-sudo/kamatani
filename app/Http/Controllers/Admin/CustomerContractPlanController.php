@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
+use App\Support\Pagination;
 
 class CustomerContractPlanController extends Controller
 {
@@ -24,7 +25,7 @@ class CustomerContractPlanController extends Controller
             $query->where('medical_institution_id', $institutionId);
         }
 
-        $plans = $query->paginate(30)->withQueryString();
+        $plans = $query->paginate(Pagination::perPage($request))->withQueryString();
 
         return view('admin.customer-contract-plans.index', [
             'plans' => $plans,

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Maker;
 use App\Models\UniformProduct;
+use App\Support\Pagination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Schema;
 
@@ -167,8 +169,21 @@ class UniformProductController extends Controller
             }
         }
 
+        $perPage = Pagination::perPage($request);
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $products = new LengthAwarePaginator(
+            $groupedProducts->forPage($page, $perPage)->values(),
+            $groupedProducts->count(),
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
+
         return view('admin.uniform-products.index', [
-            'products' => $groupedProducts,
+            'products' => $products,
             'medicalInstitutions' => $medicalInstitutions,
             'departments' => $departments,
             'selectedInstitutionId' => $selectedInstitutionId,
@@ -192,18 +207,7 @@ class UniformProductController extends Controller
 
     public function create(Request $request): View
     {
-        $medicalInstitutions = \App\Models\MedicalInstitution::orderBy('name')->get();
-        $selectedInstitutionId = $request->input('medical_institution_id');
-        $selectedDepartmentId = $request->input('department_id');
-        
-        $departments = collect();
-        if ($selectedInstitutionId) {
-            $departments = \App\Models\Department::where('medical_institution_id', $selectedInstitutionId)
-                ->orderBy('name')
-                ->get();
-        }
-        
-        // Get existing products grouped by product_code for reference
+        // Catalog products — institution/department linking is done via Contract Plan checkboxes
         $existingProducts = UniformProduct::select('product_code', 'name', 'category', 'gender', 'image_path')
             ->distinct()
             ->orderBy('product_code')
@@ -260,10 +264,6 @@ class UniformProductController extends Controller
         });
         
         return view('admin.uniform-products.create', [
-            'medicalInstitutions' => $medicalInstitutions,
-            'departments' => $departments,
-            'selectedInstitutionId' => $selectedInstitutionId,
-            'selectedDepartmentId' => $selectedDepartmentId,
             'existingProducts' => $existingProducts,
             'topBottomSizes' => $topBottomSizes,
             'shoeSizes' => $shoeSizes,
@@ -273,26 +273,9 @@ class UniformProductController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        // Check if columns exist, create them if they don't
+        // Catalog products — clear legacy institution/department binding if columns exist
         $hasMedicalInstitutionColumn = Schema::hasColumn('uniform_products', 'medical_institution_id');
         $hasDepartmentColumn = Schema::hasColumn('uniform_products', 'department_id');
-        
-        if (!$hasMedicalInstitutionColumn || !$hasDepartmentColumn) {
-            try {
-                Schema::table('uniform_products', function (\Illuminate\Database\Schema\Blueprint $table) use ($hasMedicalInstitutionColumn, $hasDepartmentColumn) {
-                    if (!$hasMedicalInstitutionColumn) {
-                        $table->foreignId('medical_institution_id')->nullable()->after('id')->constrained('medical_institutions')->nullOnDelete();
-                    }
-                    if (!$hasDepartmentColumn) {
-                        $table->foreignId('department_id')->nullable()->after('medical_institution_id')->constrained('departments')->nullOnDelete();
-                    }
-                });
-                $hasMedicalInstitutionColumn = true;
-                $hasDepartmentColumn = true;
-            } catch (\Exception $e) {
-                \Log::error('Failed to create columns in store method', ['error' => $e->getMessage()]);
-            }
-        }
         
         // Log raw request data for debugging
         \Log::info('=== UNIFORM PRODUCT STORE REQUEST ===', [
@@ -321,8 +304,6 @@ class UniformProductController extends Controller
         
         try {
             $data = $request->validate([
-                'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
-                'department_id' => ['required', 'exists:departments,id'],
                 'maker_id' => ['nullable', 'exists:makers,id'],
                 'maker_product_code' => ['nullable', 'string', 'max:100'],
                 'color_name' => ['nullable', 'string', 'max:100'],
@@ -336,8 +317,6 @@ class UniformProductController extends Controller
                 'products.*.sizes.*.stock_quantity' => ['required_with:sizes', 'integer', 'min:0'],
                 'products.*.image' => ['nullable', 'image', 'max:5120'],
             ], [
-                'medical_institution_id.required' => '医療機関を選択してください。',
-                'department_id.required' => '部署を選択してください。',
                 'products.required' => '少なくとも1つの商品を追加してください。',
                 'products.min' => '少なくとも1つの商品を追加してください。',
                 'products.*.product_code.required' => '商品コードを入力してください。',
@@ -475,12 +454,12 @@ class UniformProductController extends Controller
                         'color_name' => $data['color_name'] ?? null,
                     ];
                     
-                    // Only include medical_institution_id and department_id if columns exist
+                    // Clear legacy institution/department binding (catalog products)
                     if ($hasMedicalInstitutionColumn) {
-                        $createData['medical_institution_id'] = $data['medical_institution_id'];
+                        $createData['medical_institution_id'] = null;
                     }
                     if ($hasDepartmentColumn) {
-                        $createData['department_id'] = $data['department_id'];
+                        $createData['department_id'] = null;
                     }
                     
                     $product = UniformProduct::create($createData);
@@ -523,12 +502,12 @@ class UniformProductController extends Controller
                             'color_name' => $data['color_name'] ?? null,
                         ];
                         
-                        // Only include medical_institution_id and department_id if columns exist
+                        // Clear legacy institution/department binding (catalog products)
                         if ($hasMedicalInstitutionColumn) {
-                            $createData['medical_institution_id'] = $data['medical_institution_id'];
+                            $createData['medical_institution_id'] = null;
                         }
                         if ($hasDepartmentColumn) {
-                            $createData['department_id'] = $data['department_id'];
+                            $createData['department_id'] = null;
                         }
                         
                         $product = UniformProduct::create($createData);
@@ -610,37 +589,6 @@ class UniformProductController extends Controller
             ->orderBy('size')
             ->get();
         
-        // Get current institution and department from product's database record
-        $hasMedicalInstitutionColumn = Schema::hasColumn('uniform_products', 'medical_institution_id');
-        $hasDepartmentColumn = Schema::hasColumn('uniform_products', 'department_id');
-        
-        $selectedInstitutionId = null;
-        $selectedDepartmentId = null;
-        
-        // Get values from database if columns exist
-        if ($hasMedicalInstitutionColumn && $uniformProduct->medical_institution_id) {
-            $selectedInstitutionId = $uniformProduct->medical_institution_id;
-        }
-        if ($hasDepartmentColumn && $uniformProduct->department_id) {
-            $selectedDepartmentId = $uniformProduct->department_id;
-        }
-        
-        // Get medical institutions and departments
-        $medicalInstitutions = \App\Models\MedicalInstitution::orderBy('name')->get();
-        $departments = collect();
-        
-        // Load departments based on selected institution (or from product if available)
-        if ($selectedInstitutionId) {
-            $departments = \App\Models\Department::where('medical_institution_id', $selectedInstitutionId)
-                ->orderBy('name')
-                ->get();
-        } elseif ($hasMedicalInstitutionColumn && $uniformProduct->medical_institution_id) {
-            // Fallback: try to get departments from product's institution
-            $departments = \App\Models\Department::where('medical_institution_id', $uniformProduct->medical_institution_id)
-                ->orderBy('name')
-                ->get();
-        }
-        
         // Standard sizes that should always be available
         $standardTopBottomSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
         $standardShoeSizes = ['23.0', '23.5', '24.0', '24.5', '25.0', '25.5', '26.0', '26.5', '27.0', '27.5', '28.0', '28.5', '29.0', '29.5', '30.0'];
@@ -697,10 +645,6 @@ class UniformProductController extends Controller
             'availableTopBottomSizes' => $availableTopBottomSizes, // Filtered sizes (for new size selects)
             'availableShoeSizes' => $availableShoeSizes, // Filtered sizes (for new size selects)
             'existingSizes' => $existingSizesForProduct, // Existing sizes for JavaScript filtering
-            'medicalInstitutions' => $medicalInstitutions,
-            'departments' => $departments,
-            'selectedInstitutionId' => $selectedInstitutionId,
-            'selectedDepartmentId' => $selectedDepartmentId,
             'makers' => Maker::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
@@ -712,26 +656,9 @@ class UniformProductController extends Controller
             'all_input' => $request->all(),
         ]);
         
-        // Check if columns exist, create them if they don't
+        // Catalog products — clear legacy institution/department binding if columns exist
         $hasMedicalInstitutionColumn = Schema::hasColumn('uniform_products', 'medical_institution_id');
         $hasDepartmentColumn = Schema::hasColumn('uniform_products', 'department_id');
-        
-        if (!$hasMedicalInstitutionColumn || !$hasDepartmentColumn) {
-            try {
-                Schema::table('uniform_products', function (\Illuminate\Database\Schema\Blueprint $table) use ($hasMedicalInstitutionColumn, $hasDepartmentColumn) {
-                    if (!$hasMedicalInstitutionColumn) {
-                        $table->foreignId('medical_institution_id')->nullable()->after('id')->constrained('medical_institutions')->nullOnDelete();
-                    }
-                    if (!$hasDepartmentColumn) {
-                        $table->foreignId('department_id')->nullable()->after('medical_institution_id')->constrained('departments')->nullOnDelete();
-                    }
-                });
-                $hasMedicalInstitutionColumn = true;
-                $hasDepartmentColumn = true;
-            } catch (\Exception $e) {
-                \Log::error('Failed to create columns in update method', ['error' => $e->getMessage()]);
-            }
-        }
         
         // Extract base product code
         $baseProductCode = $uniformProduct->product_code;
@@ -745,8 +672,6 @@ class UniformProductController extends Controller
         
         // Validate - support multiple sizes like create form
         $data = $request->validate([
-            'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
-            'department_id' => ['required', 'exists:departments,id'],
             'product_code' => ['required', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'in:top,bottom,shoe,other'],
@@ -758,9 +683,6 @@ class UniformProductController extends Controller
             'sizes.*.size' => ['required_with:sizes', 'string', 'max:50'],
             'sizes.*.stock_quantity' => ['required_with:sizes', 'integer', 'min:0'],
             'image' => ['nullable', 'image', 'max:5120'],
-        ], [
-            'medical_institution_id.required' => '医療機関を選択してください。',
-            'department_id.required' => '部署を選択してください。',
         ]);
         
         // Handle image upload
@@ -812,12 +734,12 @@ class UniformProductController extends Controller
                 'color_name' => $data['color_name'] ?? null,
             ];
             
-            // Only include medical_institution_id and department_id if columns exist
+            // Clear legacy institution/department binding (catalog products)
             if ($hasMedicalInstitutionColumn) {
-                $updateData['medical_institution_id'] = $data['medical_institution_id'];
+                $updateData['medical_institution_id'] = null;
             }
             if ($hasDepartmentColumn) {
-                $updateData['department_id'] = $data['department_id'];
+                $updateData['department_id'] = null;
             }
             
             $uniformProduct->update($updateData);
@@ -875,12 +797,12 @@ class UniformProductController extends Controller
                             'color_name' => $data['color_name'] ?? null,
                         ];
                         
-                        // Only include medical_institution_id and department_id if columns exist
+                        // Clear legacy institution/department binding (catalog products)
                         if ($hasMedicalInstitutionColumn) {
-                            $updateData['medical_institution_id'] = $data['medical_institution_id'];
+                            $updateData['medical_institution_id'] = null;
                         }
                         if ($hasDepartmentColumn) {
-                            $updateData['department_id'] = $data['department_id'];
+                            $updateData['department_id'] = null;
                         }
                         
                         $existingProduct->update($updateData);
@@ -922,12 +844,12 @@ class UniformProductController extends Controller
                             'color_name' => $data['color_name'] ?? null,
                         ];
                         
-                        // Only include medical_institution_id and department_id if columns exist
+                        // Clear legacy institution/department binding (catalog products)
                         if ($hasMedicalInstitutionColumn) {
-                            $createData['medical_institution_id'] = $data['medical_institution_id'];
+                            $createData['medical_institution_id'] = null;
                         }
                         if ($hasDepartmentColumn) {
-                            $createData['department_id'] = $data['department_id'];
+                            $createData['department_id'] = null;
                         }
                         
                         $newProduct = UniformProduct::create($createData);
@@ -983,12 +905,9 @@ class UniformProductController extends Controller
             }
         }
         
-        // Note: Uniform recommendations have been removed
-        // Product relationships are now handled directly through medical_institution_id and department_id
+        // Note: Product linking is via Contract Plan checkboxes, not institution/department
         if (!empty($allProductIds)) {
             \Log::info('Product update completed', [
-                'institution_id' => $data['medical_institution_id'],
-                'department_id' => $data['department_id'],
                 'product_ids' => $allProductIds,
             ]);
         }

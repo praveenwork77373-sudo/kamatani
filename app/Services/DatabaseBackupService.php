@@ -61,12 +61,13 @@ class DatabaseBackupService
     /**
      * @return LengthAwarePaginator<int, DatabaseBackup>
      */
-    public function listBackups(int $perPage = 20): LengthAwarePaginator
+    public function listBackups(int $perPage = 10): LengthAwarePaginator
     {
         return DatabaseBackup::query()
             ->with('createdBy')
             ->orderByDesc('created_at')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function createBackup(?int $userId = null, string $type = 'manual'): DatabaseBackup

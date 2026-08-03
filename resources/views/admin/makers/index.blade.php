@@ -19,6 +19,7 @@
                 <tr>
                     <th class="px-4 py-3 text-left whitespace-nowrap">コード</th>
                     <th class="px-4 py-3 text-left whitespace-nowrap">名称</th>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">TEL</th>
                     <th class="px-4 py-3 text-left whitespace-nowrap">状態</th>
                     <th class="px-4 py-3 text-right whitespace-nowrap">操作</th>
                 </tr>
@@ -28,6 +29,7 @@
                     <tr class="border-t border-slate-100">
                         <td class="px-4 py-3 font-mono">{{ $maker->code }}</td>
                         <td class="px-4 py-3">{{ $maker->name }}</td>
+                        <td class="px-4 py-3">{{ $maker->tel ?: '—' }}</td>
                         <td class="px-4 py-3">
                             @if($maker->is_active)
                                 <span class="text-emerald-700">有効</span>
@@ -40,11 +42,14 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">メーカーがありません</td></tr>
+                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">メーカーがありません</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+
+            <x-table-pagination :paginator="$makers" />
+
 </div>
-<div class="mt-4">{{ $makers->links() }}</div>
+
 @endsection

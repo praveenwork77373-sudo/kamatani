@@ -82,146 +82,96 @@
         <x-stat-card tone="red" icon="x-circle" :value="$stats['out_of_stock_products'] ?? 0" :label="__('pages.out_of_stock_products')" :badge="__('pages.out_of_stock')" />
     </x-stat-grid>
 
-    {{-- Main Layout: Sidebar + Products Grid --}}
-    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {{-- Left Sidebar: Filters --}}
-        <div class="lg:col-span-1">
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden sticky top-6">
-                <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-blue-50">
-                    <h2 class="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
-                        <i data-lucide="filter" class="w-4 h-4 text-primary-600"></i>
-                        {{ __('pages.filters') }}
-                    </h2>
-                </div>
-
-                <form method="GET" action="{{ route('admin.uniform-products.index') }}" id="filter-form" class="p-4 space-y-4">
-                    {{-- Search --}}
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                            {{ __('pages.search') }}
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-                            <input type="text" name="search" value="{{ $searchQuery }}" 
-                                   placeholder="{{ __('pages.search_product') }}"
-                                   class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20">
-                        </div>
+    <div class="space-y-6">
+        {{-- Horizontal filters above products --}}
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <form method="GET" action="{{ route('admin.uniform-products.index') }}" id="filter-form" class="p-4">
+                <x-per-page-field />
+                <div class="flex flex-col xl:flex-row xl:items-end gap-3">
+                    <div class="flex-[1.5] min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.search') }}</label>
+                        <input type="text" name="search" value="{{ $searchQuery }}"
+                               placeholder="{{ __('pages.search_product') }}"
+                               class="ui-input">
                     </div>
-
-                    {{-- Medical Institution --}}
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                            {{ __('pages.medical_institution') }}
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="building-2" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                            <select name="medical_institution_id" id="medical-institution-select"
-                                    class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
-                                <option value="">{{ __('pages.all') }}</option>
-                                @foreach($medicalInstitutions as $institution)
-                                    <option value="{{ $institution->id }}" @selected($selectedInstitutionId == $institution->id)>
-                                        {{ $institution->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.medical_institution') }}</label>
+                        <select name="medical_institution_id" id="medical-institution-select" class="ui-select">
+                            <option value="">{{ __('pages.all') }}</option>
+                            @foreach($medicalInstitutions as $institution)
+                                <option value="{{ $institution->id }}" @selected($selectedInstitutionId == $institution->id)>
+                                    {{ $institution->name }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
-
-                    {{-- Department --}}
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                            {{ __('pages.department') }}
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="briefcase" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                            <select name="department_id" id="department-select"
-                                    class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
-                                <option value="">{{ __('pages.all') }}</option>
-                                @foreach($departments as $department)
-                                    <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>
-                                        {{ $department->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.department') }}</label>
+                        <select name="department_id" id="department-select" class="ui-select">
+                            <option value="">{{ __('pages.all') }}</option>
+                            @foreach($departments as $department)
+                                <option value="{{ $department->id }}" @selected($selectedDepartmentId == $department->id)>
+                                    {{ $department->name }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
-
-                    {{-- Status --}}
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                            {{ __('pages.status') }}
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="package-check" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                            <select name="status" class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
-                                <option value="">{{ __('pages.all') }}</option>
-                                <option value="in_stock" @selected($selectedStatus === 'in_stock')>{{ __('pages.in_stock') }}</option>
-                                <option value="out_of_stock" @selected($selectedStatus === 'out_of_stock')>{{ __('pages.out_of_stock') }}</option>
-                            </select>
-                        </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.status') }}</label>
+                        <select name="status" class="ui-select">
+                            <option value="">{{ __('pages.all') }}</option>
+                            <option value="in_stock" @selected($selectedStatus === 'in_stock')>{{ __('pages.in_stock') }}</option>
+                            <option value="out_of_stock" @selected($selectedStatus === 'out_of_stock')>{{ __('pages.out_of_stock') }}</option>
+                        </select>
                     </div>
-
-                
-
-                    {{-- Gender --}}
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                            {{ __('pages.gender') }}
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="users" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                            <select name="gender" class="w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
-                                <option value="">{{ __('pages.all') }}</option>
-                                <option value="male" @selected($selectedGender === 'male')>{{ __('pages.male') }}</option>
-                                <option value="female" @selected($selectedGender === 'female')>{{ __('pages.female') }}</option>
-                                <option value="unisex" @selected($selectedGender === 'unisex')>{{ __('pages.unisex') }}</option>
-                            </select>
-                        </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.gender') }}</label>
+                        <select name="gender" class="ui-select">
+                            <option value="">{{ __('pages.all') }}</option>
+                            <option value="male" @selected($selectedGender === 'male')>{{ __('pages.male') }}</option>
+                            <option value="female" @selected($selectedGender === 'female')>{{ __('pages.female') }}</option>
+                            <option value="unisex" @selected($selectedGender === 'unisex')>{{ __('pages.unisex') }}</option>
+                        </select>
                     </div>
-
-                    {{-- Hidden category field --}}
                     <input type="hidden" name="category" id="category-filter" value="{{ $selectedCategory }}">
-
-                    {{-- Filter Buttons --}}
-                    <div class="flex gap-2 pt-2">
-                        <button type="submit" class="flex-1 px-3 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[13px] font-medium transition-all flex items-center justify-center gap-2">
-                            <i data-lucide="filter" class="w-4 h-4"></i>
+                    <div class="flex gap-2 shrink-0">
+                        <button type="submit" class="ui-btn ui-btn-primary">
+                            <i data-lucide="search" class="w-4 h-4"></i>
                             {{ __('pages.apply_filters') }}
                         </button>
-                        <a href="{{ route('admin.uniform-products.index') }}" class="px-3 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] font-medium transition-all flex items-center justify-center">
-                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        <a href="{{ route('admin.uniform-products.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                            <i data-lucide="x" class="w-4 h-4"></i>
                         </a>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
 
-        {{-- Right Side: Products Grid --}}
-        <div class="lg:col-span-4">
+        {{-- Full-width products content --}}
+        <div>
             {{-- Category Tabs --}}
             <div class="sticky top-0 z-10 bg-white mb-6 pt-3 pb-3 border-b-2 border-slate-200 shadow-sm">
                 <div class="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
-                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ !$selectedCategory ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}" 
+                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ !$selectedCategory ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}"
                             data-category="">
                         <i data-lucide="grid" class="w-4 h-4"></i>
                         {{ __('pages.all_categories') }}
                     </button>
-                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'top' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}" 
+                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'top' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}"
                             data-category="top">
                         <i data-lucide="shirt" class="w-4 h-4"></i>
                         {{ __('pages.category_top') }}
                     </button>
-                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'bottom' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}" 
+                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'bottom' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}"
                             data-category="bottom">
                         <i data-lucide="package" class="w-4 h-4"></i>
                         {{ __('pages.category_bottom') }}
                     </button>
-                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'shoe' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}" 
+                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'shoe' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}"
                             data-category="shoe">
                         <i data-lucide="footprints" class="w-4 h-4"></i>
                         {{ __('pages.category_shoe') }}
                     </button>
-                  
                 </div>
             </div>
 
@@ -239,14 +189,14 @@
                                 {{-- Product Image --}}
                                 <div class="relative h-48 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
                                     @if($product['image_path'])
-                                        <img src="{{ $product['image_path'] }}" alt="{{ $product['name'] }}" 
+                                        <img src="{{ $product['image_path'] }}" alt="{{ $product['name'] }}"
                                              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                                     @else
                                         <div class="w-full h-full flex items-center justify-center">
                                             <i data-lucide="shirt" class="w-16 h-16 text-slate-300"></i>
                                         </div>
                                     @endif
-                                    
+
                                     {{-- Stock Status Badge --}}
                                     @if($isOutOfStock)
                                         <div class="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-[11px] font-semibold rounded-md shadow-md">
@@ -265,14 +215,14 @@
                                         </div>
                                     @endif
                                 </div>
-                                
+
                                 {{-- Product Info --}}
                                 <div class="p-5 space-y-3">
                                     <div>
                                         <h3 class="font-semibold text-slate-900 text-[15px] mb-1 line-clamp-2 leading-tight">{{ $product['name'] }}</h3>
                                         <p class="text-[11px] text-slate-500 font-mono">{{ $product['base_product_code'] }}</p>
                                     </div>
-                                    
+
                                     {{-- Sizes List --}}
                                     <div>
                                         <label class="block text-[12px] font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
@@ -292,7 +242,7 @@
                                             @endforeach
                                         </div>
                                     </div>
-                                    
+
                                     {{-- Product Meta --}}
                                     <div class="flex items-center justify-between text-[12px] text-slate-600 pt-2 border-t border-slate-200">
                                         <div class="flex items-center gap-1.5">
@@ -319,7 +269,7 @@
                                             </span>
                                         </div>
                                     </div>
-                                    
+
                                     {{-- Low Stock Warning Message --}}
                                     @php
                                         $lowStockSizes = [];
@@ -334,7 +284,7 @@
                                             }
                                         }
                                     @endphp
-                                    
+
                                     @if(count($veryLowStockSizes) > 0)
                                         <div class="mt-2 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
                                             <div class="flex items-start gap-2">
@@ -386,13 +336,13 @@
                                     {{-- Actions --}}
                                     @if(count($product['sizes']) > 0)
                                     <div class="flex items-center gap-2 pt-2 border-t border-slate-200">
-                                        <a href="{{ route('admin.uniform-products.edit', $product['sizes'][0]['id']) }}" 
+                                        <a href="{{ route('admin.uniform-products.edit', $product['sizes'][0]['id']) }}"
                                            class="flex-1 text-center px-3 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 text-[12px] font-medium transition-all flex items-center justify-center gap-1.5">
                                             <i data-lucide="edit" class="w-3.5 h-3.5"></i>
                                             {{ __('pages.edit') }}
                                         </a>
-                                        <form method="POST" action="{{ route('admin.uniform-products.destroy', $product['sizes'][0]['id']) }}" 
-                                              class="inline" 
+                                        <form method="POST" action="{{ route('admin.uniform-products.destroy', $product['sizes'][0]['id']) }}"
+                                              class="inline"
                                               onsubmit="return confirm('{{ __('pages.confirm_delete_product') }}')">
                                             @csrf
                                             @method('DELETE')
@@ -413,6 +363,7 @@
                     </div>
                 @endif
             </div>
+            <x-table-pagination :paginator="$products" class="mt-4 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden" />
         </div>
     </div>
 

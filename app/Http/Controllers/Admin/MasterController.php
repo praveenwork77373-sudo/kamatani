@@ -13,6 +13,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
+use App\Support\MasterCodeGenerator;
+use App\Support\Pagination;
+use Illuminate\Validation\Rule;
 
 class MasterController extends Controller
 {
@@ -36,7 +39,7 @@ class MasterController extends Controller
         
         $institutions = MedicalInstitution::with('institutionAdmin.user')
             ->orderBy('name')
-            ->paginate(20);
+            ->paginate(Pagination::perPage($request))->withQueryString();
         return view('admin.masters.institutions', ['institutions' => $institutions]);
     }
 
@@ -52,11 +55,8 @@ class MasterController extends Controller
         
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50', 'unique:medical_institutions,code'],
-            'billing_model' => ['required', 'in:fixed_per_person,point_based,point_usage'],
+            'code' => ['nullable', 'string', 'max:50', 'unique:medical_institutions,code'],
             'notification_email' => ['required', 'email'],
-            'per_person_loan_limit' => ['nullable', 'integer', 'min:0'],
-            'point_unit_price' => ['nullable', 'numeric', 'min:0'],
             'billing_closing_day' => ['nullable', 'integer', 'min:1', 'max:28'],
             'sales_person_name' => ['nullable', 'string', 'max:255'],
             // Overall Manager Account fields
@@ -65,14 +65,13 @@ class MasterController extends Controller
             'manager_password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
+        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'institution');
+
         // Create medical institution
         $institution = MedicalInstitution::create([
             'name' => $data['name'],
             'code' => $data['code'],
-            'billing_model' => $data['billing_model'] === 'point_based' ? 'point_usage' : $data['billing_model'],
             'notification_email' => $data['notification_email'],
-            'per_person_loan_limit' => $data['per_person_loan_limit'] ?? null,
-            'point_unit_price' => $data['point_unit_price'] ?? null,
             'billing_closing_day' => $data['billing_closing_day'] ?? 1,
             'sales_person_name' => $data['sales_person_name'] ?? null,
         ]);
@@ -121,14 +120,15 @@ class MasterController extends Controller
         return back()->with('status', '利用開始メールを送信しました（'.$manager->email.'）。仮パスワードで初回ログイン後に変更が必要です。');
     }
 
-    public function welcomeEmailHistory(MedicalInstitution $institution): View
+    public function welcomeEmailHistory(Request $request, MedicalInstitution $institution): View
     {
         $this->checkSystemAdmin();
 
         $histories = \App\Models\WelcomeEmailSendHistory::with(['user', 'sentBy'])
             ->where('medical_institution_id', $institution->id)
             ->orderByDesc('sent_at')
-            ->paginate(20);
+            ->paginate(Pagination::perPage($request))
+            ->withQueryString();
 
         return view('admin.masters.welcome-email-history', [
             'institution' => $institution,
@@ -149,11 +149,8 @@ class MasterController extends Controller
         
         $validationRules = [
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
-            'billing_model' => ['required', 'in:fixed_per_person,point_based,point_usage'],
+            'code' => ['nullable', 'string', 'max:50', Rule::unique('medical_institutions', 'code')->ignore($institution->id)],
             'notification_email' => ['required', 'email'],
-            'per_person_loan_limit' => ['nullable', 'integer', 'min:0'],
-            'point_unit_price' => ['nullable', 'numeric', 'min:0'],
             'billing_closing_day' => ['nullable', 'integer', 'min:1', 'max:28'],
             'sales_person_name' => ['nullable', 'string', 'max:255'],
             // Manager account update fields (optional)
@@ -171,13 +168,12 @@ class MasterController extends Controller
         $data = $request->validate($validationRules);
 
         // Update medical institution
+        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'institution');
+
         $institution->update([
             'name' => $data['name'],
             'code' => $data['code'],
-            'billing_model' => $data['billing_model'] === 'point_based' ? 'point_usage' : $data['billing_model'],
             'notification_email' => $data['notification_email'],
-            'per_person_loan_limit' => $data['per_person_loan_limit'] ?? null,
-            'point_unit_price' => $data['point_unit_price'] ?? null,
             'billing_closing_day' => $data['billing_closing_day'] ?? 1,
             'sales_person_name' => $data['sales_person_name'] ?? null,
         ]);
@@ -234,7 +230,7 @@ class MasterController extends Controller
             $query->where('medical_institution_id', $institutionId);
         }
 
-        $departments = $query->orderBy('name')->paginate(20)->withQueryString();
+        $departments = $query->orderBy('name')->paginate(Pagination::perPage($request))->withQueryString();
         $institutions = MedicalInstitution::orderBy('name')->get();
 
         return view('admin.masters.departments', [
@@ -256,8 +252,14 @@ class MasterController extends Controller
         $data = $request->validate([
             'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50'],
         ]);
+
+        $data['code'] = MasterCodeGenerator::ensure(
+            $data['code'] ?? null,
+            'department',
+            (int) $data['medical_institution_id']
+        );
 
         Department::create($data);
 
@@ -280,8 +282,14 @@ class MasterController extends Controller
         $this->checkSystemAdmin();
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50'],
         ]);
+
+        $data['code'] = MasterCodeGenerator::ensure(
+            $data['code'] ?? null,
+            'department',
+            (int) $department->medical_institution_id
+        );
 
         $department->update($data);
 
@@ -308,7 +316,7 @@ class MasterController extends Controller
             $query->where('medical_institution_id', $institutionId);
         }
 
-        $jobTypes = $query->orderBy('name')->paginate(20)->withQueryString();
+        $jobTypes = $query->orderBy('name')->paginate(Pagination::perPage($request))->withQueryString();
         $institutions = MedicalInstitution::orderBy('name')->get();
 
         return view('admin.masters.job-types', [
@@ -330,8 +338,14 @@ class MasterController extends Controller
         $data = $request->validate([
             'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50'],
         ]);
+
+        $data['code'] = MasterCodeGenerator::ensure(
+            $data['code'] ?? null,
+            'job_type',
+            (int) $data['medical_institution_id']
+        );
 
         JobType::create($data);
 
@@ -354,8 +368,14 @@ class MasterController extends Controller
         $this->checkSystemAdmin();
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50'],
         ]);
+
+        $data['code'] = MasterCodeGenerator::ensure(
+            $data['code'] ?? null,
+            'job_type',
+            (int) $jobType->medical_institution_id
+        );
 
         $jobType->update($data);
 
@@ -382,7 +402,7 @@ class MasterController extends Controller
             $query->where('medical_institution_id', $institutionId);
         }
 
-        $locations = $query->orderBy('name')->paginate(20)->withQueryString();
+        $locations = $query->orderBy('name')->paginate(Pagination::perPage($request))->withQueryString();
         $institutions = MedicalInstitution::orderBy('name')->get();
 
         return view('admin.masters.delivery-locations', [

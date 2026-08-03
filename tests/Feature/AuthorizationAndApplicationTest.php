@@ -21,7 +21,8 @@ class AuthorizationAndApplicationTest extends TestCase
         $institution = MedicalInstitution::create([
             'code' => 'T-001',
             'name' => 'テスト病院',
-            'billing_model' => 'fixed_per_person',
+            'notification_email' => 'notify@example.com',
+            'billing_closing_day' => 1,
         ]);
         $department = Department::create([
             'medical_institution_id' => $institution->id,
@@ -93,7 +94,8 @@ class AuthorizationAndApplicationTest extends TestCase
         $instB = MedicalInstitution::create([
             'code' => 'T-002',
             'name' => '別病院',
-            'billing_model' => 'fixed_per_person',
+            'notification_email' => 'notify-b@example.com',
+            'billing_closing_day' => 1,
         ]);
         $customerB = $this->makeCustomer($instB);
 

@@ -141,11 +141,7 @@
                         <span class="font-semibold">{{ __('pages.billing_calculation') }}</span>
                     </div>
                     <div class="text-[11px] text-slate-600 font-medium">
-                        @if($contract && ($contract['billing_model'] ?? '') === 'fixed_per_person')
-                            {{ number_format($summary['total_targets'] ?? 0) }}{{ __('pages.people') }} × ¥{{ number_format($summary['unit_price'] ?? 0) }} = <span class="text-primary-700 font-bold">¥{{ number_format($summary['billing_amount'] ?? 0) }}</span>
-                        @else
-                            {{ number_format($summary['return_points'] ?? 0) }}{{ __('pages.points') }} × ¥{{ number_format($summary['unit_price'] ?? 0) }} = <span class="text-primary-700 font-bold">¥{{ number_format($summary['billing_amount'] ?? 0) }}</span>
-                        @endif
+                        {{ number_format($summary['assigned_people'] ?? $summary['total_targets'] ?? 0) }}人 × ¥{{ number_format($summary['unit_price'] ?? 0) }} = <span class="text-primary-700 font-bold">¥{{ number_format($summary['billing_amount'] ?? 0) }}</span>
                     </div>
                 </div>
                 @endif

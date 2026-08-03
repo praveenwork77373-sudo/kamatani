@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\DeliveryLocation;
 use App\Models\JobType;
+use App\Support\MasterCodeGenerator;
+use App\Support\Pagination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -41,7 +43,7 @@ class MasterController extends Controller
             });
         }
         
-        $departments = $query->orderBy('code')->paginate(20)->withQueryString();
+        $departments = $query->orderBy('code')->paginate(Pagination::perPage($request))->withQueryString();
         
         return view('customer.masters.departments', [
             'departments' => $departments,
@@ -61,19 +63,23 @@ class MasterController extends Controller
         $customer = $user->customerUser;
         
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
         ]);
-        
-        $data['medical_institution_id'] = $customer->medical_institution_id;
-        
-        // Check for duplicate code within institution
-        if (Department::where('medical_institution_id', $customer->medical_institution_id)
-            ->where('code', $data['code'])
-            ->exists()) {
-            return back()->withErrors(['code' => 'この部署コードは既に使用されています。'])->withInput();
+
+        $institutionId = $customer->medical_institution_id;
+        $raw = trim((string) ($data['code'] ?? ''));
+        if ($raw !== '') {
+            if (Department::where('medical_institution_id', $institutionId)
+                ->where('code', $raw)
+                ->exists()) {
+                return back()->withErrors(['code' => 'この部署コードは既に使用されています。'])->withInput();
+            }
         }
-        
+
+        $data['medical_institution_id'] = $institutionId;
+        $data['code'] = MasterCodeGenerator::ensure($raw, 'department', $institutionId);
+
         Department::create($data);
         
         return redirect()->route('customer.masters.departments')
@@ -106,18 +112,23 @@ class MasterController extends Controller
         }
         
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
         ]);
-        
-        // Check for duplicate code (excluding current department)
-        if (Department::where('medical_institution_id', $customer->medical_institution_id)
-            ->where('code', $data['code'])
-            ->where('id', '!=', $department->id)
-            ->exists()) {
-            return back()->withErrors(['code' => 'この部署コードは既に使用されています。'])->withInput();
+
+        $institutionId = $customer->medical_institution_id;
+        $raw = trim((string) ($data['code'] ?? ''));
+        if ($raw !== '') {
+            if (Department::where('medical_institution_id', $institutionId)
+                ->where('code', $raw)
+                ->where('id', '!=', $department->id)
+                ->exists()) {
+                return back()->withErrors(['code' => 'この部署コードは既に使用されています。'])->withInput();
+            }
         }
-        
+
+        $data['code'] = MasterCodeGenerator::ensure($raw, 'department', $institutionId);
+
         $department->update($data);
         
         return redirect()->route('customer.masters.departments')
@@ -156,7 +167,7 @@ class MasterController extends Controller
             });
         }
         
-        $jobTypes = $query->orderBy('code')->paginate(20)->withQueryString();
+        $jobTypes = $query->orderBy('code')->paginate(Pagination::perPage($request))->withQueryString();
         
         return view('customer.masters.job-types', [
             'jobTypes' => $jobTypes,
@@ -176,19 +187,23 @@ class MasterController extends Controller
         $customer = $user->customerUser;
         
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
         ]);
-        
-        $data['medical_institution_id'] = $customer->medical_institution_id;
-        
-        // Check for duplicate code within institution
-        if (JobType::where('medical_institution_id', $customer->medical_institution_id)
-            ->where('code', $data['code'])
-            ->exists()) {
-            return back()->withErrors(['code' => 'この職種コードは既に使用されています。'])->withInput();
+
+        $institutionId = $customer->medical_institution_id;
+        $raw = trim((string) ($data['code'] ?? ''));
+        if ($raw !== '') {
+            if (JobType::where('medical_institution_id', $institutionId)
+                ->where('code', $raw)
+                ->exists()) {
+                return back()->withErrors(['code' => 'この職種コードは既に使用されています。'])->withInput();
+            }
         }
-        
+
+        $data['medical_institution_id'] = $institutionId;
+        $data['code'] = MasterCodeGenerator::ensure($raw, 'job_type', $institutionId);
+
         JobType::create($data);
         
         return redirect()->route('customer.masters.job-types')
@@ -221,18 +236,23 @@ class MasterController extends Controller
         }
         
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
         ]);
-        
-        // Check for duplicate code (excluding current job type)
-        if (JobType::where('medical_institution_id', $customer->medical_institution_id)
-            ->where('code', $data['code'])
-            ->where('id', '!=', $jobType->id)
-            ->exists()) {
-            return back()->withErrors(['code' => 'この職種コードは既に使用されています。'])->withInput();
+
+        $institutionId = $customer->medical_institution_id;
+        $raw = trim((string) ($data['code'] ?? ''));
+        if ($raw !== '') {
+            if (JobType::where('medical_institution_id', $institutionId)
+                ->where('code', $raw)
+                ->where('id', '!=', $jobType->id)
+                ->exists()) {
+                return back()->withErrors(['code' => 'この職種コードは既に使用されています。'])->withInput();
+            }
         }
-        
+
+        $data['code'] = MasterCodeGenerator::ensure($raw, 'job_type', $institutionId);
+
         $jobType->update($data);
         
         return redirect()->route('customer.masters.job-types')
@@ -268,7 +288,7 @@ class MasterController extends Controller
             $query->where('name', 'like', "%{$search}%");
         }
         
-        $locations = $query->orderBy('name')->paginate(20)->withQueryString();
+        $locations = $query->orderBy('name')->paginate(Pagination::perPage($request))->withQueryString();
         
         return view('customer.masters.delivery-locations', [
             'locations' => $locations,

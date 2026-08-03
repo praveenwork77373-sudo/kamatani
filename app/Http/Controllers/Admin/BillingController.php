@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
+use App\Support\Pagination;
 
 class BillingController extends Controller
 {
@@ -52,7 +53,7 @@ class BillingController extends Controller
             $query->where('department_id', $departmentId);
         }
 
-        $billingSnapshots = $query->paginate(20)->withQueryString();
+        $billingSnapshots = $query->paginate(Pagination::perPage($request))->withQueryString();
 
         $institutionsWithDepartments = MedicalInstitution::with('departments')
             ->orderBy('name')

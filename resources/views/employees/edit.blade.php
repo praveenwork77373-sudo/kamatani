@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', __('pages.edit_employee') . ' | ' . config('app.name'))
+@section('header_category', __('menu.employees'))
 @section('page_title', __('pages.edit_employee'))
 
 @section('content')
@@ -38,6 +39,15 @@
             {{-- Form Body --}}
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <x-master-code-field
+                        type="staff_no"
+                        name="staff_no"
+                        :value="old('staff_no', $employee->staff_no)"
+                        :exclude-id="$employee->id"
+                        :institution-id="$employee->medical_institution_id"
+                        :label="__('pages.staff_no')"
+                    />
+
                     {{-- Employee Name --}}
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2">
@@ -46,10 +56,10 @@
                                 {{ __('pages.employee_name') }} <span class="text-red-500">*</span>
                             </span>
                         </label>
-                        <div class="relative">
-                            <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                        <div class="ui-field-icon">
+                            <i data-lucide="user"></i>
                             <input type="text" name="name" value="{{ old('name', $employee->name) }}" required
-                                   class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all placeholder:text-slate-400"
+                                   class="ui-input"
                                    placeholder="{{ __('pages.employee_name_placeholder') }}">
                         </div>
                         @error('name')
@@ -68,15 +78,13 @@
                                 {{ __('pages.status') }} <span class="text-red-500">*</span>
                             </span>
                         </label>
-                        <div class="relative">
-                            <i data-lucide="check-circle" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
-                            <select name="status" required
-                                    class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all appearance-none cursor-pointer">
+                        <div class="ui-field-icon">
+                            <i data-lucide="check-circle"></i>
+                            <select name="status" required class="ui-select">
                                 <option value="employed" @selected(old('status', $employee->status)==='employed')>{{ __('pages.employed') }}</option>
                                 <option value="on_leave" @selected(old('status', $employee->status)==='on_leave')>{{ __('pages.on_leave') }}</option>
                                 <option value="retired" @selected(old('status', $employee->status)==='retired')>{{ __('pages.retired') }}</option>
                             </select>
-                            <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                         </div>
                         @error('status')
                             <p class="text-[13px] text-red-600 mt-2 flex items-center gap-1.5">
@@ -94,16 +102,14 @@
                                 {{ __('pages.gender') }}
                             </span>
                         </label>
-                        <div class="relative">
-                            <i data-lucide="users" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
-                            <select name="gender"
-                                    class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all appearance-none cursor-pointer">
+                        <div class="ui-field-icon">
+                            <i data-lucide="users"></i>
+                            <select name="gender" class="ui-select">
                                 <option value="">{{ __('pages.not_set') }}</option>
                                 <option value="male" @selected(old('gender', $employee->gender)==='male')>{{ __('pages.male') }}</option>
                                 <option value="female" @selected(old('gender', $employee->gender)==='female')>{{ __('pages.female') }}</option>
                                 <option value="other" @selected(old('gender', $employee->gender)==='other')>{{ __('pages.other') }}</option>
                             </select>
-                            <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                         </div>
                         @error('gender')
                             <p class="text-[13px] text-red-600 mt-2 flex items-center gap-1.5">
@@ -122,16 +128,14 @@
                                     {{ __('pages.department') }} <span class="text-red-500">*</span>
                                 </span>
                             </label>
-                            <div class="relative">
-                                <i data-lucide="briefcase" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
-                                <select name="primary_department_id" required
-                                        class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all appearance-none cursor-pointer">
+                            <div class="ui-field-icon">
+                                <i data-lucide="briefcase"></i>
+                                <select name="primary_department_id" required class="ui-select">
                                     <option value="">{{ __('pages.select_please') }}</option>
                                     @foreach($departments as $dept)
                                         <option value="{{ $dept->id }}" @selected(old('primary_department_id', $employee->primary_department_id)===$dept->id)>{{ $dept->name }}</option>
                                     @endforeach
                                 </select>
-                                <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                             </div>
                             @error('primary_department_id')
                                 <p class="text-[13px] text-red-600 mt-2 flex items-center gap-1.5">
@@ -150,16 +154,14 @@
                                 {{ __('pages.top_size') }}
                             </span>
                         </label>
-                        <div class="relative">
-                            <i data-lucide="shirt" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
-                            <select name="top_size"
-                                    class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all appearance-none cursor-pointer">
+                        <div class="ui-field-icon">
+                            <i data-lucide="shirt"></i>
+                            <select name="top_size" class="ui-select">
                                 <option value="">{{ __('pages.not_set') }}</option>
                                 @foreach(['XS','S','M','L','XL','XXL'] as $size)
                                     <option value="{{ $size }}" @selected(old('top_size', $employee->top_size)===$size)>{{ $size }}</option>
                                 @endforeach
                             </select>
-                            <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                         </div>
                         @error('top_size')
                             <p class="text-[13px] text-red-600 mt-2 flex items-center gap-1.5">
@@ -177,16 +179,14 @@
                                 {{ __('pages.bottom_size') }}
                             </span>
                         </label>
-                        <div class="relative">
-                            <i data-lucide="package" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
-                            <select name="bottom_size"
-                                    class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all appearance-none cursor-pointer">
+                        <div class="ui-field-icon">
+                            <i data-lucide="package"></i>
+                            <select name="bottom_size" class="ui-select">
                                 <option value="">{{ __('pages.not_set') }}</option>
                                 @foreach(['XS','S','M','L','XL','XXL'] as $size)
                                     <option value="{{ $size }}" @selected(old('bottom_size', $employee->bottom_size)===$size)>{{ $size }}</option>
                                 @endforeach
                             </select>
-                            <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                         </div>
                         @error('bottom_size')
                             <p class="text-[13px] text-red-600 mt-2 flex items-center gap-1.5">
@@ -204,16 +204,14 @@
                                 {{ __('pages.shoe_size') }}
                             </span>
                         </label>
-                        <div class="relative">
-                            <i data-lucide="footprints" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
-                            <select name="shoe_size"
-                                    class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all appearance-none cursor-pointer">
+                        <div class="ui-field-icon">
+                            <i data-lucide="footprints"></i>
+                            <select name="shoe_size" class="ui-select">
                                 <option value="">{{ __('pages.not_set') }}</option>
                                 @foreach(['22.0','22.5','23.0','23.5','24.0','24.5','25.0','25.5','26.0','26.5','27.0','27.5','28.0'] as $size)
                                     <option value="{{ $size }}" @selected(old('shoe_size', $employee->shoe_size)===$size)>{{ $size }}</option>
                                 @endforeach
                             </select>
-                            <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                         </div>
                         @error('shoe_size')
                             <p class="text-[13px] text-red-600 mt-2 flex items-center gap-1.5">
@@ -224,24 +222,36 @@
                     </div>
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2">股下 (cm)</label>
-                        <select name="inseam_cm" class="w-full py-2.5 px-3 rounded-lg border border-slate-300 text-[14px] bg-white">
-                            <option value="">未設定</option>
-                            @for($cm = 60; $cm <= 90; $cm++)
-                                <option value="{{ $cm }}" @selected(old('inseam_cm', $employee->inseam_cm)==$cm)>{{ $cm }}</option>
-                            @endfor
-                        </select>
+                        <div class="ui-field-icon">
+                            <i data-lucide="ruler"></i>
+                            <select name="inseam_cm" class="ui-select">
+                                <option value="">未設定</option>
+                                @for($cm = 60; $cm <= 90; $cm++)
+                                    <option value="{{ $cm }}" @selected(old('inseam_cm', $employee->inseam_cm)==$cm)>{{ $cm }}</option>
+                                @endfor
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2">体型</label>
-                        <input type="text" name="body_type" value="{{ old('body_type', $employee->body_type) }}" class="w-full py-2.5 px-3 rounded-lg border border-slate-300 text-[14px]" placeholder="例: 7号, 11号">
+                        <div class="ui-field-icon">
+                            <i data-lucide="user"></i>
+                            <input type="text" name="body_type" value="{{ old('body_type', $employee->body_type) }}" class="ui-input" placeholder="例: 7号, 11号">
+                        </div>
                     </div>
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2">入職日</label>
-                        <input type="date" name="join_date" value="{{ old('join_date', optional($employee->join_date)->format('Y-m-d')) }}" class="w-full py-2.5 px-3 rounded-lg border border-slate-300 text-[14px]">
+                        <div class="ui-field-icon">
+                            <i data-lucide="calendar"></i>
+                            <input type="date" name="join_date" value="{{ old('join_date', optional($employee->join_date)->format('Y-m-d')) }}" class="ui-input">
+                        </div>
                     </div>
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2">退職日</label>
-                        <input type="date" name="retire_date" value="{{ old('retire_date', optional($employee->retire_date)->format('Y-m-d')) }}" class="w-full py-2.5 px-3 rounded-lg border border-slate-300 text-[14px]">
+                        <div class="ui-field-icon">
+                            <i data-lucide="calendar"></i>
+                            <input type="date" name="retire_date" value="{{ old('retire_date', optional($employee->retire_date)->format('Y-m-d')) }}" class="ui-input">
+                        </div>
                     </div>
                 </div>
 
@@ -313,16 +323,14 @@
                                             {{ __('pages.department') }}
                                         </span>
                                     </label>
-                                    <div class="relative">
-                                        <i data-lucide="building" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
-                                        <select name="positions[{{ $idx }}][department_id]"
-                                                class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all appearance-none cursor-pointer">
+                                    <div class="ui-field-icon">
+                                        <i data-lucide="building"></i>
+                                        <select name="positions[{{ $idx }}][department_id]" class="ui-select">
                                             <option value="">{{ __('pages.select_please') }}</option>
                                             @foreach($departments as $dept)
                                                 <option value="{{ $dept->id }}" @selected(old("positions.$idx.department_id", $pos->department_id)===$dept->id)>{{ $dept->name }}</option>
                                             @endforeach
                                         </select>
-                                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                                     </div>
                                 </div>
                                 <div>
@@ -333,16 +341,14 @@
                                         </span>
                                     </label>
                                     <div class="flex items-center gap-2">
-                                        <div class="relative flex-1">
-                                            <i data-lucide="user-check" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
-                                            <select name="positions[{{ $idx }}][job_type_id]"
-                                                    class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all appearance-none cursor-pointer">
+                                        <div class="ui-field-icon flex-1">
+                                            <i data-lucide="user-check"></i>
+                                            <select name="positions[{{ $idx }}][job_type_id]" class="ui-select">
                                                 <option value="">{{ __('pages.select_please') }}</option>
                                                 @foreach($jobTypes as $jobType)
                                                     <option value="{{ $jobType->id }}" @selected(old("positions.$idx.job_type_id", $pos->job_type_id)===$jobType->id)>{{ $jobType->name }}</option>
                                                 @endforeach
                                             </select>
-                                            <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                                         </div>
                                         <button type="button" class="remove-position-btn inline-flex items-center justify-center h-10 w-10 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition-all {{ $loop->first ? 'hidden' : '' }}">
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>

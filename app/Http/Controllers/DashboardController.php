@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\AdminUser;
 use App\Models\Application;
-use App\Models\Contract;
 use App\Models\CustomerUser;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\EmployeeContractPlan;
 use App\Models\EmployeeLoan;
 use App\Models\MedicalInstitution;
 use Illuminate\Http\Request;
@@ -29,8 +29,8 @@ class DashboardController extends Controller
         $stats = [];
         $recentApplications = collect();
         $departmentStats = collect();
-        $contract = null;
         $medicalInstitution = null;
+        $closingDay = null;
         
         if ($admin) {
             // Kamatani Admin Dashboard
@@ -79,17 +79,7 @@ class DashboardController extends Controller
         } elseif ($customer) {
             // Customer (Medical Institution) Dashboard
             $medicalInstitution = $customer->medicalInstitution;
-            
-            // Get active contract
-            $contract = Contract::where('medical_institution_id', $customer->medical_institution_id)
-                ->where(function($q) {
-                    $q->whereNull('valid_from')->orWhere('valid_from', '<=', now());
-                })
-                ->where(function($q) {
-                    $q->whereNull('valid_until')->orWhere('valid_until', '>=', now());
-                })
-                ->orderByDesc('valid_from')
-                ->first();
+            $closingDay = $medicalInstitution?->billing_closing_day ?? 1;
             
             $baseQuery = Application::where('medical_institution_id', $customer->medical_institution_id);
             
@@ -128,7 +118,15 @@ class DashboardController extends Controller
             ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
             ->sum('quantity');
             
-            $contractLimit = $contract ? ($contract->per_person_loan_limit * $employedEmployees) : 2500;
+            $contractLimit = EmployeeContractPlan::query()
+                ->whereIn('employee_id', (clone $employeeQuery)->where('status', 'employed')->pluck('id'))
+                ->where(function ($q) {
+                    $q->whereNull('assigned_until')->orWhere('assigned_until', '>=', now()->toDateString());
+                })
+                ->whereHas('customerContractPlan.contractPlan')
+                ->with('customerContractPlan.contractPlan')
+                ->get()
+                ->sum(fn (EmployeeContractPlan $a) => (int) ($a->customerContractPlan?->contractPlan?->rentable_points ?? 0));
             
             $stats = [
                 'total_employees' => $totalEmployees,
@@ -181,15 +179,25 @@ class DashboardController extends Controller
                     $q->where('status', 'employed');
                 }])
                 ->get()
-                ->map(function($dept) use ($contract) {
+                ->map(function($dept) {
                     $deptLoans = EmployeeLoan::whereHas('employee', function($q) use ($dept) {
                         $q->where('primary_department_id', $dept->id)
                           ->where('status', 'employed');
                     })
                     ->where('status', 'in_use')
                     ->sum('quantity');
-                    
-                    $deptLimit = $contract ? ($contract->per_person_loan_limit * $dept->employees_count) : ($dept->employees_count * 10);
+
+                    $deptEmployeeIds = Employee::where('primary_department_id', $dept->id)
+                        ->where('status', 'employed')
+                        ->pluck('id');
+                    $deptLimit = EmployeeContractPlan::query()
+                        ->whereIn('employee_id', $deptEmployeeIds)
+                        ->where(function ($q) {
+                            $q->whereNull('assigned_until')->orWhere('assigned_until', '>=', now()->toDateString());
+                        })
+                        ->with('customerContractPlan.contractPlan')
+                        ->get()
+                        ->sum(fn (EmployeeContractPlan $a) => (int) ($a->customerContractPlan?->contractPlan?->rentable_points ?? 0));
                     $utilization = $deptLimit > 0 ? round(($deptLoans / $deptLimit) * 100) : 0;
                     
                     return [
@@ -210,8 +218,8 @@ class DashboardController extends Controller
             'stats' => $stats,
             'recentApplications' => $recentApplications,
             'departmentStats' => $departmentStats,
-            'contract' => $contract,
             'medicalInstitution' => $medicalInstitution,
+            'closingDay' => $closingDay,
             'trendData' => $trendData ?? [],
         ]);
     }

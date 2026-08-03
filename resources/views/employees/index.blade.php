@@ -1,17 +1,15 @@
 @extends('layouts.app')
 
 @section('title', __('pages.employee_list') . ' | ' . __('auth.system_title'))
+@section('header_category', __('menu.employees'))
 @section('page_title', __('pages.employee_list'))
 
 @section('content')
     <div class="mb-6">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.employee_list') }}</h1>
-                <p class="text-[14px] text-slate-600 mt-1.5">
-                    {{ __('pages.employee_list_description') }}
-                </p>
-            </div>
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <p class="text-[14px] text-slate-600">
+                {{ __('pages.employee_list_description') }}
+            </p>
             <div class="flex items-center gap-3 flex-wrap">
                 @if($customer && in_array($customer->role, ['institution_admin', 'department_admin'], true))
                     <form method="POST" action="{{ route('employees.export_csv') }}" class="inline">
@@ -72,94 +70,53 @@
         />
     </x-stat-grid>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {{-- Filter Sidebar --}}
-        <div class="lg:col-span-1">
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden sticky top-6">
-                <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-blue-50">
-                    <h2 class="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
-                        <i data-lucide="filter" class="w-4 h-4 text-primary-600"></i>
-                        {{ __('common.filter') }}
-                    </h2>
-                </div>
-                
-                <form method="GET" action="{{ route('employees.index') }}" id="employee-filter-form" class="p-4 space-y-4">
+    <div class="space-y-6">
+        {{-- Horizontal filters above table --}}
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <form method="GET" action="{{ route('employees.index') }}" id="employee-filter-form" class="p-4">
+                <x-per-page-field />
+                <div class="flex flex-col lg:flex-row lg:items-end gap-3">
                     @if($customer && $customer->role === 'institution_admin')
-                        {{-- Department Filter --}}
-                        <div>
-                            <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                                {{ __('pages.department') }}
-                            </label>
-                            <div class="relative">
-                                <i data-lucide="briefcase" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-                                <select name="department_id" id="department-filter" 
-                                        class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
-                                    <option value="">{{ __('pages.all_departments') }}</option>
-                                    @foreach($departments as $dept)
-                                        <option value="{{ $dept->id }}" @selected($selectedDepartmentId == $dept->id)>{{ $dept->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                    @endif
-                    
-                    {{-- Status Filter --}}
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                            {{ __('pages.status') }}
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="check-circle" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-                            <select name="status" 
-                                    class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
-                                <option value="">{{ __('pages.all_statuses') }}</option>
-                                <option value="employed" @selected(request('status') == 'employed')>{{ __('pages.employed') }}</option>
-                                <option value="on_leave" @selected(request('status') == 'on_leave')>{{ __('pages.on_leave') }}</option>
-                                <option value="retired" @selected(request('status') == 'retired')>{{ __('pages.retired') }}</option>
+                        <div class="flex-1 min-w-0">
+                            <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.department') }}</label>
+                            <select name="department_id" id="department-filter" class="ui-select">
+                                <option value="">{{ __('pages.all_departments') }}</option>
+                                @foreach($departments as $dept)
+                                    <option value="{{ $dept->id }}" @selected($selectedDepartmentId == $dept->id)>{{ $dept->name }}</option>
+                                @endforeach
                             </select>
                         </div>
+                    @endif
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.status') }}</label>
+                        <select name="status" class="ui-select">
+                            <option value="">{{ __('pages.all_statuses') }}</option>
+                            <option value="employed" @selected(request('status') == 'employed')>{{ __('pages.employed') }}</option>
+                            <option value="on_leave" @selected(request('status') == 'on_leave')>{{ __('pages.on_leave') }}</option>
+                            <option value="retired" @selected(request('status') == 'retired')>{{ __('pages.retired') }}</option>
+                        </select>
                     </div>
-                    
-                    {{-- Search --}}
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                            {{ __('common.search') }}
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-                            <input type="text" name="q" id="search-input" value="{{ $searchQuery }}" 
-                                   placeholder="{{ __('pages.search_employee_placeholder') }}"
-                                   class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20">
-                        </div>
+                    <div class="flex-[1.5] min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('common.search') }}</label>
+                        <input type="text" name="q" id="search-input" value="{{ $searchQuery }}"
+                               placeholder="{{ __('pages.search_employee_placeholder') }}"
+                               class="ui-input">
                     </div>
-                    
-                    <div class="flex gap-2 pt-2">
-                        <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all flex items-center justify-center gap-2">
+                    <div class="flex gap-2 shrink-0">
+                        <button type="submit" class="ui-btn ui-btn-primary">
                             <i data-lucide="search" class="w-4 h-4"></i>
                             {{ __('common.search') }}
                         </button>
-                        <a href="{{ route('employees.index') }}" class="px-4 py-2.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 text-[14px] font-medium transition-all flex items-center justify-center">
+                        <a href="{{ route('employees.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
                             <i data-lucide="x" class="w-4 h-4"></i>
                         </a>
                     </div>
-                </form>
-            </div>
-        </div>
-        
-        {{-- Employee List --}}
-        <div class="lg:col-span-3">
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
-                            <i data-lucide="users" class="w-4 h-4 text-primary-600"></i>
-                            {{ __('pages.employee_list_title') }}
-                        </h2>
-                        <span class="text-[13px] text-slate-600">
-                            {{ __('pages.all_items_showing') }} {{ $employees->total() }}{{ __('pages.items_showing') }} {{ $employees->firstItem() ?? 0 }}-{{ $employees->lastItem() ?? 0 }}{{ __('pages.items_displayed') }}
-                        </span>
-                    </div>
                 </div>
+            </form>
+        </div>
+
+        {{-- Employee List --}}
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-[14px]">
                         <thead class="bg-slate-50 border-b border-slate-200">
@@ -285,21 +242,12 @@
                         </tbody>
                     </table>
                 </div>
+
+            <x-table-pagination :paginator="$employees" />
+
                 
-                @if($employees->hasPages())
-                    <div class="px-5 py-4 border-t border-slate-200 bg-slate-50">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[13px] text-slate-600">
-                                {{ __('pages.all_items_showing') }} {{ $employees->total() }}{{ __('pages.items_showing') }} {{ $employees->firstItem() ?? 0 }}-{{ $employees->lastItem() ?? 0 }}{{ __('pages.items_displayed') }}
-                            </span>
-                            <div class="flex items-center gap-2">
-                                {{ $employees->onEachSide(1)->links('pagination::tailwind') }}
-                            </div>
-                        </div>
-                    </div>
-                @endif
+
             </div>
-        </div>
     </div>
 
     <script>

@@ -246,11 +246,10 @@
                         </tbody>
                     </table>
                 </div>
-                @if($backups->hasPages())
-                    <div class="px-4 py-3 border-t border-slate-200">
-                        {{ $backups->links() }}
-                    </div>
-                @endif
+
+            <x-table-pagination :paginator="$backups" />
+
+
             </div>
         </div>
     </div>

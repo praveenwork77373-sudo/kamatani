@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
+use App\Support\Pagination;
 
 class DepartmentAdminController extends Controller
 {
@@ -48,7 +49,7 @@ class DepartmentAdminController extends Controller
             $query->where('department_id', $departmentId);
         }
         
-        $departmentAdmins = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
+        $departmentAdmins = $query->orderBy('created_at', 'desc')->paginate(Pagination::perPage($request))->withQueryString();
         $departments = Department::where('medical_institution_id', $customer->medical_institution_id)
             ->orderBy('name')
             ->get();

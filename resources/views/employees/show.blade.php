@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', __('pages.employee_details') . ' | ' . config('app.name'))
+@section('header_category', __('menu.employees'))
 @section('page_title', __('pages.employee_details'))
 
 @section('content')

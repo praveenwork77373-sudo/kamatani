@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Support\Pagination;
 
 /**
  * 一時ログインロックの管理（システム管理者のみ）
@@ -38,7 +39,7 @@ class AccountLockController extends Controller
             });
         }
 
-        $lockedUsers = $query->paginate(20)->withQueryString();
+        $lockedUsers = $query->paginate(Pagination::perPage($request))->withQueryString();
 
         return view('admin.account-locks.index', [
             'lockedUsers' => $lockedUsers,

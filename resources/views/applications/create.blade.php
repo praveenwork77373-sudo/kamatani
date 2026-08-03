@@ -44,9 +44,9 @@
             </div>
         </div>
 
-        {{-- Two Panel Layout --}}
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {{-- Left Panel: Application Information --}}
+        {{-- Vertical layout: application info, then product selection --}}
+        <div class="space-y-6">
+            {{-- 1) Application Information --}}
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-blue-50">
                     <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
@@ -55,7 +55,7 @@
                     </h2>
                 </div>
 
-                <div class="p-6 space-y-6">
+                <div class="p-6 space-y-6 max-w-4xl">
                     {{-- Application Type --}}
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
@@ -64,7 +64,7 @@
                         </label>
                         <div class="relative">
                             <select name="type" id="application-type-select" required
-                                    class="w-full px-4 py-2.5 pr-10 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all appearance-none cursor-pointer">
+                                    class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all cursor-pointer">
                                 <option value="">{{ __('pages.select_please') }}</option>
                                 <option value="new_loan" @selected(old('type')==='new_loan')>{{ __('pages.new_loan') }}</option>
                                 <option value="resize" @selected(old('type')==='resize')>{{ __('pages.size_exchange') }}</option>
@@ -72,7 +72,6 @@
                                 <option value="return" @selected(old('type')==='return')>{{ __('pages.return') }}</option>
                                 <option value="transfer" @selected(old('type')==='transfer')>{{ __('pages.transfer') }}</option>
                             </select>
-                            <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                         </div>
                         @error('type')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
@@ -107,7 +106,7 @@
                         </label>
                         <div class="relative">
                             <select required name="department_id" id="department-select"
-                                    class="w-full px-4 py-2.5 pr-10 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm appearance-none cursor-pointer">
+                                    class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm cursor-pointer">
                                 <option value="">{{ __('pages.select_please') }}</option>
                                 @foreach($departments as $dept)
                                     <option value="{{ $dept->id }}" @selected(old('department_id')==$dept->id)>
@@ -115,7 +114,6 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                         </div>
                         
                         {{-- Department Employees List (for departmental mode) --}}
@@ -143,22 +141,19 @@
                         <div class="relative">
                             {{-- Searchable Select Container --}}
                             <div id="employee-select-container" class="relative">
-                                <div id="employee-select-trigger" class="w-full px-4 py-2.5 pl-10 pr-10 rounded-lg border border-slate-300 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 text-[14px] bg-white shadow-sm cursor-pointer flex items-center justify-between min-h-[42px] hover:border-primary-400 transition-colors">
+                                <div id="employee-select-trigger" class="w-full px-4 py-2.5 pl-12 pr-10 rounded-lg border border-slate-300 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 text-[14px] bg-white shadow-sm cursor-pointer flex items-center justify-between min-h-[42px] hover:border-primary-400 transition-colors">
                                     <span id="employee-select-text" class="text-slate-500 flex-1 truncate pr-2">{{ __('pages.select_please') }}</span>
                                     <i data-lucide="chevron-down" id="employee-select-chevron" class="w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ml-2"></i>
                                 </div>
-                                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
-                                
-                                {{-- Dropdown --}}
+{{-- Dropdown --}}
                                 <div id="employee-select-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-hidden">
                                     {{-- Search Input --}}
                                     <div class="p-2 border-b border-slate-200 sticky top-0 bg-white">
                                         <div class="relative">
                                             <input type="text" id="employee-select-search" 
                                                    placeholder="{{ __('pages.search') }}..."
-                                                   class="w-full px-3 py-2 pl-9 pr-3 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20">
-                                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none"></i>
-                                        </div>
+                                                   class="w-full px-3 py-2 pl-11 pr-3 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20">
+</div>
                                     </div>
                                     {{-- Options List --}}
                                     <div id="employee-select-options" class="overflow-y-auto max-h-52 py-1">
@@ -261,11 +256,8 @@
                             <i data-lucide="calendar" class="w-4 h-4 text-slate-500"></i>
                             {{ __('pages.loan_start_date') }} <span class="text-red-500">*</span>
                         </label>
-                        <div class="relative">
-                            <input type="date" name="start_date" id="start-date-input" value="{{ old('start_date', date('Y-m-d')) }}" required
-                                   class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm">
-                            <i data-lucide="calendar" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                        </div>
+                        <input type="date" name="start_date" id="start-date-input" value="{{ old('start_date', date('Y-m-d')) }}" required
+                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm">
                         @error('start_date')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror
@@ -277,11 +269,8 @@
                             <i data-lucide="calendar-days" class="w-4 h-4 text-slate-500"></i>
                             {{ __('pages.loan_end_date') }} <span class="text-red-500">*</span>
                         </label>
-                        <div class="relative">
-                            <input type="date" name="end_date" id="end-date-input" value="{{ old('end_date') }}" required
-                                   class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm">
-                            <i data-lucide="calendar-days" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                        </div>
+                        <input type="date" name="end_date" id="end-date-input" value="{{ old('end_date') }}" required
+                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm">
                         @error('end_date')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror
@@ -293,18 +282,15 @@
                             <i data-lucide="map-pin" class="w-4 h-4 text-primary-600"></i>
                             {{ __('pages.delivery_location') }} <span class="text-red-500">*</span>
                         </label>
-                        <div class="relative">
-                            <select name="delivery_location_id" required
-                                    class="w-full px-4 py-3 pr-10 rounded-xl border-2 border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm font-medium appearance-none cursor-pointer">
-                                <option value="">{{ __('pages.select_please') }}</option>
-                                @foreach($deliveryLocations as $loc)
-                                    <option value="{{ $loc->id }}" @selected(old('delivery_location_id')==$loc->id)>
-                                        {{ $loc->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                        </div>
+                        <select name="delivery_location_id" required
+                                class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm font-medium cursor-pointer">
+                            <option value="">{{ __('pages.select_please') }}</option>
+                            @foreach($deliveryLocations as $loc)
+                                <option value="{{ $loc->id }}" @selected(old('delivery_location_id')==$loc->id)>
+                                    {{ $loc->name }}
+                                </option>
+                            @endforeach
+                        </select>
                         @error('delivery_location_id')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror
@@ -319,7 +305,7 @@
                             </span>
                             <span class="text-[14px] text-slate-600">
                                 <span id="selected-items-count">0</span>{{ __('pages.items') }} / 
-                                <span id="contract-limit">{{ $contract->per_person_loan_limit ?? '—' }}</span>{{ __('pages.items') }}
+                                <span id="contract-limit">—</span>{{ __('pages.items') }}
                                 <span class="text-[12px] text-slate-500">（職員選択でプラン上限に更新）</span>
                             </span>
                         </div>
@@ -401,18 +387,19 @@
                 </div>
             </div>
 
-            {{-- Right Panel: Product Selection --}}
-            <div class="lg:col-span-4 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            {{-- 2) Product Selection (below application info) --}}
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-blue-50">
                     <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <i data-lucide="shopping-cart" class="w-5 h-5 text-primary-600"></i>
                         {{ __('pages.product_selection') }}
                     </h2>
+                    <p class="text-[13px] text-slate-600 mt-1">申請情報の入力後、対象ユニフォームを選択してください。</p>
                 </div>
 
                 <div class="p-6">
                     {{-- Category Tabs --}}
-                    <div class="flex gap-2 mb-6 border-b-2 border-slate-200">
+                    <div class="flex flex-wrap gap-2 mb-6 border-b-2 border-slate-200">
                         <button type="button" class="category-tab active px-5 py-3 text-[14px] font-semibold text-primary-600 bg-primary-50 border-b-3 border-primary-600 hover:text-primary-700 hover:bg-primary-100 transition-all flex items-center gap-2 rounded-t-lg" data-category="top">
                             <i data-lucide="shirt" class="w-5 h-5"></i>
                             {{ __('pages.tops') }}
@@ -1179,7 +1166,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!Array.isArray(uniforms) || uniforms.length === 0) {
                     filteredUniforms = [];
-                    loadProducts();
+                    const plansEl = document.getElementById('employee-plans');
+                    const planText = plansEl ? plansEl.textContent : '';
+                    let emptyMsg = '{{ __('pages.no_products_available') }}';
+                    if (planText && planText.includes('開始前')) {
+                        emptyMsg = '契約プランは割当済みですが、顧客契約プランの開始日が未来のため、本日は申請対象商品がありません。開始日を確認してください。';
+                    } else if (!planText || planText === '未割当' || planText === '-') {
+                        emptyMsg = '契約プラン未割当のため申請できる商品がありません。職員にプランを割り当ててください。';
+                    }
+                    productsContainer.innerHTML = `
+                        <div class="text-center py-12 text-slate-500">
+                            <i data-lucide="shopping-bag" class="w-12 h-12 mx-auto mb-3 text-slate-300"></i>
+                            <p class="text-[14px]">${emptyMsg}</p>
+                            <p class="text-[12px] text-slate-400 mt-2">※ 商品カテゴリ（上衣/下衣/靴）タブも切り替えて確認してください。</p>
+                        </div>
+                    `;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                     return;
                 }
 

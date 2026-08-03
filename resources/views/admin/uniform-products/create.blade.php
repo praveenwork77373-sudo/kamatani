@@ -9,6 +9,7 @@
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.new_uniform_product') }}</h1>
                 <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.new_uniform_product_description') }}</p>
+                <p class="text-[13px] text-slate-500 mt-2">商品はカタログです。適用は「契約プラン」画面で商品をチェックして紐付けます。医療機関・部署は不要です。</p>
             </div>
             <a href="{{ route('admin.uniform-products.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
@@ -35,49 +36,6 @@
 
     <form method="POST" action="{{ route('admin.uniform-products.store') }}" enctype="multipart/form-data" id="product-form">
         @csrf
-
-        {{-- Medical Institution and Department Selection --}}
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
-            <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <i data-lucide="building" class="w-5 h-5 text-primary-600"></i>
-                {{ __('pages.medical_institution') }} / {{ __('pages.department') }}
-            </h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                        {{ __('pages.medical_institution') }} <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                        <i data-lucide="building-2" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                        <select name="medical_institution_id" id="institution-select" required
-                                class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
-                            <option value="">{{ __('pages.select_please') }}</option>
-                            @foreach($medicalInstitutions as $inst)
-                                <option value="{{ $inst->id }}" @selected($selectedInstitutionId == $inst->id)>{{ $inst->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-                
-                <div>
-                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                        {{ __('pages.department') }} <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                        <i data-lucide="briefcase" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                        <select name="department_id" id="department-select" required
-                                class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
-                                @if(!$selectedInstitutionId) disabled @endif>
-                            <option value="">{{ __('pages.select_please') }}</option>
-                            @foreach($departments as $dept)
-                                <option value="{{ $dept->id }}" @selected($selectedDepartmentId == $dept->id)>{{ $dept->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         {{-- Maker (SPEC) --}}
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
@@ -187,9 +145,8 @@
                         {{ __('pages.category') }} <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
-                        <i data-lucide="grid" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                        <select name="products[INDEX][category]" required
-                                class="product-category-select w-full pl-10 pr-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium">
+<select name="products[INDEX][category]" required
+                                class="product-category-select w-full px-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium">
                             <option value="">{{ __('pages.select_please') }}</option>
                             <option value="top">{{ __('pages.category_top') }}</option>
                             <option value="bottom">{{ __('pages.category_bottom') }}</option>
@@ -204,9 +161,8 @@
                         {{ __('pages.gender') }} <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
-                        <i data-lucide="users" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                        <select name="products[INDEX][gender]" required
-                                class="w-full pl-10 pr-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium">
+<select name="products[INDEX][gender]" required
+                                class="w-full px-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium">
                             <option value="">{{ __('pages.select_please') }}</option>
                             <option value="male">{{ __('pages.male') }}</option>
                             <option value="female">{{ __('pages.female') }}</option>
@@ -237,16 +193,14 @@
     <template id="size-row-template">
         <div class="size-row flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
             <div class="flex-1 relative">
-                <i data-lucide="ruler" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                <select name="products[INDEX][sizes][SIZE_INDEX][size]" required
-                        class="size-select w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+<select name="products[INDEX][sizes][SIZE_INDEX][size]" required
+                        class="size-select w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
                     <option value="">{{ __('pages.select_size') }}</option>
                 </select>
             </div>
             <div class="w-24 relative">
-                <i data-lucide="package" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                <input type="number" name="products[INDEX][sizes][SIZE_INDEX][stock_quantity]" required min="0" value="0"
-                       class="stock-quantity-input w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
+<input type="number" name="products[INDEX][sizes][SIZE_INDEX][stock_quantity]" required min="0" value="0"
+                       class="stock-quantity-input w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
                        placeholder="{{ __('pages.stock') }}">
             </div>
             <button type="button" class="remove-size-btn text-red-500 hover:text-red-700 p-1 flex items-center justify-center">
@@ -270,44 +224,6 @@
             const productsContainer = document.getElementById('products-container');
             const addProductBtn = document.getElementById('add-product-btn');
             let currentCategory = 'top';
-
-            // Department filter
-            document.getElementById('institution-select')?.addEventListener('change', function() {
-                const institutionId = this.value;
-                const departmentSelect = document.getElementById('department-select');
-                
-                if (!institutionId) {
-                    departmentSelect.innerHTML = '<option value="">{{ __('pages.select_please') }}</option>';
-                    departmentSelect.disabled = true;
-                    departmentSelect.removeAttribute('required');
-                    return;
-                }
-                
-                departmentSelect.disabled = true;
-                departmentSelect.innerHTML = '<option value="">{{ __('pages.loading') }}</option>';
-                
-                fetch(`{{ route('api.departments') }}?medical_institution_id=${institutionId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        departmentSelect.innerHTML = '<option value="">{{ __('pages.select_please') }}</option>';
-                        if (data && Array.isArray(data)) {
-                            data.forEach(dept => {
-                                const option = document.createElement('option');
-                                option.value = dept.id;
-                                option.textContent = dept.name;
-                                departmentSelect.appendChild(option);
-                            });
-                        }
-                        departmentSelect.disabled = false;
-                        departmentSelect.setAttribute('required', 'required');
-                    })
-                    .catch(error => {
-                        console.error('Error loading departments:', error);
-                        departmentSelect.innerHTML = '<option value="">{{ __('pages.select_please') }}</option>';
-                        departmentSelect.disabled = false;
-                        departmentSelect.setAttribute('required', 'required');
-                    });
-            });
 
             // Update current category when category select changes
             document.addEventListener('change', function(e) {
@@ -560,25 +476,10 @@
                 e.preventDefault();
                 
                 const $form = $(this);
-                const $institutionSelect = $('#institution-select');
-                const $departmentSelect = $('#department-select');
                 const $cards = $('.product-card');
                 
                 // Update all product indices first
                 updateProductIndices();
-                
-                // Validate medical institution and department
-                if (!$institutionSelect.val()) {
-                    alert('{{ __('pages.select_medical_institution_first') }}');
-                    $institutionSelect.focus();
-                    return false;
-                }
-                
-                if (!$departmentSelect.val()) {
-                    alert('{{ __('pages.select_department_first') }}');
-                    $departmentSelect.focus();
-                    return false;
-                }
                 
                 if ($cards.length === 0) {
                     alert('{{ __('pages.add_at_least_one_product') ?? '少なくとも1つの商品を追加してください。' }}');

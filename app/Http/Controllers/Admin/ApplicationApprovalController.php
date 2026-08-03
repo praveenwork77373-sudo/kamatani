@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use App\Support\Pagination;
 
 class ApplicationApprovalController extends Controller
 {
@@ -44,7 +45,7 @@ class ApplicationApprovalController extends Controller
             $query->where('medical_institution_id', $institutionId);
         }
 
-        $applications = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
+        $applications = $query->orderByDesc('created_at')->paginate(Pagination::perPage($request))->withQueryString();
 
         $stats = [
             'pending' => Application::where('status', Application::STATUS_PENDING)->count(),

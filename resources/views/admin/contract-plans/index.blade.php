@@ -48,6 +48,7 @@
             @endforelse
         </tbody>
     </table>
+    <x-table-pagination :paginator="$plans" />
 </div>
-<div class="mt-4">{{ $plans->links() }}</div>
+
 @endsection

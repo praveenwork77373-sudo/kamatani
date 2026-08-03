@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
+use App\Support\Pagination;
 
 class DatabaseBackupController extends Controller
 {
@@ -19,10 +20,10 @@ class DatabaseBackupController extends Controller
     ) {
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $settings = $this->backupService->getSettings();
-        $backups = $this->backupService->listBackups(20);
+        $backups = $this->backupService->listBackups(Pagination::perPage($request));
 
         return view('admin.database-backups.index', [
             'settings' => $settings,

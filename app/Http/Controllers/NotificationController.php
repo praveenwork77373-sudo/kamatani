@@ -6,6 +6,7 @@ use App\Models\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Support\Pagination;
 
 class NotificationController extends Controller
 {
@@ -13,7 +14,7 @@ class NotificationController extends Controller
     {
         $notifications = Notification::where('user_id', $request->user()->id)
             ->orderByDesc('created_at')
-            ->paginate(20);
+            ->paginate(Pagination::perPage($request))->withQueryString();
 
         return view('notifications.index', [
             'notifications' => $notifications,

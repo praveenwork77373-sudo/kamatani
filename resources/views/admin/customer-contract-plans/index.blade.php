@@ -17,6 +17,7 @@
 </div>
 
 <form method="GET" class="mb-4 flex gap-2 items-end">
+                <x-per-page-field />
     <div>
         <label class="block text-xs text-slate-500 mb-1">医療機関</label>
         <select name="medical_institution_id" class="rounded-lg border-slate-300 text-sm">
@@ -77,6 +78,7 @@
             @endforelse
         </tbody>
     </table>
+    <x-table-pagination :paginator="$plans" />
 </div>
-<div class="mt-4">{{ $plans->links() }}</div>
+
 @endsection

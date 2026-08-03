@@ -9,6 +9,7 @@
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.edit_uniform') }}</h1>
                 <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.new_uniform_product_description') }}</p>
+                <p class="text-[13px] text-slate-500 mt-2">商品はカタログです。適用は「契約プラン」画面で商品をチェックして紐付けます。医療機関・部署は不要です。</p>
             </div>
             <a href="{{ route('admin.uniform-products.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
@@ -37,56 +38,11 @@
         @csrf
         @method('PUT')
 
-        {{-- Medical Institution and Department Selection --}}
+        {{-- Maker (SPEC) --}}
         <div class="max-w-xl mx-auto mb-6">
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                    <i data-lucide="building" class="w-5 h-5 text-primary-600"></i>
-                    {{ __('pages.medical_institution') }} / {{ __('pages.department') }}
-                </h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                            {{ __('pages.medical_institution') }} <span class="text-red-500">*</span>
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="building-2" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                            <select name="medical_institution_id" id="institution-select" required
-                                    class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
-                                <option value="">{{ __('pages.select_please') }}</option>
-                                @foreach($medicalInstitutions as $inst)
-                                    <option value="{{ $inst->id }}" @selected($selectedInstitutionId == $inst->id)>{{ $inst->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        @error('medical_institution_id')
-                            <p class="text-[12px] text-red-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                            {{ __('pages.department') }} <span class="text-red-500">*</span>
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="briefcase" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                            <select name="department_id" id="department-select" required
-                                    class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
-                                    @if(!$selectedInstitutionId) disabled @endif>
-                                <option value="">{{ __('pages.select_please') }}</option>
-                                @foreach($departments as $dept)
-                                    <option value="{{ $dept->id }}" @selected($selectedDepartmentId == $dept->id)>{{ $dept->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        @error('department_id')
-                            <p class="text-[12px] text-red-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">メーカー情報</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-[13px] font-semibold text-slate-700 mb-2">メーカー</label>
                         <select name="maker_id" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
@@ -189,9 +145,8 @@
                                         {{ __('pages.gender') }} <span class="text-red-500">*</span>
                                     </label>
                                     <div class="relative">
-                                        <i data-lucide="users" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                                        <select name="gender" required
-                                                class="w-full pl-10 pr-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium">
+<select name="gender" required
+                                                class="w-full px-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium">
                                             <option value="">{{ __('pages.select_please') }}</option>
                                             <option value="male" @selected(old('gender', $product->gender)==='male')>{{ __('pages.male') }}</option>
                                             <option value="female" @selected(old('gender', $product->gender)==='female')>{{ __('pages.female') }}</option>
@@ -213,14 +168,13 @@
                                         @foreach($allSizes as $sizeProduct)
                                             <div class="size-row flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
                                                 <div class="flex-1 relative">
-                                                    <i data-lucide="ruler" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                                                    @if($product->category === 'shoe')
+@if($product->category === 'shoe')
                                                         <input type="number" name="sizes[{{ $loop->index }}][size]" value="{{ old("sizes.{$loop->index}.size", $sizeProduct->size) }}" step="0.5" min="20" max="30" required
-                                                               class="size-select w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
+                                                               class="size-select w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
                                                                placeholder="{{ __('pages.example_shoe_size') }}">
                                                     @else
                                                         <select name="sizes[{{ $loop->index }}][size]" required
-                                                                class="size-select w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+                                                                class="size-select w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
                                                             <option value="">{{ __('pages.select_size') }}</option>
                                                             @foreach($topBottomSizes as $size)
                                                                 <option value="{{ $size }}" @selected(old("sizes.{$loop->parent->index}.size", $sizeProduct->size)===$size)>{{ $size }}</option>
@@ -229,9 +183,8 @@
                                                     @endif
                                                 </div>
                                                 <div class="w-24 relative">
-                                                    <i data-lucide="package" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                                                    <input type="number" name="sizes[{{ $loop->index }}][stock_quantity]" value="{{ old("sizes.{$loop->index}.stock_quantity", $sizeProduct->stock_quantity) }}" min="0" required
-                                                           class="stock-quantity-input w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
+<input type="number" name="sizes[{{ $loop->index }}][stock_quantity]" value="{{ old("sizes.{$loop->index}.stock_quantity", $sizeProduct->stock_quantity) }}" min="0" required
+                                                           class="stock-quantity-input w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
                                                            placeholder="{{ __('pages.stock') }}">
                                                 </div>
                                                 @if($allSizes->count() > 1)
@@ -275,16 +228,14 @@
     <template id="size-row-template">
         <div class="size-row flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
             <div class="flex-1 relative">
-                <i data-lucide="ruler" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                <select name="sizes[SIZE_INDEX][size]" required
-                        class="size-select w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+<select name="sizes[SIZE_INDEX][size]" required
+                        class="size-select w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
                     <option value="">{{ __('pages.select_size') }}</option>
                 </select>
             </div>
             <div class="w-24 relative">
-                <i data-lucide="package" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                <input type="number" name="sizes[SIZE_INDEX][stock_quantity]" required min="0" value="0"
-                       class="stock-quantity-input w-full pl-9 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
+<input type="number" name="sizes[SIZE_INDEX][stock_quantity]" required min="0" value="0"
+                       class="stock-quantity-input w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
                        placeholder="{{ __('pages.stock') }}">
             </div>
             <button type="button" class="remove-size-btn text-red-500 hover:text-red-700 p-1 flex items-center justify-center">
@@ -310,90 +261,6 @@
             const productCard = $('.product-card');
             const categorySelect = $('.product-category-select');
             const sizesContainer = $('.product-sizes-container');
-
-            // Load departments on page load if institution is already selected
-            @if($selectedInstitutionId)
-                const initialInstitutionId = {{ $selectedInstitutionId }};
-                const departmentSelect = $('#department-select');
-                
-                if (initialInstitutionId) {
-                    departmentSelect.prop('disabled', true);
-                    departmentSelect.html('<option value="">{{ __('pages.loading') }}</option>');
-                    
-                    fetch(`{{ route('api.departments') }}?medical_institution_id=${institutionId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            departmentSelect.html('<option value="">{{ __('pages.select_please') }}</option>');
-                            if (data && Array.isArray(data)) {
-                                data.forEach(dept => {
-                                    const option = $('<option>', {
-                                        value: dept.id,
-                                        text: dept.name
-                                    });
-                                    @if($selectedDepartmentId)
-                                        if (dept.id == {{ $selectedDepartmentId }}) {
-                                            option.prop('selected', true);
-                                        }
-                                    @endif
-                                    departmentSelect.append(option);
-                                });
-                            }
-                            departmentSelect.prop('disabled', false);
-                            departmentSelect.attr('required', 'required');
-                        })
-                        .catch(error => {
-                            console.error('Error loading departments:', error);
-                            departmentSelect.html('<option value="">{{ __('pages.select_please') }}</option>');
-                            departmentSelect.prop('disabled', false);
-                            departmentSelect.attr('required', 'required');
-                        });
-                }
-            @endif
-            
-            // Department selection - load departments when institution changes
-            $('#institution-select').on('change', function() {
-                const institutionId = $(this).val();
-                const departmentSelect = $('#department-select');
-                
-                if (!institutionId) {
-                    departmentSelect.html('<option value="">{{ __('pages.select_please') }}</option>');
-                    departmentSelect.prop('disabled', true);
-                    departmentSelect.removeAttr('required');
-                    return;
-                }
-                
-                departmentSelect.prop('disabled', true);
-                departmentSelect.html('<option value="">{{ __('pages.loading') }}</option>');
-                
-                fetch(`{{ route('api.departments') }}?medical_institution_id=${institutionId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        departmentSelect.html('<option value="">{{ __('pages.select_please') }}</option>');
-                        if (data && Array.isArray(data)) {
-                            data.forEach(dept => {
-                                const option = $('<option>', {
-                                    value: dept.id,
-                                    text: dept.name
-                                });
-                                // Preserve selected department if it exists in the new list
-                                @if($selectedDepartmentId)
-                                    if (dept.id == {{ $selectedDepartmentId }}) {
-                                        option.prop('selected', true);
-                                    }
-                                @endif
-                                departmentSelect.append(option);
-                            });
-                        }
-                        departmentSelect.prop('disabled', false);
-                        departmentSelect.attr('required', 'required');
-                    })
-                    .catch(error => {
-                        console.error('Error loading departments:', error);
-                        departmentSelect.html('<option value="">{{ __('pages.select_please') }}</option>');
-                        departmentSelect.prop('disabled', false);
-                        departmentSelect.attr('required', 'required');
-                    });
-            });
 
             // Function to get currently selected sizes from existing rows
             function getCurrentlySelectedSizes() {

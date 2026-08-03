@@ -13,6 +13,9 @@ class Maker extends Model
     protected $fillable = [
         'name',
         'code',
+        'tel',
+        'fax',
+        'notes',
         'is_active',
     ];
 

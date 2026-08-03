@@ -49,6 +49,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.read_all');
     Route::get('/api/notifications/unread-count', [\App\Http\Controllers\NotificationController::class, 'unreadCount'])->name('api.notifications.unread_count');
+    Route::get('/api/master-code/check', [\App\Http\Controllers\Api\MasterCodeController::class, 'check'])->name('api.master_code.check');
 });
 
 // 医療機関側（病院ポータル）
@@ -185,15 +186,10 @@ Route::prefix('admin')
             Route::delete('/delivery-locations/{deliveryLocation}', [\App\Http\Controllers\Admin\MasterController::class, 'deliveryLocationDestroy'])->name('delivery-locations.destroy');
         });
         
-        // レガシー FIXED/POINT 契約 CRUD は SPEC 上廃止。コードは残すがルートは公開しない。
-        // Route::middleware('admin.role:system_admin,operation,sales')->group(function () {
-        //     Route::resource('contracts', \App\Http\Controllers\Admin\ContractController::class)->except(['show']);
-        //     Route::get('/contracts/{contract}', [\App\Http\Controllers\Admin\ContractController::class, 'show'])->name('contracts.show');
-        // });
-
         // 契約プラン中心ドメイン（SPEC 2026-07-31）
         Route::middleware('admin.role:system_admin,contract_plan_manager,operation,sales')->group(function () {
             Route::resource('makers', \App\Http\Controllers\Admin\MakerController::class)->except(['show']);
+            Route::resource('product-unit-prices', \App\Http\Controllers\Admin\ProductUnitPriceController::class)->except(['show']);
             Route::resource('contract-plans', \App\Http\Controllers\Admin\ContractPlanController::class);
             Route::resource('customer-contract-plans', \App\Http\Controllers\Admin\CustomerContractPlanController::class)->except(['show']);
             Route::post('/customer-contract-plans/{customerContractPlan}/confirm', [\App\Http\Controllers\Admin\CustomerContractPlanController::class, 'confirm'])

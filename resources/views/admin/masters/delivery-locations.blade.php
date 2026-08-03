@@ -29,9 +29,10 @@
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div class="p-4 border-b border-slate-200">
             <form method="GET" action="{{ route('admin.masters.delivery-locations') }}" class="flex items-center gap-3">
+                <x-per-page-field />
                 <div class="relative">
                     <i data-lucide="building-2" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                    <select name="institution_id" class="pl-9 pr-4 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+                    <select name="institution_id" class="pl-11 pr-4 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
                         <option value="">{{ __('pages.all_medical_institutions') }}</option>
                         @foreach($institutions as $inst)
                             <option value="{{ $inst->id }}" @selected(request('institution_id')==$inst->id)>{{ $inst->name }}</option>
@@ -93,14 +94,10 @@
             </table>
         </div>
 
-        @if($locations->hasPages())
-            <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between text-[13px] text-slate-600">
-                <span>{{ __('pages.showing_results', ['firstItem' => $locations->firstItem() ?? 0, 'lastItem' => $locations->lastItem() ?? 0, 'total' => $locations->total()]) }}</span>
-                <div class="flex items-center gap-2">
-                    {{ $locations->onEachSide(1)->links('pagination::tailwind') }}
-                </div>
-            </div>
-        @endif
+            <x-table-pagination :paginator="$locations" />
+
+
+
     </div>
 
 @push('scripts')

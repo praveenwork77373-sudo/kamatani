@@ -105,14 +105,10 @@
                 </tbody>
             </table>
         </div>
+
+            <x-table-pagination :paginator="$applications" />
+
     </div>
 
-    @if($applications->hasPages())
-        <div class="mt-6 flex items-center justify-between text-[13px] text-slate-600">
-            <span>全 {{ $applications->total() }} 件中 {{ $applications->firstItem() ?? 0 }} - {{ $applications->lastItem() ?? 0 }} 件を表示</span>
-            <div class="flex items-center gap-2">
-                {{ $applications->onEachSide(1)->links('pagination::tailwind') }}
-            </div>
-        </div>
-    @endif
+
 @endsection

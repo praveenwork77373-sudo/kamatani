@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use App\Support\Pagination;
 
 class AdminUserController extends Controller
 {
@@ -107,7 +108,7 @@ class AdminUserController extends Controller
         }
 
         $adminUsers = $query->orderBy('created_at', 'desc')
-            ->paginate(20)
+            ->paginate(Pagination::perPage($request))
             ->withQueryString();
 
         // Calculate statistics (without filters)

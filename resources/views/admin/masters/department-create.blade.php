@@ -21,7 +21,6 @@
         @csrf
 
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            {{-- Form Header --}}
             <div class="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
                 <div class="flex items-center gap-3">
                     <div class="h-10 w-10 rounded-lg bg-primary-100 flex items-center justify-center">
@@ -34,102 +33,49 @@
                 </div>
             </div>
 
-            {{-- Form Body --}}
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {{-- Medical Institution --}}
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">
-                            {{ __('pages.medical_institution') }} <span class="text-red-500">*</span>
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="building-2" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
-                            <select name="medical_institution_id" required
-                                    class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all appearance-none cursor-pointer">
+                        <label class="ui-label">{{ __('pages.medical_institution') }} <span class="text-red-500">*</span></label>
+                        <div class="ui-field-icon">
+                            <i data-lucide="building-2"></i>
+                            <select name="medical_institution_id" required class="ui-select">
                                 <option value="">{{ __('pages.select_please') }}</option>
                                 @foreach($institutions as $inst)
                                     <option value="{{ $inst->id }}" @selected(old('medical_institution_id')==$inst->id)>{{ $inst->name }}</option>
                                 @endforeach
                             </select>
-                            <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                         </div>
-                        @error('medical_institution_id')
-                            <p class="text-[13px] text-red-600 mt-2 flex items-center gap-1.5">
-                                <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
-                                {{ $message }}
-                            </p>
-                        @enderror
+                        @error('medical_institution_id')<p class="ui-error">{{ $message }}</p>@enderror
                     </div>
 
-                    {{-- Department Code --}}
-                    <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">
-                            {{ __('pages.department_code') }} <span class="text-red-500">*</span>
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="hash" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                            <input type="text" name="code" value="{{ old('code') }}" required
-                                   class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all placeholder:text-slate-400"
-                                   placeholder="例: DEPT-001">
-                        </div>
-                        @error('code')
-                            <p class="text-[13px] text-red-600 mt-2 flex items-center gap-1.5">
-                                <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
-                                {{ $message }}
-                            </p>
-                        @enderror
-                    </div>
+                    <x-master-code-field
+                        type="department"
+                        name="code"
+                        :value="old('code')"
+                        institution-input="select[name=medical_institution_id]"
+                        :label="__('pages.department_code')"
+                    />
 
-                    {{-- Department Name --}}
                     <div class="md:col-span-2">
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">
-                            {{ __('pages.department_name') }} <span class="text-red-500">*</span>
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="briefcase" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                            <input type="text" name="name" value="{{ old('name') }}" required
-                                   class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all placeholder:text-slate-400"
+                        <label class="ui-label">{{ __('pages.department_name') }} <span class="text-red-500">*</span></label>
+                        <div class="ui-field-icon">
+                            <i data-lucide="briefcase"></i>
+                            <input type="text" name="name" value="{{ old('name') }}" required class="ui-input"
                                    placeholder="例: 外科">
                         </div>
-                        @error('name')
-                            <p class="text-[13px] text-red-600 mt-2 flex items-center gap-1.5">
-                                <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
-                                {{ $message }}
-                            </p>
-                        @enderror
+                        @error('name')<p class="ui-error">{{ $message }}</p>@enderror
                     </div>
                 </div>
             </div>
 
-            {{-- Form Footer --}}
             <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-                <p class="text-[12px] text-slate-500 flex items-center gap-1.5">
-                    <i data-lucide="info" class="w-3.5 h-3.5"></i>
-                    {{ __('pages.required_fields_note') }}
-                </p>
+                <p class="text-[12px] text-slate-500">{{ __('pages.required_fields_note') }}</p>
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('admin.masters.departments') }}" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-white text-[14px] font-medium transition-all flex items-center gap-2">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                        {{ __('common.cancel') }}
-                    </a>
-                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center gap-2">
-                        <i data-lucide="check" class="w-4 h-4"></i>
-                        {{ __('pages.register') }}
-                    </button>
+                    <a href="{{ route('admin.masters.departments') }}" class="ui-btn ui-btn-secondary">{{ __('common.cancel') }}</a>
+                    <button type="submit" class="ui-btn ui-btn-primary">{{ __('pages.register') }}</button>
                 </div>
             </div>
         </div>
     </form>
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-        setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 100);
-        setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 500);
-    }
-});
-</script>
-@endpush
 @endsection

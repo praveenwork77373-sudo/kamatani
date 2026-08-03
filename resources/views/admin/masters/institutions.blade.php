@@ -33,7 +33,7 @@
                     <tr>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.institution_code') }}</th>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.institution_name') }}</th>
-                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.billing_model') }}</th>
+                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">締め日</th>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.notification_email') }}</th>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.overall_manager') }}</th>
                         <th class="px-5 py-3.5 text-right font-semibold text-slate-700">{{ __('pages.actions') }}</th>
@@ -44,9 +44,7 @@
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-5 py-4 font-semibold text-slate-900">{{ $institution->code }}</td>
                             <td class="px-5 py-4 text-slate-800">{{ $institution->name }}</td>
-                            <td class="px-5 py-4 text-slate-600">
-                                {{ $institution->billing_model === 'fixed_per_person' ? __('pages.fixed_per_person_billing') : __('pages.point_usage_billing') }}
-                            </td>
+                            <td class="px-5 py-4 text-slate-600">{{ $institution->billing_closing_day ?? 1 }}日</td>
                             <td class="px-5 py-4 text-slate-600">
                                 <div class="flex items-center gap-2">
                                     <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
@@ -115,14 +113,10 @@
             </table>
         </div>
 
-        @if($institutions->hasPages())
-            <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between text-[13px] text-slate-600">
-                <span>{{ __('pages.showing_results', ['firstItem' => $institutions->firstItem() ?? 0, 'lastItem' => $institutions->lastItem() ?? 0, 'total' => $institutions->total()]) }}</span>
-                <div class="flex items-center gap-2">
-                    {{ $institutions->onEachSide(1)->links('pagination::tailwind') }}
-                </div>
-            </div>
-        @endif
+            <x-table-pagination :paginator="$institutions" />
+
+
+
     </div>
 
 @push('scripts')

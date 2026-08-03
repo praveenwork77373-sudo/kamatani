@@ -14,10 +14,7 @@ class MedicalInstitution extends Model
     protected $fillable = [
         'name',
         'code',
-        'billing_model',
         'notification_email',
-        'per_person_loan_limit',
-        'point_unit_price',
         'billing_closing_day',
         'sales_person_name',
     ];
@@ -46,11 +43,6 @@ class MedicalInstitution extends Model
         return $this->hasMany(Employee::class);
     }
 
-    public function contracts(): HasMany
-    {
-        return $this->hasMany(Contract::class);
-    }
-
     public function customerContractPlans(): HasMany
     {
         return $this->hasMany(CustomerContractPlan::class);
@@ -63,5 +55,3 @@ class MedicalInstitution extends Model
             ->whereNull('department_id');
     }
 }
-
-

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Support\Pagination;
 
 class EmployeeManagementController extends Controller
 {
@@ -61,7 +62,7 @@ class EmployeeManagementController extends Controller
 
         $employees = (clone $baseQuery)->orderBy('medical_institution_id')
             ->orderBy('staff_no')
-            ->paginate(30)
+            ->paginate(Pagination::perPage($request))
             ->withQueryString();
 
         // Calculate statistics

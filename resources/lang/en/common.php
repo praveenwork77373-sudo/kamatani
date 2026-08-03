@@ -35,6 +35,8 @@ return [
     'loading' => 'Loading...',
     'error' => 'Error',
     'success' => 'Success',
+    'saved' => 'Saved',
+    'deleted' => 'Deleted',
     'warning' => 'Warning',
     'info' => 'Information',
     'settings' => 'Settings',

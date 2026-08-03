@@ -26,70 +26,42 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {{-- Filter Sidebar --}}
-        <div class="lg:col-span-1">
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden sticky top-6">
-                <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-blue-50">
-                    <h2 class="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
-                        <i data-lucide="filter" class="w-4 h-4 text-primary-600"></i>
-                        {{ __('common.filter') }}
-                    </h2>
-                </div>
-                
-                <form method="GET" action="{{ route('customer.masters.department-admins') }}" class="p-4 space-y-4">
-                    {{-- Department Filter --}}
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
-                            <i data-lucide="briefcase" class="w-3.5 h-3.5 text-slate-500"></i>
-                            {{ __('pages.department') }}
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="briefcase" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                            <select name="department_id" id="department-filter" 
-                                    class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white transition-all">
-                                <option value="">{{ __('pages.all_departments') }}</option>
-                                @foreach($departments as $dept)
-                                    <option value="{{ $dept->id }}" @selected($selectedDepartmentId == $dept->id)>{{ $dept->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+    <div class="space-y-6">
+        {{-- Horizontal filters above table --}}
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <form method="GET" action="{{ route('customer.masters.department-admins') }}" class="p-4">
+                <x-per-page-field />
+                <div class="flex flex-col lg:flex-row lg:items-end gap-3">
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.department') }}</label>
+                        <select name="department_id" id="department-filter" class="ui-select">
+                            <option value="">{{ __('pages.all_departments') }}</option>
+                            @foreach($departments as $dept)
+                                <option value="{{ $dept->id }}" @selected($selectedDepartmentId == $dept->id)>{{ $dept->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                    
-                    {{-- Search --}}
-                    <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
-                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500"></i>
-                            {{ __('common.search') }}
-                        </label>
-                        <div class="relative">
-                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                            <input type="text" name="q" id="search-input" value="{{ $searchQuery }}" 
-                                   placeholder="{{ __('pages.search_department_admin_placeholder') }}"
-                                   class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-[14px] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white placeholder-slate-400 transition-all">
-                        </div>
+                    <div class="flex-[1.5] min-w-0">
+                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('common.search') }}</label>
+                        <input type="text" name="q" id="search-input" value="{{ $searchQuery }}"
+                               placeholder="{{ __('pages.search_department_admin_placeholder') }}"
+                               class="ui-input">
                     </div>
-                    
-                    {{-- Action Buttons --}}
-                    <div class="flex gap-2 pt-2">
-                        <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[13px] font-medium shadow-md transition-all">
+                    <div class="flex gap-2 shrink-0">
+                        <button type="submit" class="ui-btn ui-btn-primary">
                             <i data-lucide="search" class="w-4 h-4"></i>
                             {{ __('common.search') }}
                         </button>
-                        <a href="{{ route('customer.masters.department-admins') }}" 
-                           class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] font-medium transition-all">
+                        <a href="{{ route('customer.masters.department-admins') }}" class="ui-btn ui-btn-secondary">
                             <i data-lucide="x" class="w-4 h-4"></i>
                             {{ __('common.reset') }}
                         </a>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
-        
-        {{-- Main Content --}}
-        <div class="lg:col-span-3">
 
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-[14px]">
                         <thead class="bg-slate-50 border-b border-slate-200">
@@ -140,16 +112,11 @@
                     </table>
                 </div>
 
-                @if($departmentAdmins->hasPages())
-                    <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-between text-[13px] text-slate-600">
-                        <span>{{ __('pages.showing_results', ['firstItem' => $departmentAdmins->firstItem() ?? 0, 'lastItem' => $departmentAdmins->lastItem() ?? 0, 'total' => $departmentAdmins->total()]) }}</span>
-                        <div class="flex items-center gap-2">
-                            {{ $departmentAdmins->onEachSide(1)->links('pagination::tailwind') }}
-                        </div>
-                    </div>
-                @endif
+            <x-table-pagination :paginator="$departmentAdmins" />
+
+
+
             </div>
-        </div>
     </div>
 
 @push('scripts')

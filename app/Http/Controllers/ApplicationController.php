@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Application;
 use App\Models\ApplicationItem;
-use App\Models\Contract;
 use App\Models\CustomerUser;
 use App\Models\DeliveryLocation;
 use App\Models\Department;
@@ -16,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use App\Support\Pagination;
 
 class ApplicationController extends Controller
 {
@@ -45,7 +45,7 @@ class ApplicationController extends Controller
             $query->where('status', $status);
         }
 
-        $applications = $query->paginate(20)->withQueryString();
+        $applications = $query->paginate(Pagination::perPage($request))->withQueryString();
 
         return view('applications.index', [
             'applications' => $applications,
@@ -80,19 +80,6 @@ class ApplicationController extends Controller
         $departments = Department::where('medical_institution_id', $customer->medical_institution_id)->get();
         $jobTypes = JobType::where('medical_institution_id', $customer->medical_institution_id)->get();
         $uniforms = UniformProduct::orderBy('product_code')->get();
-
-        // Get active contract for limit information
-        $contract = Contract::where('medical_institution_id', $customer->medical_institution_id)
-            ->where(function($q) {
-                $q->whereNull('valid_until')
-                  ->orWhere('valid_until', '>=', now());
-            })
-            ->where(function($q) {
-                $q->whereNull('valid_from')
-                  ->orWhere('valid_from', '<=', now());
-            })
-            ->orderBy('valid_from', 'desc')
-            ->first();
 
         // Get all possible sizes from database for each category
         // For tops/bottoms: letter sizes (XS, S, M, L, XL, XXL) - stored as strings in database
@@ -221,7 +208,6 @@ class ApplicationController extends Controller
             'uniforms' => $uniforms,
             'uniformsJson' => $uniformsForJson,
             'customer' => $customer,
-            'contract' => $contract,
         ]);
     }
 
@@ -374,16 +360,66 @@ class ApplicationController extends Controller
         $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
 
         return response()->json($employees->map(function ($emp) use ($eligibility) {
-            $assignments = $eligibility->activeAssignments($emp);
-            $plans = $assignments->map(function ($a) {
+            $today = now()->toDateString();
+            $activeAssignments = $eligibility->activeAssignments($emp, $today);
+            $activePlans = $activeAssignments->map(function ($a) {
                 $plan = $a->customerContractPlan?->contractPlan;
 
                 return $plan ? [
                     'code' => $plan->code,
                     'name' => $plan->name,
                     'rentable_points' => $plan->rentable_points,
+                    'active' => true,
                 ] : null;
             })->filter()->values();
+
+            // Confirmed assignments that are outside date window (e.g. CCP not started yet)
+            $pendingPlans = $emp->contractPlanAssignments
+                ->filter(function ($a) use ($today) {
+                    $ccp = $a->customerContractPlan;
+                    if (! $ccp || $ccp->status !== 'confirmed') {
+                        return false;
+                    }
+                    if (! $a->isActiveOn($today)) {
+                        return false;
+                    }
+
+                    // Assignment ok but CCP date window not active yet/anymore
+                    return ! $ccp->isActiveOn($today);
+                })
+                ->map(function ($a) {
+                    $ccp = $a->customerContractPlan;
+                    $plan = $ccp?->contractPlan;
+                    if (! $plan) {
+                        return null;
+                    }
+                    $reason = null;
+                    if ($ccp->start_date && $ccp->start_date->toDateString() > now()->toDateString()) {
+                        $reason = '開始前: '.$ccp->start_date->format('Y-m-d');
+                    } elseif ($ccp->end_date && $ccp->end_date->toDateString() < now()->toDateString()) {
+                        $reason = '終了済: '.$ccp->end_date->format('Y-m-d');
+                    }
+
+                    return [
+                        'code' => $plan->code,
+                        'name' => $plan->name,
+                        'rentable_points' => $plan->rentable_points,
+                        'active' => false,
+                        'reason' => $reason,
+                        'start_date' => optional($ccp->start_date)->format('Y-m-d'),
+                        'end_date' => optional($ccp->end_date)->format('Y-m-d'),
+                    ];
+                })
+                ->filter()
+                ->unique('code')
+                ->values();
+
+            $planLabel = $activePlans->pluck('name')->implode(' / ');
+            if ($planLabel === '' && $pendingPlans->isNotEmpty()) {
+                $planLabel = $pendingPlans->map(function ($p) {
+                    return $p['name'].($p['reason'] ? '（'.$p['reason'].'）' : '');
+                })->implode(' / ');
+            }
 
             return [
                 'id' => $emp->id,
@@ -399,8 +435,10 @@ class ApplicationController extends Controller
                 'department_name' => $emp->primaryDepartment?->name,
                 'job_type_id' => $emp->positions->first()?->job_type_id,
                 'job_type_name' => $emp->positions->first()?->jobType?->name,
-                'plans' => $plans,
-                'plan_names' => $plans->pluck('name')->implode(' / '),
+                'plans' => $activePlans,
+                'pending_plans' => $pendingPlans,
+                'plan_names' => $planLabel,
+                'has_active_plan' => $activePlans->isNotEmpty(),
                 'rentable_limit' => $eligibility->rentableLimit($emp),
             ];
         }));
@@ -514,23 +552,10 @@ class ApplicationController extends Controller
             return redirect()->back()->withInput()->with('error', '選択された配送先は自医療機関のものではありません。');
         }
 
-        // Get active contract
-        $contract = Contract::where('medical_institution_id', $customer->medical_institution_id)
-            ->where(function($q) {
-                $q->whereNull('valid_from')
-                  ->orWhere('valid_from', '<=', now());
-            })
-            ->where(function($q) {
-                $q->whereNull('valid_until')
-                  ->orWhere('valid_until', '>=', now());
-            })
-            ->orderByDesc('valid_from')
-            ->first();
-
         if ($data['application_mode'] === 'individual') {
-            return $this->storeIndividual($request, $data, $customer, $contract);
+            return $this->storeIndividual($request, $data, $customer);
         } else {
-            return $this->storeDepartmental($request, $data, $customer, $contract);
+            return $this->storeDepartmental($request, $data, $customer);
         }
     }
 
@@ -544,7 +569,7 @@ class ApplicationController extends Controller
         };
     }
 
-    private function storeIndividual(Request $request, array $data, CustomerUser $customer, ?Contract $contract): RedirectResponse
+    private function storeIndividual(Request $request, array $data, CustomerUser $customer): RedirectResponse
     {
         $employee = Employee::findOrFail($data['employee_id']);
 
@@ -592,10 +617,6 @@ class ApplicationController extends Controller
         $rentableLimit = $eligibility->rentableLimit($employee);
         if ($rentableLimit !== null && $rentableLimit > 0 && in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
             if (($currentLoans + $totalQuantity) > $rentableLimit) {
-                $exceedsLimit = true;
-            }
-        } elseif ($contract && $contract->per_person_loan_limit && in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
-            if (($currentLoans + $totalQuantity) > $contract->per_person_loan_limit) {
                 $exceedsLimit = true;
             }
         }
@@ -677,7 +698,7 @@ class ApplicationController extends Controller
             ->with('success', true);
     }
 
-    private function storeDepartmental(Request $request, array $data, CustomerUser $customer, ?Contract $contract): RedirectResponse
+    private function storeDepartmental(Request $request, array $data, CustomerUser $customer): RedirectResponse
     {
         $departmentId = (int) $data['department_id'];
 
@@ -700,7 +721,7 @@ class ApplicationController extends Controller
         $errors = [];
         $itemAction = $this->itemActionForType($data['type']);
 
-        DB::transaction(function () use ($data, $request, $customer, $employees, $contract, $itemAction, &$createdCount, &$errors) {
+        DB::transaction(function () use ($data, $request, $customer, $employees, $itemAction, &$createdCount, &$errors) {
             $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
 
             foreach ($employees as $employee) {
@@ -726,10 +747,6 @@ class ApplicationController extends Controller
                 $rentableLimit = $eligibility->rentableLimit($employee);
                 if ($rentableLimit !== null && $rentableLimit > 0) {
                     if (($currentLoans + $totalQuantity) > $rentableLimit) {
-                        $exceedsLimit = true;
-                    }
-                } elseif ($contract && $contract->per_person_loan_limit) {
-                    if (($currentLoans + $totalQuantity) > $contract->per_person_loan_limit) {
                         $exceedsLimit = true;
                     }
                 }

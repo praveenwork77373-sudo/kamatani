@@ -11,11 +11,14 @@ use App\Models\EmployeePosition;
 use App\Models\JobType;
 use App\Models\MedicalInstitution;
 use App\Services\EmployeeStatusHistoryService;
+use App\Support\MasterCodeGenerator;
+use App\Support\Pagination;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 class EmployeeController extends Controller
 {
@@ -55,7 +58,7 @@ class EmployeeController extends Controller
             $query->where('status', $status);
         }
 
-        $employees = $query->orderBy('staff_no')->paginate(20)->withQueryString();
+        $employees = $query->orderBy('staff_no')->paginate(Pagination::perPage($request))->withQueryString();
 
         // Calculate statistics
         $statsQuery = Employee::query()
@@ -188,7 +191,12 @@ class EmployeeController extends Controller
         }
 
         $rules = [
-            'staff_no' => ['required', 'string', 'max:50', 'unique:employees,staff_no,NULL,id,medical_institution_id,' . $institutionId],
+            'staff_no' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('employees', 'staff_no')->where(fn ($q) => $q->where('medical_institution_id', $institutionId)),
+            ],
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['nullable', 'in:male,female,other'],
             'top_size' => ['nullable', 'max:50'],
@@ -224,6 +232,7 @@ class EmployeeController extends Controller
         $data = $request->validate($rules);
 
         $data['medical_institution_id'] = $institutionId;
+        $data['staff_no'] = MasterCodeGenerator::ensure($data['staff_no'] ?? null, 'staff_no', (int) $institutionId);
         $widePlanIds = $data['customer_contract_plan_ids'] ?? [];
         unset($data['customer_contract_plan_ids'], $data['positions']);
 
@@ -309,7 +318,16 @@ class EmployeeController extends Controller
             abort(403);
         }
 
+        $institutionId = (int) $customer->medical_institution_id;
         $rules = [
+            'staff_no' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('employees', 'staff_no')
+                    ->ignore($employee->id)
+                    ->where(fn ($q) => $q->where('medical_institution_id', $institutionId)),
+            ],
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['nullable', 'in:male,female,other'],
             'top_size' => ['nullable', 'max:50'],
@@ -336,6 +354,7 @@ class EmployeeController extends Controller
         }
 
         $data = $request->validate($rules);
+        $data['staff_no'] = MasterCodeGenerator::ensure($data['staff_no'] ?? null, 'staff_no', $institutionId);
         $widePlanIds = $data['customer_contract_plan_ids'] ?? [];
         unset($data['customer_contract_plan_ids'], $data['positions']);
 

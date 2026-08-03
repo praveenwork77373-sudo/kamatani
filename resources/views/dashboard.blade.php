@@ -34,18 +34,14 @@
                         </div>
                     </div>
                 </div>
-                @if($contract)
+                @if($closingDay)
                     <div class="bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg px-4 py-2.5 border border-primary-200/50 flex items-center gap-3">
                         <div class="h-8 w-8 rounded-lg bg-primary-500/10 flex items-center justify-center">
                             <i data-lucide="calendar" class="w-4 h-4 text-primary-600"></i>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-primary-700 mb-0.5">{{ __('pages.contract_period') }}</p>
-                            <p class="text-[13px] font-bold text-slate-900">
-                                {{ $contract->valid_from?->format('Y-m-d') ?? '-' }} 
-                                <span class="text-slate-400 mx-1">-</span>
-                                {{ $contract->valid_until?->format('Y-m-d') ?? __('pages.unlimited') }}
-                            </p>
+                            <p class="text-[11px] font-semibold text-primary-700 mb-0.5">締め日（請求基準日）</p>
+                            <p class="text-[13px] font-bold text-slate-900">毎月 {{ $closingDay }}日</p>
                         </div>
                     </div>
                 @endif

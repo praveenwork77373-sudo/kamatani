@@ -23,21 +23,13 @@
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
-                            <i data-lucide="hash" class="w-4 h-4 text-primary-600"></i>
-                            {{ __('pages.department_code') }} <span class="text-red-500">*</span>
-                        </label>
-                        <input type="text" name="code" value="{{ old('code') }}" required
-                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all"
-                               placeholder="例: DEPT-001">
-                        @error('code')
-                            <p class="text-[13px] text-red-600 mt-1.5 flex items-center gap-1">
-                                <i data-lucide="alert-circle" class="w-4 h-4"></i>
-                                {{ $message }}
-                            </p>
-                        @enderror
-                    </div>
+                    <x-master-code-field
+                        type="department"
+                        name="code"
+                        :value="old('code')"
+                        :institution-id="auth()->user()->customerUser->medical_institution_id"
+                        :label="__('pages.department_code')"
+                    />
 
                     <div class="md:col-span-2">
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
