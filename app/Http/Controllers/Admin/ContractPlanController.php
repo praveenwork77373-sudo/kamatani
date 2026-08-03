@@ -45,7 +45,7 @@ class ContractPlanController extends Controller
             'uniform_product_ids.*' => ['integer', 'exists:uniform_products,id'],
         ]);
 
-        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'contract_plan');
+        $data['code'] = MasterCodeGenerator::next('contract_plan');
         $data['is_active'] = $request->boolean('is_active', true);
         $productIds = $data['uniform_product_ids'] ?? [];
         unset($data['uniform_product_ids']);
@@ -89,7 +89,7 @@ class ContractPlanController extends Controller
             'uniform_product_ids.*' => ['integer', 'exists:uniform_products,id'],
         ]);
 
-        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'contract_plan');
+        unset($data['code']);
         $data['is_active'] = $request->boolean('is_active');
         $productIds = $data['uniform_product_ids'] ?? [];
         unset($data['uniform_product_ids']);

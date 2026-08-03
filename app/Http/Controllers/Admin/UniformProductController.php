@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Maker;
 use App\Models\UniformProduct;
+use App\Support\MasterCodeGenerator;
 use App\Support\Pagination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -268,10 +269,10 @@ class UniformProductController extends Controller
         
         // Check if products is a simple array (wrong format)
         $productsInput = $request->input('products');
-        if (is_array($productsInput) && !empty($productsInput) && !isset($productsInput[0]['product_code'])) {
+        if (is_array($productsInput) && !empty($productsInput) && !isset($productsInput[0]['name'])) {
             \Log::error('INVALID PRODUCTS FORMAT: Products is a simple array, not nested structure', [
                 'received' => $productsInput,
-                'expected_format' => 'products[0][product_code], products[0][name], etc.',
+                'expected_format' => 'products[0][name], products[0][category], etc.',
             ]);
             
             return redirect()
@@ -286,7 +287,7 @@ class UniformProductController extends Controller
                 'maker_product_code' => ['nullable', 'string', 'max:100'],
                 'color_name' => ['nullable', 'string', 'max:100'],
                 'products' => ['required', 'array', 'min:1'],
-                'products.*.product_code' => ['required', 'string', 'max:50'],
+                'products.*.product_code' => ['nullable', 'string', 'max:50'],
                 'products.*.name' => ['required', 'string', 'max:255'],
                 'products.*.category' => ['required', 'in:top,bottom,shoe,other'],
                 'products.*.gender' => ['required', 'in:male,female,unisex'],
@@ -297,7 +298,6 @@ class UniformProductController extends Controller
             ], [
                 'products.required' => '少なくとも1つの商品を追加してください。',
                 'products.min' => '少なくとも1つの商品を追加してください。',
-                'products.*.product_code.required' => '商品コードを入力してください。',
                 'products.*.name.required' => '商品名を入力してください。',
                 'products.*.category.required' => 'カテゴリーを選択してください。',
                 'products.*.gender.required' => '性別を選択してください。',
@@ -405,18 +405,11 @@ class UniformProductController extends Controller
             
             // Create a product record for each size (if sizes exist)
             $sizes = $productData['sizes'] ?? [];
+            $baseProductCode = MasterCodeGenerator::next('product');
             
             if (empty($sizes) || !is_array($sizes)) {
                 // If no sizes, create a single product without size suffix
-                $productCode = $productData['product_code'];
-                
-                // Check if product_code already exists
-                if (UniformProduct::where('product_code', $productCode)->exists()) {
-                    $errorMsg = "商品コード {$productCode} は既に存在します。";
-                    $errors[] = $errorMsg;
-                    \Log::warning("Product code exists: {$productCode}");
-                    continue;
-                }
+                $productCode = $baseProductCode;
                 
                 try {
                     $createData = [
@@ -450,15 +443,7 @@ class UniformProductController extends Controller
                 // Create a product record for each size
                 $sizeCreatedCount = 0;
                 foreach ($sizes as $sizeIndex => $sizeData) {
-                    $productCode = $productData['product_code'] . '-' . $sizeData['size'];
-                    
-                    // Check if product_code already exists
-                    if (UniformProduct::where('product_code', $productCode)->exists()) {
-                        $errorMsg = "商品コード {$productCode} は既に存在します。";
-                        $errors[] = $errorMsg;
-                        \Log::warning("Product code exists: {$productCode}");
-                        continue;
-                    }
+                    $productCode = $baseProductCode . '-' . $sizeData['size'];
                     
                     try {
                         $createData = [
@@ -629,12 +614,12 @@ class UniformProductController extends Controller
             $baseProductCode = substr($baseProductCode, 0, $lastDashPos);
         }
         
-        // Get new base product code from request
-        $newBaseProductCode = $request->input('product_code', $baseProductCode);
+        // Product codes are system-owned — keep existing base, ignore request
+        $newBaseProductCode = $baseProductCode;
         
         // Validate - support multiple sizes like create form
         $data = $request->validate([
-            'product_code' => ['required', 'string', 'max:50'],
+            'product_code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'in:top,bottom,shoe,other'],
             'gender' => ['required', 'in:male,female,unisex'],
@@ -646,6 +631,8 @@ class UniformProductController extends Controller
             'sizes.*.stock_quantity' => ['required_with:sizes', 'integer', 'min:0'],
             'image' => ['nullable', 'image', 'max:5120'],
         ]);
+        
+        $data['product_code'] = $baseProductCode;
         
         // Handle image upload
         $imagePath = $uniformProduct->image_path; // Keep existing by default
@@ -677,13 +664,7 @@ class UniformProductController extends Controller
         
         if (empty($sizes) || !is_array($sizes)) {
             // Single product update (backward compatibility)
-            $productCode = $data['product_code'];
-            if ($uniformProduct->product_code !== $productCode && UniformProduct::where('product_code', $productCode)->where('id', '!=', $uniformProduct->id)->exists()) {
-                return redirect()
-                    ->back()
-                    ->withInput()
-                    ->with('error', "商品コード {$productCode} は既に存在します。");
-            }
+            $productCode = $baseProductCode;
             
             $updateData = [
                 'product_code' => $productCode,

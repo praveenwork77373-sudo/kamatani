@@ -189,6 +189,8 @@
       this.isOpen = false;
       this.wrap.classList.remove('is-open');
       this.panel.hidden = true;
+      this.panel.style.display = 'none';
+      this.panel.style.visibility = '';
       this.panel.classList.remove('is-portal');
       this.trigger.setAttribute('aria-expanded', 'false');
       window.removeEventListener('scroll', this._onReposition, true);
@@ -256,11 +258,11 @@
       const index = Number(li.dataset.index);
       if (Number.isNaN(index)) return;
       this.select.selectedIndex = index;
-      this.select.dispatchEvent(new Event('input', { bubbles: true }));
-      this.select.dispatchEvent(new Event('change', { bubbles: true }));
       this.syncFromSelect();
       this.close();
       this.trigger.focus();
+      this.select.dispatchEvent(new Event('input', { bubbles: true }));
+      this.select.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     bind() {
@@ -279,9 +281,13 @@
         }
       });
 
-      this.list.addEventListener('click', (e) => {
+      this.list.addEventListener('mousedown', (e) => {
+        // mousedown closes before click/blur races leave the panel open
         const li = e.target.closest('.ui-cselect-option');
-        if (li) this.choose(li);
+        if (!li) return;
+        e.preventDefault();
+        e.stopPropagation();
+        this.choose(li);
       });
 
       this.search.addEventListener('input', () => this.filter(this.search.value));

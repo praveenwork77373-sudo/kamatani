@@ -2,13 +2,15 @@
 
 namespace App\Support;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class MasterCodeGenerator
 {
     /**
+     * Always generate the next unique code for a master type.
+     * Manual codes are not accepted — uniqueness is system-owned.
+     *
      * @param  array{table: string, column?: string, prefix: string, pad?: int, institution_id?: int|null}  $config
      */
     public static function generate(array $config): string
@@ -32,8 +34,9 @@ class MasterCodeGenerator
             $existing = (string) $existing;
             if (Str::startsWith($existing, $prefix)) {
                 $suffix = substr($existing, strlen($prefix));
-                if (ctype_digit($suffix)) {
-                    $max = max($max, (int) $suffix);
+                // Match PRD-0001 and PRD-0001-L (size variant)
+                if (preg_match('/^(\d+)/', $suffix, $m)) {
+                    $max = max($max, (int) $m[1]);
                 }
             }
         }
@@ -41,9 +44,24 @@ class MasterCodeGenerator
         do {
             $max++;
             $candidate = $prefix.str_pad((string) $max, $pad, '0', STR_PAD_LEFT);
-        } while (self::exists($table, $column, $candidate, null, $institutionId));
+        } while (
+            self::exists($table, $column, $candidate, null, $institutionId)
+            || self::existsWithSizeSuffix($table, $column, $candidate)
+        );
 
         return $candidate;
+    }
+
+    /**
+     * Product codes may be stored as BASE or BASE-SIZE; treat both as taken.
+     */
+    private static function existsWithSizeSuffix(string $table, string $column, string $baseCode): bool
+    {
+        if ($table !== 'uniform_products' || $column !== 'product_code') {
+            return false;
+        }
+
+        return DB::table($table)->where($column, 'like', $baseCode.'-%')->exists();
     }
 
     public static function exists(
@@ -65,8 +83,6 @@ class MasterCodeGenerator
     }
 
     /**
-     * Resolve config for known master types.
-     *
      * @return array{table: string, column: string, prefix: string, pad: int, institution_scoped: bool}|null
      */
     public static function configFor(string $type): ?array
@@ -83,13 +99,11 @@ class MasterCodeGenerator
         };
     }
 
-    public static function ensure(?string $code, string $type, ?int $institutionId = null): string
+    /**
+     * Next auto code for type (always). Ignores any user-submitted value.
+     */
+    public static function next(string $type, ?int $institutionId = null): string
     {
-        $trimmed = is_string($code) ? trim($code) : '';
-        if ($trimmed !== '') {
-            return $trimmed;
-        }
-
         $config = self::configFor($type);
         if (! $config) {
             throw new \InvalidArgumentException("Unknown master code type: {$type}");
@@ -102,6 +116,19 @@ class MasterCodeGenerator
             'pad' => $config['pad'],
             'institution_id' => $config['institution_scoped'] ? $institutionId : null,
         ]);
+    }
+
+    /**
+     * Assign code for create (always auto) or keep existing on update.
+     * $submitted is ignored — codes are system-owned.
+     */
+    public static function ensure(?string $submitted, string $type, ?int $institutionId = null, ?string $existing = null): string
+    {
+        if (is_string($existing) && trim($existing) !== '') {
+            return trim($existing);
+        }
+
+        return self::next($type, $institutionId);
     }
 
     private static function tableHasInstitution(string $table): bool

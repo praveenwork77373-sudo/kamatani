@@ -172,7 +172,7 @@ class EmployeeController extends Controller
         $data = $request->validate($rules);
 
         $data['medical_institution_id'] = $institutionId;
-        $data['staff_no'] = MasterCodeGenerator::ensure($data['staff_no'] ?? null, 'staff_no', (int) $institutionId);
+        $data['staff_no'] = MasterCodeGenerator::next('staff_no', (int) $institutionId);
         $widePlanIds = $data['customer_contract_plan_ids'] ?? [];
         unset($data['customer_contract_plan_ids'], $data['positions']);
 
@@ -294,7 +294,7 @@ class EmployeeController extends Controller
         }
 
         $data = $request->validate($rules);
-        $data['staff_no'] = MasterCodeGenerator::ensure($data['staff_no'] ?? null, 'staff_no', $institutionId);
+        $data['staff_no'] = $employee->staff_no ?: MasterCodeGenerator::next('staff_no', $institutionId);
         $widePlanIds = $data['customer_contract_plan_ids'] ?? [];
         unset($data['customer_contract_plan_ids'], $data['positions']);
 

@@ -642,6 +642,11 @@ main button.px-6.py-2\.5 {
   animation: ui-cselect-in 0.14s ease-out;
 }
 
+/* Author display:flex must not override the hidden attribute */
+.ui-cselect-panel[hidden] {
+  display: none !important;
+}
+
 /* Portaled to body — escapes overflow:hidden cards / tables / filter bars */
 .ui-cselect-panel.is-portal {
   position: fixed !important;

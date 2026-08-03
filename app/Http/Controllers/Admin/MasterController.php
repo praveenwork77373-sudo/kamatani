@@ -65,7 +65,7 @@ class MasterController extends Controller
             'manager_password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'institution');
+        $data['code'] = MasterCodeGenerator::next('institution');
 
         // Create medical institution
         $institution = MedicalInstitution::create([
@@ -167,12 +167,11 @@ class MasterController extends Controller
 
         $data = $request->validate($validationRules);
 
-        // Update medical institution
-        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'institution');
+        // Update medical institution (code is immutable / auto-assigned)
+        unset($data['code']);
 
         $institution->update([
             'name' => $data['name'],
-            'code' => $data['code'],
             'notification_email' => $data['notification_email'],
             'billing_closing_day' => $data['billing_closing_day'] ?? 1,
             'sales_person_name' => $data['sales_person_name'] ?? null,
@@ -255,11 +254,7 @@ class MasterController extends Controller
             'code' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $data['code'] = MasterCodeGenerator::ensure(
-            $data['code'] ?? null,
-            'department',
-            (int) $data['medical_institution_id']
-        );
+        $data['code'] = MasterCodeGenerator::next('department', (int) $data['medical_institution_id']);
 
         Department::create($data);
 
@@ -285,11 +280,7 @@ class MasterController extends Controller
             'code' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $data['code'] = MasterCodeGenerator::ensure(
-            $data['code'] ?? null,
-            'department',
-            (int) $department->medical_institution_id
-        );
+        unset($data['code']);
 
         $department->update($data);
 
@@ -341,11 +332,7 @@ class MasterController extends Controller
             'code' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $data['code'] = MasterCodeGenerator::ensure(
-            $data['code'] ?? null,
-            'job_type',
-            (int) $data['medical_institution_id']
-        );
+        $data['code'] = MasterCodeGenerator::next('job_type', (int) $data['medical_institution_id']);
 
         JobType::create($data);
 
@@ -371,11 +358,7 @@ class MasterController extends Controller
             'code' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $data['code'] = MasterCodeGenerator::ensure(
-            $data['code'] ?? null,
-            'job_type',
-            (int) $jobType->medical_institution_id
-        );
+        unset($data['code']);
 
         $jobType->update($data);
 

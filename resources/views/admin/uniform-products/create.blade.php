@@ -123,12 +123,8 @@
             
             <div class="p-5 space-y-4">
                 <div>
-                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                        {{ __('pages.product_code') }} <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="products[INDEX][product_code]" required
-                           class="product-code-input w-full px-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium"
-                           placeholder="{{ __('pages.example_product_code') }}">
+                    {{-- product_code auto-assigned on save; no create UI --}}
+                    <input type="hidden" name="products[INDEX][product_code]" class="product-code-input" value="">
                 </div>
                 
                 <div>
@@ -502,10 +498,7 @@
                     $genderSelect.attr('name', `products[${index}][gender]`).prop('disabled', false);
                     $card.find('.product-image-input').attr('name', `products[${index}][image]`);
                     
-                    // Validate required fields
-                    if (!$codeInput.val() || !$codeInput.val().trim()) {
-                        missingFields.push(`{{ __('pages.product_missing_fields') }} ${index + 1}: {{ __('pages.product_code_missing') }}`);
-                    }
+                    // Validate required fields (product_code is auto-assigned)
                     if (!$nameInput.val() || !$nameInput.val().trim()) {
                         missingFields.push(`{{ __('pages.product_missing_fields') }} ${index + 1}: {{ __('pages.product_name_missing') }}`);
                     }

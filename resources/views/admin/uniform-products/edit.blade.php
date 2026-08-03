@@ -101,11 +101,17 @@
                             <div class="p-5 space-y-4">
                                 <div>
                                     <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                                        {{ __('pages.product_code') }} <span class="text-red-500">*</span>
+                                        {{ __('pages.product_code') }}
                                     </label>
-                                    <input type="text" name="product_code" value="{{ old('product_code', $baseProductCode) }}" required
-                                           class="product-code-input w-full px-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium"
-                                           placeholder="{{ __('pages.example_product_code') }}">
+                                    <div class="ui-field-icon">
+                                        <i data-lucide="hash"></i>
+                                        <input type="text"
+                                               value="{{ $baseProductCode }}"
+                                               class="ui-input bg-slate-50 text-slate-700 font-mono"
+                                               readonly
+                                               tabindex="-1">
+                                    </div>
+                                    <input type="hidden" name="product_code" value="{{ $baseProductCode }}">
                                     @error('product_code')
                                         <p class="text-[12px] text-red-600 mt-1">{{ $message }}</p>
                                     @enderror

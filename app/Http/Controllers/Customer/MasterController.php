@@ -68,17 +68,8 @@ class MasterController extends Controller
         ]);
 
         $institutionId = $customer->medical_institution_id;
-        $raw = trim((string) ($data['code'] ?? ''));
-        if ($raw !== '') {
-            if (Department::where('medical_institution_id', $institutionId)
-                ->where('code', $raw)
-                ->exists()) {
-                return back()->withErrors(['code' => 'この部署コードは既に使用されています。'])->withInput();
-            }
-        }
-
         $data['medical_institution_id'] = $institutionId;
-        $data['code'] = MasterCodeGenerator::ensure($raw, 'department', $institutionId);
+        $data['code'] = MasterCodeGenerator::next('department', $institutionId);
 
         Department::create($data);
         
@@ -116,18 +107,7 @@ class MasterController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $institutionId = $customer->medical_institution_id;
-        $raw = trim((string) ($data['code'] ?? ''));
-        if ($raw !== '') {
-            if (Department::where('medical_institution_id', $institutionId)
-                ->where('code', $raw)
-                ->where('id', '!=', $department->id)
-                ->exists()) {
-                return back()->withErrors(['code' => 'この部署コードは既に使用されています。'])->withInput();
-            }
-        }
-
-        $data['code'] = MasterCodeGenerator::ensure($raw, 'department', $institutionId);
+        unset($data['code']);
 
         $department->update($data);
         
@@ -192,17 +172,8 @@ class MasterController extends Controller
         ]);
 
         $institutionId = $customer->medical_institution_id;
-        $raw = trim((string) ($data['code'] ?? ''));
-        if ($raw !== '') {
-            if (JobType::where('medical_institution_id', $institutionId)
-                ->where('code', $raw)
-                ->exists()) {
-                return back()->withErrors(['code' => 'この職種コードは既に使用されています。'])->withInput();
-            }
-        }
-
         $data['medical_institution_id'] = $institutionId;
-        $data['code'] = MasterCodeGenerator::ensure($raw, 'job_type', $institutionId);
+        $data['code'] = MasterCodeGenerator::next('job_type', $institutionId);
 
         JobType::create($data);
         
@@ -240,18 +211,7 @@ class MasterController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $institutionId = $customer->medical_institution_id;
-        $raw = trim((string) ($data['code'] ?? ''));
-        if ($raw !== '') {
-            if (JobType::where('medical_institution_id', $institutionId)
-                ->where('code', $raw)
-                ->where('id', '!=', $jobType->id)
-                ->exists()) {
-                return back()->withErrors(['code' => 'この職種コードは既に使用されています。'])->withInput();
-            }
-        }
-
-        $data['code'] = MasterCodeGenerator::ensure($raw, 'job_type', $institutionId);
+        unset($data['code']);
 
         $jobType->update($data);
         
