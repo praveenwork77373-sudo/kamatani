@@ -94,6 +94,7 @@ class MasterCodeGenerator
             'maker' => ['table' => 'makers', 'column' => 'code', 'prefix' => 'SUP-', 'pad' => 4, 'institution_scoped' => false],
             'contract_plan' => ['table' => 'contract_plans', 'column' => 'code', 'prefix' => 'PLN-', 'pad' => 4, 'institution_scoped' => false],
             'product' => ['table' => 'uniform_products', 'column' => 'product_code', 'prefix' => 'PRD-', 'pad' => 4, 'institution_scoped' => false],
+            'uniform_category' => ['table' => 'uniform_categories', 'column' => 'code', 'prefix' => 'CAT-', 'pad' => 4, 'institution_scoped' => false],
             'staff_no' => ['table' => 'employees', 'column' => 'staff_no', 'prefix' => 'EMP-', 'pad' => 4, 'institution_scoped' => true],
             default => null,
         };

@@ -31,9 +31,24 @@ class UniformProduct extends Model
         return $this->belongsTo(Maker::class);
     }
 
+    public function uniformCategory()
+    {
+        return $this->belongsTo(UniformCategory::class, 'category', 'code');
+    }
+
     public function contractPlans()
     {
         return $this->belongsToMany(ContractPlan::class, 'contract_plan_uniform_product')
             ->withTimestamps();
+    }
+
+    public function sizeScheme(): string
+    {
+        return UniformCategory::sizeSchemeFor($this->category);
+    }
+
+    public function categoryLabel(): string
+    {
+        return UniformCategory::labelFor($this->category);
     }
 }

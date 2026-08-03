@@ -135,21 +135,13 @@
                         <i data-lucide="grid" class="w-4 h-4"></i>
                         {{ __('pages.all_categories') }}
                     </button>
-                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'top' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}"
-                            data-category="top">
-                        <i data-lucide="shirt" class="w-4 h-4"></i>
-                        {{ __('pages.category_top') }}
-                    </button>
-                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'bottom' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}"
-                            data-category="bottom">
-                        <i data-lucide="package" class="w-4 h-4"></i>
-                        {{ __('pages.category_bottom') }}
-                    </button>
-                    <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === 'shoe' ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}"
-                            data-category="shoe">
-                        <i data-lucide="footprints" class="w-4 h-4"></i>
-                        {{ __('pages.category_shoe') }}
-                    </button>
+                    @foreach(($categories ?? []) as $cat)
+                        <button type="button" class="category-tab flex-shrink-0 px-4 py-2.5 text-[14px] font-medium border-b-2 transition-all flex items-center gap-1.5 {{ $selectedCategory === $cat->code ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-700 hover:text-primary-600' }}"
+                                data-category="{{ $cat->code }}">
+                            <i data-lucide="tag" class="w-4 h-4"></i>
+                            {{ $cat->name }}
+                        </button>
+                    @endforeach
                 </div>
             </div>
 
@@ -385,7 +377,7 @@
                 const products = document.querySelectorAll('#products-container [data-category]');
                 products.forEach(product => {
                     const productCategory = product.dataset.category;
-                    if (category === '' || productCategory === category || (category === 'other' && !['top', 'bottom', 'shoe'].includes(productCategory))) {
+                    if (category === '' || productCategory === category) {
                         product.style.display = '';
                     } else {
                         product.style.display = 'none';

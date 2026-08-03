@@ -50,7 +50,130 @@
         $selectedInstitutionId = request('medical_institution_id');
     @endphp
 
+    </div>
+
+    {{-- Month-wise institution billing status board --}}
+    <div class="mb-6 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div>
+                <h2 class="text-[15px] font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="clipboard-list" class="w-4 h-4 text-primary-600"></i>
+                    {{ __('pages.billing_month_board') }}
+                </h2>
+                <p class="text-[12px] text-slate-500 mt-1">{{ __('pages.billing_month_board_hint') }}</p>
+            </div>
+            <form method="GET" action="{{ route('admin.billing.index') }}" class="flex flex-wrap items-end gap-2">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">{{ __('pages.target_month') }}</label>
+                    <input type="month" name="billing_month" value="{{ $billingMonth }}" class="ui-input py-2" onchange="this.form.submit()">
+                </div>
+                <input type="hidden" name="status_filter" value="{{ $statusFilter }}">
+                @if(request('medical_institution_id'))
+                    <input type="hidden" name="medical_institution_id" value="{{ request('medical_institution_id') }}">
+                @endif
+            </form>
+        </div>
+
+        <div class="px-4 py-3 flex flex-wrap gap-2 border-b border-slate-100 bg-slate-50/60">
+            @php
+                $filterBase = array_filter([
+                    'billing_month' => $billingMonth,
+                    'medical_institution_id' => request('medical_institution_id') ?: null,
+                ]);
+            @endphp
+            <a href="{{ route('admin.billing.index', $filterBase + ['status_filter' => 'all']) }}"
+               class="px-3 py-1.5 rounded-full text-[12px] font-semibold border {{ $statusFilter === 'all' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200' }}">
+                {{ __('pages.all') }} ({{ $boardStats['total'] ?? 0 }})
+            </a>
+            <a href="{{ route('admin.billing.index', $filterBase + ['status_filter' => 'pending']) }}"
+               class="px-3 py-1.5 rounded-full text-[12px] font-semibold border {{ $statusFilter === 'pending' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-amber-700 border-amber-200' }}">
+                {{ __('pages.billing_status_pending') }} ({{ $boardStats['pending'] ?? 0 }})
+            </a>
+            <a href="{{ route('admin.billing.index', $filterBase + ['status_filter' => 'generated']) }}"
+               class="px-3 py-1.5 rounded-full text-[12px] font-semibold border {{ $statusFilter === 'generated' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-700 border-emerald-200' }}">
+                {{ __('pages.billing_status_generated') }} ({{ $boardStats['generated'] ?? 0 }})
+            </a>
+            <a href="{{ route('admin.billing.index', $filterBase + ['status_filter' => 'no_contract']) }}"
+               class="px-3 py-1.5 rounded-full text-[12px] font-semibold border {{ $statusFilter === 'no_contract' ? 'bg-slate-500 text-white border-slate-500' : 'bg-white text-slate-500 border-slate-200' }}">
+                {{ __('pages.billing_status_no_contract') }} ({{ $boardStats['no_contract'] ?? 0 }})
+            </a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-[13px]">
+                <thead class="bg-slate-50 text-slate-600">
+                    <tr>
+                        <th class="px-4 py-3 text-left">{{ __('pages.medical_institution_label') }}</th>
+                        <th class="px-4 py-3 text-left">{{ __('pages.closing_day') }}</th>
+                        <th class="px-4 py-3 text-left">{{ __('pages.billing_reference_date') }}</th>
+                        <th class="px-4 py-3 text-left">{{ __('pages.status') }}</th>
+                        <th class="px-4 py-3 text-right">{{ __('pages.assigned_count') }}</th>
+                        <th class="px-4 py-3 text-right">{{ __('pages.billing_amount') }}</th>
+                        <th class="px-4 py-3 text-right">{{ __('pages.actions_label') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($institutionMonthStatus as $row)
+                        @php
+                            $inst = $row['institution'];
+                            $status = $row['status'];
+                        @endphp
+                        <tr class="hover:bg-slate-50/80">
+                            <td class="px-4 py-3 font-medium text-slate-900">{{ $inst->name }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ __('pages.every_month_day', ['day' => $row['closing_day']]) }}</td>
+                            <td class="px-4 py-3 font-mono text-slate-700">{{ $row['closing_date'] }}</td>
+                            <td class="px-4 py-3">
+                                @if($status === 'generated')
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-[12px] font-semibold">
+                                        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                                        {{ __('pages.billing_status_generated') }}
+                                    </span>
+                                @elseif($status === 'pending')
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 text-amber-700 text-[12px] font-semibold">
+                                        <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                                        {{ __('pages.billing_status_pending') }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 text-slate-500 text-[12px] font-semibold">
+                                        {{ __('pages.billing_status_no_contract') }}
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-right text-slate-700">
+                                {{ $row['assigned_count'] !== null ? number_format($row['assigned_count']) : '—' }}
+                            </td>
+                            <td class="px-4 py-3 text-right font-semibold text-slate-900">
+                                {{ $row['amount'] !== null ? '¥'.number_format($row['amount']) : '—' }}
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <div class="inline-flex items-center gap-2">
+                                    @if($status === 'generated' && $row['snapshot'])
+                                        <a href="{{ route('admin.billing.show', $row['snapshot']) }}" class="text-primary-600 hover:underline font-medium">{{ __('pages.details') }}</a>
+                                    @endif
+                                    @if($canManageBilling && $status === 'pending')
+                                        <a href="{{ route('admin.billing.create', ['medical_institution_id' => $inst->id, 'target_month' => $billingMonth, 'target_date' => $row['closing_date']]) }}"
+                                           class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary-600 text-white text-[12px] font-semibold hover:bg-primary-700">
+                                            {{ __('pages.generate_billing_data') }}
+                                        </a>
+                                    @elseif($canManageBilling && $status === 'generated')
+                                        <a href="{{ route('admin.billing.create', ['medical_institution_id' => $inst->id, 'target_month' => $billingMonth, 'target_date' => $row['closing_date']]) }}"
+                                           class="text-slate-500 hover:underline text-[12px]">{{ __('pages.regenerate') }}</a>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="px-4 py-10 text-center text-slate-500">{{ __('pages.no_institutions') }}</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="space-y-6">
+        <h2 class="text-[15px] font-bold text-slate-900">{{ __('pages.billing_snapshot_history') }}</h2>
         {{-- Horizontal filters above table --}}
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <form method="GET" action="{{ route('admin.billing.index') }}" class="p-4" id="billing-filter-form">

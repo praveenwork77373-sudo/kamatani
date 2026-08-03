@@ -387,15 +387,7 @@
                         <td class="px-5 py-4 font-semibold text-slate-900">{{ $item['product_name'] ?? '-' }}</td>
                         <td class="px-5 py-4 text-slate-700">
                             @if(isset($item['category']))
-                                @if($item['category'] === 'top')
-                                    {{ __('pages.category_top') }}
-                                @elseif($item['category'] === 'bottom')
-                                    {{ __('pages.category_bottom') }}
-                                @elseif($item['category'] === 'shoe')
-                                    {{ __('pages.category_shoe') }}
-                                @else
-                                    {{ $item['category'] }}
-                                @endif
+                                {{ \App\Models\UniformCategory::labelFor($item['category']) }}
                             @else
                                 -
                             @endif

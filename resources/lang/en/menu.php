@@ -8,6 +8,7 @@ return [
     'contracts' => 'Contract Management',
     'contract_info' => 'Contract Information',
     'makers' => 'Makers',
+    'uniform_categories' => 'Uniform Categories',
     'product_unit_prices' => 'Product Unit Prices',
     'contract_plans' => 'Contract Plans',
     'customer_contract_plans' => 'Customer Contract Plans',

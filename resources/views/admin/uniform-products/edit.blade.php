@@ -136,10 +136,9 @@
                                     <select name="category" required
                                             class="product-category-select w-full px-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium">
                                         <option value="">{{ __('pages.select_please') }}</option>
-                                        <option value="top" @selected(old('category', $product->category)==='top')>{{ __('pages.category_top') }}</option>
-                                        <option value="bottom" @selected(old('category', $product->category)==='bottom')>{{ __('pages.category_bottom') }}</option>
-                                        <option value="shoe" @selected(old('category', $product->category)==='shoe')>{{ __('pages.category_shoe') }}</option>
-                                        <option value="other" @selected(old('category', $product->category)==='other')>{{ __('pages.category_other') }}</option>
+                                        @foreach(($categories ?? []) as $cat)
+                                            <option value="{{ $cat->code }}" data-size-scheme="{{ $cat->size_scheme }}" @selected(old('category', $product->category)===$cat->code)>{{ $cat->name }}</option>
+                                        @endforeach
                                     </select>
                                     @error('category')
                                         <p class="text-[12px] text-red-600 mt-1">{{ $message }}</p>
@@ -174,7 +173,7 @@
                                         @foreach($allSizes as $sizeProduct)
                                             <div class="size-row flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
                                                 <div class="flex-1 relative">
-@if($product->category === 'shoe')
+@if(\App\Models\UniformCategory::sizeSchemeFor($product->category) === 'shoe')
                                                         <input type="number" name="sizes[{{ $loop->index }}][size]" value="{{ old("sizes.{$loop->index}.size", $sizeProduct->size) }}" step="0.5" min="20" max="30" required
                                                                class="size-select w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
                                                                placeholder="{{ __('pages.example_shoe_size') }}">
@@ -259,7 +258,9 @@
                 lucide.createIcons();
             }
 
-            const topBottomSizes = @json($topBottomSizes); // All sizes (for existing selects)
+            const topBottomSizes = @json($topBottomSizes);
+            const categorySizeSchemes = @json(($categorySizeSchemes ?? collect())->toArray());
+            function sizeSchemeFor(category) { return categorySizeSchemes[category] || 'letter'; } // All sizes (for existing selects)
             const shoeSizes = @json($shoeSizes); // All sizes (for existing selects)
             const availableTopBottomSizes = @json($availableTopBottomSizes ?? []); // Filtered sizes (for new selects)
             const availableShoeSizes = @json($availableShoeSizes ?? []); // Filtered sizes (for new selects)
@@ -283,7 +284,7 @@
             // Function to get available sizes (all sizes minus currently selected ones)
             function getAvailableSizes(category) {
                 const selectedSizes = getCurrentlySelectedSizes();
-                if (category === 'shoe') {
+                if (sizeSchemeFor(category) === 'shoe') {
                     // For shoes, check if there are any available sizes (shoe sizes are numeric inputs, so we check if all standard sizes are used)
                     const allShoeSizes = availableShoeSizes.length > 0 ? availableShoeSizes : shoeSizes;
                     return allShoeSizes.filter(size => !selectedSizes.includes(size));
@@ -298,7 +299,7 @@
                 const category = categorySelect.val() || '{{ $product->category }}';
                 
                 // For shoe category, always allow adding (numeric input, unlimited options)
-                if (category === 'shoe') {
+                if (sizeSchemeFor(category) === 'shoe') {
                     addSizeBtn.prop('disabled', false);
                     addSizeBtn.removeClass('opacity-50 cursor-not-allowed');
                     return;
@@ -339,7 +340,7 @@
                 const category = categorySelect.val() || '{{ $product->category }}';
                 const sizeSelect = sizeRow.querySelector('.size-select');
                 
-                if (category === 'shoe') {
+                if (sizeSchemeFor(category) === 'shoe') {
                     // Replace select with number input
                     const input = document.createElement('input');
                     input.type = 'number';
@@ -407,7 +408,7 @@
                     const sizeContainer = $row.find('.flex-1');
                     const currentSize = $row.find('.size-select, input[type="number"]').val();
                     
-                    if (category === 'shoe') {
+                    if (sizeSchemeFor(category) === 'shoe') {
                         // Replace select with number input
                         if (sizeContainer.find('select').length) {
                             const input = $('<input>', {

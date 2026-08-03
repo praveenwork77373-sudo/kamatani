@@ -191,6 +191,7 @@ Route::prefix('admin')
         // 契約プラン中心ドメイン（SPEC 2026-07-31）
         Route::middleware('admin.role:system_admin,contract_plan_manager,operation,sales')->group(function () {
             Route::resource('makers', \App\Http\Controllers\Admin\MakerController::class)->except(['show']);
+            Route::resource('uniform-categories', \App\Http\Controllers\Admin\UniformCategoryController::class)->except(['show']);
             Route::resource('product-unit-prices', \App\Http\Controllers\Admin\ProductUnitPriceController::class)->except(['show']);
             Route::resource('contract-plans', \App\Http\Controllers\Admin\ContractPlanController::class);
             Route::resource('customer-contract-plans', \App\Http\Controllers\Admin\CustomerContractPlanController::class)->except(['show']);

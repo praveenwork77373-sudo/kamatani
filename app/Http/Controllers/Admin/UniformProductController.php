@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Maker;
+use App\Models\UniformCategory;
 use App\Models\UniformProduct;
 use App\Support\MasterCodeGenerator;
 use App\Support\Pagination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class UniformProductController extends Controller
@@ -74,7 +76,7 @@ class UniformProductController extends Controller
                 ];
             })->sortBy(function($item) use ($first) {
                 // Sort sizes appropriately
-                if ($first->category === 'shoe') {
+                if (UniformCategory::sizeSchemeFor($first->category) === UniformCategory::SIZE_SHOE) {
                     return (float)$item['size'];
                 }
                 $order = ['S' => 1, 'M' => 2, 'L' => 3, 'XL' => 4, 'XXL' => 5];
@@ -85,6 +87,8 @@ class UniformProductController extends Controller
                 'base_product_code' => $baseCode, // Use the extracted base code
                 'name' => $first->name,
                 'category' => $first->category,
+                'category_label' => UniformCategory::labelFor($first->category),
+                'size_scheme' => UniformCategory::sizeSchemeFor($first->category),
                 'gender' => $first->gender,
                 'image_path' => $first->image_path ? asset('storage/'.$first->image_path) : null,
                 'sizes' => $sizes,
@@ -93,43 +97,7 @@ class UniformProductController extends Controller
             ];
         })->values();
 
-        // Standard sizes that should always be available
-        $standardTopBottomSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-        $standardShoeSizes = ['23.0', '23.5', '24.0', '24.5', '25.0', '25.5', '26.0', '26.5', '27.0', '27.5', '28.0', '28.5', '29.0', '29.5', '30.0'];
-        
-        // Get sizes from existing products in database
-        $existingTopBottomSizes = UniformProduct::whereIn('category', ['top', 'bottom'])
-            ->select('size')
-            ->distinct()
-            ->pluck('size')
-            ->filter()
-            ->values()
-            ->all();
-        
-        $existingShoeSizes = UniformProduct::where('category', 'shoe')
-            ->select('size')
-            ->distinct()
-            ->pluck('size')
-            ->filter()
-            ->values()
-            ->all();
-        
-        // Merge standard sizes with existing sizes, ensuring all standard sizes are included
-        $topBottomSizes = array_unique(array_merge($standardTopBottomSizes, $existingTopBottomSizes));
-        
-        // Sort top/bottom sizes in correct order
-        usort($topBottomSizes, function($a, $b) {
-            $order = ['XS' => 1, 'S' => 2, 'M' => 3, 'L' => 4, 'XL' => 5, 'XXL' => 6];
-            $orderA = $order[$a] ?? 99;
-            $orderB = $order[$b] ?? 99;
-            return $orderA <=> $orderB;
-        });
-        
-        // Merge shoe sizes and sort numerically
-        $shoeSizes = array_unique(array_merge($standardShoeSizes, $existingShoeSizes));
-        usort($shoeSizes, function($a, $b) {
-            return (float)$a <=> (float)$b;
-        });
+        [$topBottomSizes, $shoeSizes] = $this->standardSizeLists();
 
         // Calculate statistics
         $totalProducts = UniformProduct::count();
@@ -170,6 +138,7 @@ class UniformProductController extends Controller
 
         return view('admin.uniform-products.index', [
             'products' => $products,
+            'categories' => UniformCategory::activeOrdered(),
             'selectedCategory' => $category,
             'selectedStatus' => $status,
             'selectedSize' => $size,
@@ -207,48 +176,14 @@ class UniformProductController extends Controller
             })
             ->values();
         
-        // Standard sizes that should always be available
-        $standardTopBottomSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-        $standardShoeSizes = ['23.0', '23.5', '24.0', '24.5', '25.0', '25.5', '26.0', '26.5', '27.0', '27.5', '28.0', '28.5', '29.0', '29.5', '30.0'];
-        
-        // Get sizes from existing products in database
-        $existingTopBottomSizes = UniformProduct::whereIn('category', ['top', 'bottom'])
-            ->select('size')
-            ->distinct()
-            ->pluck('size')
-            ->filter()
-            ->values()
-            ->all();
-        
-        $existingShoeSizes = UniformProduct::where('category', 'shoe')
-            ->select('size')
-            ->distinct()
-            ->pluck('size')
-            ->filter()
-            ->values()
-            ->all();
-        
-        // Merge standard sizes with existing sizes, ensuring all standard sizes are included
-        $topBottomSizes = array_unique(array_merge($standardTopBottomSizes, $existingTopBottomSizes));
-        
-        // Sort top/bottom sizes in correct order
-        usort($topBottomSizes, function($a, $b) {
-            $order = ['XS' => 1, 'S' => 2, 'M' => 3, 'L' => 4, 'XL' => 5, 'XXL' => 6];
-            $orderA = $order[$a] ?? 99;
-            $orderB = $order[$b] ?? 99;
-            return $orderA <=> $orderB;
-        });
-        
-        // Merge shoe sizes and sort numerically
-        $shoeSizes = array_unique(array_merge($standardShoeSizes, $existingShoeSizes));
-        usort($shoeSizes, function($a, $b) {
-            return (float)$a <=> (float)$b;
-        });
+        [$topBottomSizes, $shoeSizes] = $this->standardSizeLists();
         
         return view('admin.uniform-products.create', [
             'existingProducts' => $existingProducts,
+            'categories' => UniformCategory::activeOrdered(),
             'topBottomSizes' => $topBottomSizes,
             'shoeSizes' => $shoeSizes,
+            'categorySizeSchemes' => UniformCategory::activeOrdered()->mapWithKeys(fn ($c) => [$c->code => $c->size_scheme]),
             'makers' => Maker::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
@@ -289,7 +224,7 @@ class UniformProductController extends Controller
                 'products' => ['required', 'array', 'min:1'],
                 'products.*.product_code' => ['nullable', 'string', 'max:50'],
                 'products.*.name' => ['required', 'string', 'max:255'],
-                'products.*.category' => ['required', 'in:top,bottom,shoe,other'],
+                'products.*.category' => ['required', 'string', 'max:50', Rule::in(UniformCategory::activeCodes())],
                 'products.*.gender' => ['required', 'in:male,female,unisex'],
                 'products.*.sizes' => ['nullable', 'array'],
                 'products.*.sizes.*.size' => ['required_with:sizes', 'string', 'max:50'],
@@ -540,43 +475,7 @@ class UniformProductController extends Controller
             ->orderBy('size')
             ->get();
         
-        // Standard sizes that should always be available
-        $standardTopBottomSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-        $standardShoeSizes = ['23.0', '23.5', '24.0', '24.5', '25.0', '25.5', '26.0', '26.5', '27.0', '27.5', '28.0', '28.5', '29.0', '29.5', '30.0'];
-        
-        // Get sizes from existing products in database
-        $existingTopBottomSizes = UniformProduct::whereIn('category', ['top', 'bottom'])
-            ->select('size')
-            ->distinct()
-            ->pluck('size')
-            ->filter()
-            ->values()
-            ->all();
-        
-        $existingShoeSizes = UniformProduct::where('category', 'shoe')
-            ->select('size')
-            ->distinct()
-            ->pluck('size')
-            ->filter()
-            ->values()
-            ->all();
-        
-        // Merge standard sizes with existing sizes, ensuring all standard sizes are included
-        $topBottomSizes = array_unique(array_merge($standardTopBottomSizes, $existingTopBottomSizes));
-        
-        // Sort top/bottom sizes in correct order
-        usort($topBottomSizes, function($a, $b) {
-            $order = ['XS' => 1, 'S' => 2, 'M' => 3, 'L' => 4, 'XL' => 5, 'XXL' => 6];
-            $orderA = $order[$a] ?? 99;
-            $orderB = $order[$b] ?? 99;
-            return $orderA <=> $orderB;
-        });
-        
-        // Merge shoe sizes and sort numerically
-        $shoeSizes = array_unique(array_merge($standardShoeSizes, $existingShoeSizes));
-        usort($shoeSizes, function($a, $b) {
-            return (float)$a <=> (float)$b;
-        });
+        [$topBottomSizes, $shoeSizes] = $this->standardSizeLists();
         
         // Get existing sizes for this product (to exclude from dropdown when adding new sizes)
         $existingSizesForProduct = $allSizes->pluck('size')->filter()->map(function($size) {
@@ -591,11 +490,13 @@ class UniformProductController extends Controller
             'product' => $uniformProduct,
             'allSizes' => $allSizes,
             'baseProductCode' => $baseProductCode,
+            'categories' => UniformCategory::activeOrdered(),
             'topBottomSizes' => $topBottomSizes, // All sizes (for existing size selects)
             'shoeSizes' => $shoeSizes, // All sizes (for existing size selects)
             'availableTopBottomSizes' => $availableTopBottomSizes, // Filtered sizes (for new size selects)
             'availableShoeSizes' => $availableShoeSizes, // Filtered sizes (for new size selects)
             'existingSizes' => $existingSizesForProduct, // Existing sizes for JavaScript filtering
+            'categorySizeSchemes' => UniformCategory::activeOrdered()->mapWithKeys(fn ($c) => [$c->code => $c->size_scheme]),
             'makers' => Maker::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
@@ -621,7 +522,7 @@ class UniformProductController extends Controller
         $data = $request->validate([
             'product_code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', 'in:top,bottom,shoe,other'],
+            'category' => ['required', 'string', 'max:50', Rule::in(UniformCategory::activeCodes())],
             'gender' => ['required', 'in:male,female,unisex'],
             'maker_id' => ['nullable', 'exists:makers,id'],
             'maker_product_code' => ['nullable', 'string', 'max:100'],
@@ -865,7 +766,34 @@ class UniformProductController extends Controller
             ->route('admin.uniform-products.index')
             ->with('status', 'ユニフォーム商品を削除しました。');
     }
+
+    /**
+     * @return array{0: list<string>, 1: list<string>}
+     */
+    private function standardSizeLists(): array
+    {
+        $standardTopBottomSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+        $standardShoeSizes = ['23.0', '23.5', '24.0', '24.5', '25.0', '25.5', '26.0', '26.5', '27.0', '27.5', '28.0', '28.5', '29.0', '29.5', '30.0'];
+
+        $letterCodes = UniformCategory::codesWithScheme(UniformCategory::SIZE_LETTER);
+        $shoeCodes = UniformCategory::codesWithScheme(UniformCategory::SIZE_SHOE);
+
+        $existingTopBottomSizes = $letterCodes
+            ? UniformProduct::whereIn('category', $letterCodes)->select('size')->distinct()->pluck('size')->filter()->values()->all()
+            : [];
+        $existingShoeSizes = $shoeCodes
+            ? UniformProduct::whereIn('category', $shoeCodes)->select('size')->distinct()->pluck('size')->filter()->values()->all()
+            : [];
+
+        $topBottomSizes = array_unique(array_merge($standardTopBottomSizes, $existingTopBottomSizes));
+        usort($topBottomSizes, function ($a, $b) {
+            $order = ['XS' => 1, 'S' => 2, 'M' => 3, 'L' => 4, 'XL' => 5, 'XXL' => 6];
+            return ($order[$a] ?? 99) <=> ($order[$b] ?? 99);
+        });
+
+        $shoeSizes = array_unique(array_merge($standardShoeSizes, $existingShoeSizes));
+        usort($shoeSizes, fn ($a, $b) => (float) $a <=> (float) $b);
+
+        return [array_values($topBottomSizes), array_values($shoeSizes)];
+    }
 }
-
-
-

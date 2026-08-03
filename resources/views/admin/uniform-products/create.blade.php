@@ -144,10 +144,9 @@
 <select name="products[INDEX][category]" required
                                 class="product-category-select w-full px-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium">
                             <option value="">{{ __('pages.select_please') }}</option>
-                            <option value="top">{{ __('pages.category_top') }}</option>
-                            <option value="bottom">{{ __('pages.category_bottom') }}</option>
-                            <option value="shoe">{{ __('pages.category_shoe') }}</option>
-                            <option value="other">{{ __('pages.category_other') }}</option>
+                            @foreach(($categories ?? []) as $cat)
+                                <option value="{{ $cat->code }}" data-size-scheme="{{ $cat->size_scheme }}">{{ $cat->name }}</option>
+                            @endforeach
                         </select>
                     </div>
                 </div>
@@ -216,15 +215,20 @@
 
             const topBottomSizes = @json($topBottomSizes);
             const shoeSizes = @json($shoeSizes);
+            const categorySizeSchemes = @json(($categorySizeSchemes ?? collect())->toArray());
             let productIndex = 0;
             const productsContainer = document.getElementById('products-container');
             const addProductBtn = document.getElementById('add-product-btn');
-            let currentCategory = 'top';
+            let currentCategory = '';
+
+            function sizeSchemeFor(category) {
+                return categorySizeSchemes[category] || 'letter';
+            }
 
             // Update current category when category select changes
             document.addEventListener('change', function(e) {
                 if (e.target.classList.contains('product-category-select')) {
-                    currentCategory = e.target.value || 'top';
+                    currentCategory = e.target.value || '';
                 }
             });
 
@@ -349,8 +353,8 @@
                 }
                 
                 // Populate size options based on category
-                const sizes = category === 'shoe' ? shoeSizes : topBottomSizes;
-                if (category === 'shoe') {
+                const sizes = sizeSchemeFor(category) === 'shoe' ? shoeSizes : topBottomSizes;
+                if (sizeSchemeFor(category) === 'shoe') {
                     // For shoes, replace select with number input
                     const input = document.createElement('input');
                     input.type = 'number';
@@ -401,7 +405,7 @@
                 existingRows.forEach(row => {
                     const sizeSelect = row.querySelector('.size-select');
                     if (sizeSelect) {
-                        if (category === 'shoe') {
+                        if (sizeSchemeFor(category) === 'shoe') {
                             // Replace select with number input
                             const input = document.createElement('input');
                             input.type = 'number';
@@ -427,7 +431,7 @@
                     } else {
                         // It's already a number input (shoe), replace with select if needed
                         const input = row.querySelector('input[type="number"]');
-                        if (input && category !== 'shoe') {
+                        if (input && sizeSchemeFor(category) !== 'shoe') {
                             const select = document.createElement('select');
                             select.name = input.name;
                             select.required = true;

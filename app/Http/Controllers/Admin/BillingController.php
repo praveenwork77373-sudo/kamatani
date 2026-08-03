@@ -35,6 +35,14 @@ class BillingController extends Controller
     {
         $this->checkViewPermission();
 
+        $yearMonth = $request->input('billing_month', now()->format('Y-m'));
+        if (! preg_match('/^\d{4}-\d{2}$/', (string) $yearMonth)) {
+            $yearMonth = now()->format('Y-m');
+        }
+
+        $monthStart = \Carbon\Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth();
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
         $query = BillingSnapshot::with(['medicalInstitution', 'generatedBy'])
             ->orderByDesc('target_date')
             ->orderByDesc('created_at');
@@ -44,9 +52,71 @@ class BillingController extends Controller
             $query->where('medical_institution_id', $institutionId);
         }
 
+        // Default list: snapshots whose target_date falls in selected month
+        if (! $request->boolean('all_months')) {
+            $query->whereBetween('target_date', [
+                $monthStart->toDateString(),
+                $monthEnd->toDateString(),
+            ]);
+        }
+
         $billingSnapshots = $query->paginate(Pagination::perPage($request))->withQueryString();
 
         $institutions = MedicalInstitution::orderBy('name')->get();
+        $planService = app(PlanBillingService::class);
+
+        $monthSnapshots = BillingSnapshot::query()
+            ->whereBetween('target_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy('medical_institution_id');
+
+        $confirmedPlanCounts = CustomerContractPlan::query()
+            ->where('status', 'confirmed')
+            ->selectRaw('medical_institution_id, COUNT(*) as cnt')
+            ->groupBy('medical_institution_id')
+            ->pluck('cnt', 'medical_institution_id');
+
+        $fullBoard = $institutions->map(function (MedicalInstitution $institution) use (
+            $planService,
+            $yearMonth,
+            $monthSnapshots,
+            $confirmedPlanCounts
+        ) {
+            $closingDate = $planService->defaultAsOfDate($institution, $yearMonth);
+            $snapshots = $monthSnapshots->get($institution->id, collect());
+            $latest = $snapshots->first();
+            $hasConfirmed = (int) ($confirmedPlanCounts[$institution->id] ?? 0) > 0;
+            $status = ! $hasConfirmed ? 'no_contract' : ($latest ? 'generated' : 'pending');
+
+            return [
+                'institution' => $institution,
+                'closing_day' => (int) ($institution->billing_closing_day ?: 1),
+                'closing_date' => $closingDate->toDateString(),
+                'status' => $status,
+                'snapshot' => $latest,
+                'snapshot_count' => $snapshots->count(),
+                'amount' => $latest?->data['summary']['billing_amount']
+                    ?? $latest?->data['summary']['total_amount_ex_tax']
+                    ?? null,
+                'assigned_count' => $latest?->data['summary']['total_assigned'] ?? null,
+            ];
+        });
+
+        $boardStats = [
+            'pending' => $fullBoard->where('status', 'pending')->count(),
+            'generated' => $fullBoard->where('status', 'generated')->count(),
+            'no_contract' => $fullBoard->where('status', 'no_contract')->count(),
+            'total' => $fullBoard->count(),
+        ];
+
+        $statusFilter = $request->input('status_filter'); // pending|generated|no_contract|all
+        if (in_array($statusFilter, ['pending', 'generated', 'no_contract'], true)) {
+            $institutionMonthStatus = $fullBoard->where('status', $statusFilter)->values();
+        } else {
+            $institutionMonthStatus = $fullBoard->values();
+            $statusFilter = 'all';
+        }
 
         $billingCounts = ['institution' => []];
         foreach ($institutions as $institution) {
@@ -58,19 +128,19 @@ class BillingController extends Controller
 
         $totalBillingSnapshots = BillingSnapshot::count();
         $thisMonthBillingSnapshots = BillingSnapshot::whereBetween('target_date', [
-            now()->startOfMonth()->format('Y-m-d'),
-            now()->endOfMonth()->format('Y-m-d'),
+            $monthStart->toDateString(),
+            $monthEnd->toDateString(),
         ])->count();
 
         $totalBillingAmount = BillingSnapshot::query()->get()->sum(function ($snapshot) {
-            return ($snapshot->data['summary']['billing_amount'] ?? 0);
+            return ($snapshot->data['summary']['billing_amount'] ?? $snapshot->data['summary']['total_amount_ex_tax'] ?? 0);
         });
 
         $thisMonthBillingAmount = BillingSnapshot::whereBetween('target_date', [
-            now()->startOfMonth()->format('Y-m-d'),
-            now()->endOfMonth()->format('Y-m-d'),
+            $monthStart->toDateString(),
+            $monthEnd->toDateString(),
         ])->get()->sum(function ($snapshot) {
-            return ($snapshot->data['summary']['billing_amount'] ?? 0);
+            return ($snapshot->data['summary']['billing_amount'] ?? $snapshot->data['summary']['total_amount_ex_tax'] ?? 0);
         });
 
         return view('admin.billing.index', [
@@ -78,6 +148,10 @@ class BillingController extends Controller
             'institutions' => $institutions,
             'institutionsWithDepartments' => $institutions,
             'billingCounts' => $billingCounts,
+            'billingMonth' => $yearMonth,
+            'institutionMonthStatus' => $institutionMonthStatus,
+            'boardStats' => $boardStats,
+            'statusFilter' => $statusFilter ?: 'all',
             'stats' => [
                 'total_billing_snapshots' => $totalBillingSnapshots,
                 'this_month_billing_snapshots' => $thisMonthBillingSnapshots,

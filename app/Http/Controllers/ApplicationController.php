@@ -10,6 +10,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeeLoan;
 use App\Models\JobType;
+use App\Models\UniformCategory;
 use App\Models\UniformProduct;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -81,34 +82,32 @@ class ApplicationController extends Controller
         $jobTypes = JobType::where('medical_institution_id', $customer->medical_institution_id)->get();
         $uniforms = UniformProduct::orderBy('product_code')->get();
 
-        // Get all possible sizes from database for each category
-        // For tops/bottoms: letter sizes (XS, S, M, L, XL, XXL) - stored as strings in database
-        // For shoes: numeric sizes (23.0, 23.5, 24.0, etc.) - stored as strings in database
-        $topBottomSizes = UniformProduct::whereIn('category', ['top', 'bottom'])
-            ->select('size')
-            ->distinct()
-            ->orderByRaw("CASE size 
-                WHEN 'XS' THEN 1 
-                WHEN 'S' THEN 2 
-                WHEN 'M' THEN 3 
-                WHEN 'L' THEN 4 
-                WHEN 'XL' THEN 5 
-                WHEN 'XXL' THEN 6 
-                ELSE 99 
-            END")
-            ->pluck('size')
-            ->filter()
-            ->values()
-            ->all();
-        
-        $shoeSizes = UniformProduct::where('category', 'shoe')
-            ->select('size')
-            ->distinct()
-            ->orderByRaw('CAST(size AS DECIMAL(4,1))')
-            ->pluck('size')
-            ->filter()
-            ->values()
-            ->all();
+        $categories = UniformCategory::activeOrdered();
+        $letterCodes = UniformCategory::codesWithScheme(UniformCategory::SIZE_LETTER);
+        $shoeCodes = UniformCategory::codesWithScheme(UniformCategory::SIZE_SHOE);
+
+        $topBottomSizes = $letterCodes
+            ? UniformProduct::whereIn('category', $letterCodes)
+                ->select('size')
+                ->distinct()
+                ->pluck('size')
+                ->filter()
+                ->values()
+                ->all()
+            : [];
+        $letterOrder = ['XS' => 1, 'S' => 2, 'M' => 3, 'L' => 4, 'XL' => 5, 'XXL' => 6];
+        usort($topBottomSizes, fn ($a, $b) => ($letterOrder[$a] ?? 99) <=> ($letterOrder[$b] ?? 99));
+
+        $shoeSizes = $shoeCodes
+            ? UniformProduct::whereIn('category', $shoeCodes)
+                ->select('size')
+                ->distinct()
+                ->pluck('size')
+                ->filter()
+                ->values()
+                ->all()
+            : [];
+        usort($shoeSizes, fn ($a, $b) => (float) $a <=> (float) $b);
         
         // Group uniforms by base product_code (extract base code by removing size suffix)
         // Products are stored as BASE_CODE-SIZE (e.g., "TOP-F-1-M" where "TOP-F-1" is base, "M" is size)
@@ -131,7 +130,7 @@ class ApplicationController extends Controller
             $totalStock = $group->sum('stock_quantity');
             
             // Determine which size list to use based on category
-            $allSizes = $first->category === 'shoe' ? $shoeSizes : $topBottomSizes;
+            $allSizes = UniformCategory::sizeSchemeFor($first->category) === UniformCategory::SIZE_SHOE ? $shoeSizes : $topBottomSizes;
             
             // Create a map of size => product_id and stock_quantity for this base product_code
             $sizeToIdMap = [];
@@ -175,6 +174,9 @@ class ApplicationController extends Controller
                 'name' => $first->name,
                 'product_code' => $baseCode, // Use base product code without size suffix
                 'category' => $first->category,
+                'category_label' => UniformCategory::labelFor($first->category),
+                'size_scheme' => UniformCategory::sizeSchemeFor($first->category),
+                'employee_size_field' => UniformCategory::findByCode($first->category)?->employee_size_field,
                 'gender' => $first->gender,
                 'sizes' => $allSizes, // All possible sizes for this category (for backward compatibility)
                 'sizes_with_ids' => $sizesWithIds, // Sizes with product IDs and stock info
@@ -191,6 +193,9 @@ class ApplicationController extends Controller
                 'name' => $u['name'],
                 'product_code' => $u['product_code'],
                 'category' => $u['category'],
+                'category_label' => $u['category_label'] ?? UniformCategory::labelFor($u['category']),
+                'size_scheme' => $u['size_scheme'] ?? UniformCategory::sizeSchemeFor($u['category']),
+                'employee_size_field' => $u['employee_size_field'] ?? null,
                 'gender' => $u['gender'],
                 'sizes' => $u['sizes'], // All possible sizes (for backward compatibility)
                 'sizes_with_ids' => $u['sizes_with_ids'] ?? [], // Sizes with product IDs and stock info
@@ -207,6 +212,7 @@ class ApplicationController extends Controller
             'jobTypes' => $jobTypes,
             'uniforms' => $uniforms,
             'uniformsJson' => $uniformsForJson,
+            'categories' => $categories,
             'customer' => $customer,
         ]);
     }
@@ -246,6 +252,9 @@ class ApplicationController extends Controller
                     'product_code' => $product->product_code,
                     'name' => $product->name,
                     'category' => $product->category,
+                    'category_label' => UniformCategory::labelFor($product->category),
+                    'size_scheme' => UniformCategory::sizeSchemeFor($product->category),
+                    'employee_size_field' => UniformCategory::findByCode($product->category)?->employee_size_field,
                     'size' => $product->size,
                     'gender' => $product->gender,
                     'stock_quantity' => $product->stock_quantity,
@@ -286,6 +295,9 @@ class ApplicationController extends Controller
                 'product_code' => $product->product_code,
                 'name' => $product->name,
                 'category' => $product->category,
+                    'category_label' => UniformCategory::labelFor($product->category),
+                    'size_scheme' => UniformCategory::sizeSchemeFor($product->category),
+                    'employee_size_field' => UniformCategory::findByCode($product->category)?->employee_size_field,
                 'size' => $product->size,
                 'gender' => $product->gender,
                 'stock_quantity' => $product->stock_quantity,

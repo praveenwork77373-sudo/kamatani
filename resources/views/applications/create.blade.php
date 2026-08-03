@@ -402,19 +402,16 @@
                 <div class="p-6">
                     {{-- Category Tabs --}}
                     <div class="flex flex-wrap gap-2 mb-6 border-b-2 border-slate-200">
-                        <button type="button" class="category-tab active px-5 py-3 text-[14px] font-semibold text-primary-600 bg-primary-50 border-b-3 border-primary-600 hover:text-primary-700 hover:bg-primary-100 transition-all flex items-center gap-2 rounded-t-lg" data-category="top">
-                            <i data-lucide="shirt" class="w-5 h-5"></i>
-                            {{ __('pages.tops') }}
-                        </button>
-                        <button type="button" class="category-tab px-5 py-3 text-[14px] font-semibold text-slate-600 border-b-3 border-transparent hover:text-primary-600 hover:border-primary-500 hover:bg-slate-50 transition-all flex items-center gap-2 rounded-t-lg" data-category="bottom">
-                            <i data-lucide="pants" class="w-5 h-5"></i>
-                            {{ __('pages.pants') }}
-                        </button>
-                        <button type="button" class="category-tab px-5 py-3 text-[14px] font-semibold text-slate-600 border-b-3 border-transparent hover:text-primary-600 hover:border-primary-500 hover:bg-slate-50 transition-all flex items-center gap-2 rounded-t-lg" data-category="shoe">
-                            <i data-lucide="footprints" class="w-5 h-5"></i>
-                            {{ __('pages.shoes_label') }}
-                        </button>
-                       
+                        @foreach(($categories ?? []) as $idx => $cat)
+                            <button type="button"
+                                    class="category-tab px-5 py-3 text-[14px] font-semibold border-b-3 transition-all flex items-center gap-2 rounded-t-lg {{ $idx === 0 ? 'active text-primary-600 bg-primary-50 border-primary-600' : 'text-slate-600 border-transparent hover:text-primary-600 hover:border-primary-500 hover:bg-slate-50' }}"
+                                    data-category="{{ $cat->code }}"
+                                    data-size-scheme="{{ $cat->size_scheme }}"
+                                    data-employee-size-field="{{ $cat->employee_size_field }}">
+                                <i data-lucide="tag" class="w-5 h-5"></i>
+                                {{ $cat->name }}
+                            </button>
+                        @endforeach
                     </div>
 
                     {{-- Products Grid --}}
@@ -483,7 +480,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const transferTargetField = document.getElementById('transfer-target-field');
     const applicationTypeSelect = document.getElementById('application-type-select');
     const transferToSelect = document.getElementById('transfer-to-employee-select');
-    let currentCategory = 'top';
+    let currentCategory = document.querySelector('.category-tab.active')?.dataset.category
+        || document.querySelector('.category-tab')?.dataset.category
+        || '';
+
+    function productSizeScheme(product) {
+        return product.size_scheme || (productSizeScheme(product) === 'shoe' ? 'shoe' : 'letter');
+    }
+    function productEmployeeSizeField(product) {
+        if (product.employee_size_field) return product.employee_size_field;
+        if (product.category === 'top') return 'top_size';
+        if (product.category === 'bottom') return 'bottom_size';
+        if (productSizeScheme(product) === 'shoe') return 'shoe_size';
+        return null;
+    }
+    function employeeSizeForProduct(emp, product) {
+        const field = productEmployeeSizeField(product);
+        return field ? (emp?.[field] || null) : null;
+    }
     let searchTimeout;
 
     // ========== Searchable Select Functions ==========
@@ -1009,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const bIndex = order.indexOf(String(b.size).toUpperCase());
                         return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
                     });
-                } else if (product.category === 'shoe') {
+                } else if (productSizeScheme(product) === 'shoe') {
                     product.sizes.sort((a, b) => parseFloat(a) - parseFloat(b));
                     product.sizes_with_ids.sort((a, b) => parseFloat(a.size) - parseFloat(b.size));
                 }
@@ -1517,13 +1531,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load products
     function loadProducts() {
-        const categoryMap = {
-            'top': 'top',
-            'bottom': 'bottom',
-            'shoe': 'shoe',
-            'other': 'other'
-        };
-        
         // Get products to display (filtered or all)
         let productsToShow = filteredUniforms.length > 0 ? filteredUniforms : allUniforms;
         
@@ -1553,12 +1560,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Filter by category
-        productsToShow = productsToShow.filter(u => {
-            if (currentCategory === 'other') {
-                return !['top', 'bottom', 'shoe'].includes(u.category);
-            }
-            return u.category === categoryMap[currentCategory];
-        });
+        productsToShow = productsToShow.filter(u => u.category === currentCategory);
 
         if (productsToShow.length === 0) {
             productsContainer.innerHTML = `
@@ -1616,7 +1618,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 matchesEmployeeSize = true;
                                 employeeCountForSize++;
                             }
-                        } else if (product.category === 'shoe' && emp.shoe_size) {
+                        } else if (productSizeScheme(product) === 'shoe' && emp.shoe_size) {
                             const employeeShoeSize = parseFloat(emp.shoe_size);
                             const sizeNum = parseFloat(sizeStr);
                             if (!isNaN(sizeNum) && !isNaN(employeeShoeSize)) {
@@ -1638,7 +1640,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const hasAnySizes = departmentEmployeesData.some(emp => 
                         (product.category === 'top' && emp.top_size) ||
                         (product.category === 'bottom' && emp.bottom_size) ||
-                        (product.category === 'shoe' && emp.shoe_size)
+                        (productSizeScheme(product) === 'shoe' && emp.shoe_size)
                     );
                     if (!hasAnySizes) {
                         matchesEmployeeSize = true;
@@ -1656,7 +1658,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const employeeSize = String(selectedEmployeeSizes.bottom_size).trim();
                         matchesEmployeeSize = sizeStr === employeeSize || sizeStr.toLowerCase() === employeeSize.toLowerCase();
                         if (matchesEmployeeSize) employeeCountForSize = 1;
-                    } else if (product.category === 'shoe' && selectedEmployeeSizes.shoe_size) {
+                    } else if (productSizeScheme(product) === 'shoe' && selectedEmployeeSizes.shoe_size) {
                         const employeeShoeSize = parseFloat(selectedEmployeeSizes.shoe_size);
                         const sizeNum = parseFloat(sizeStr);
                         if (!isNaN(sizeNum) && !isNaN(employeeShoeSize)) {
@@ -1712,7 +1714,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <i data-lucide="ruler" class="w-4 h-4 text-primary-600"></i>
                                 {{ __('pages.size') }}
                             </label>
-                            ${product.category === 'shoe' ? 
+                            ${productSizeScheme(product) === 'shoe' ? 
                                 /* Shoe size - Multiple number inputs in a grid */
                                 `<div class="space-y-2 max-h-32 overflow-y-auto">
                                     ${sizesData.map(sizeData => {
@@ -2602,7 +2604,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Reset products display
         filteredUniforms = allUniforms;
-        currentCategory = 'top';
+        currentCategory = document.querySelector('.category-tab')?.dataset.category || '';
         
         // Reset category tabs to show first tab as active
         document.querySelectorAll('.category-tab').forEach(tab => {
@@ -2611,7 +2613,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // Set first tab as active
-        const firstTab = document.querySelector('.category-tab[data-category="top"]');
+        const firstTab = document.querySelector('.category-tab');
         if (firstTab) {
             firstTab.classList.add('active', 'border-primary-600', 'text-primary-600', 'bg-primary-50');
             firstTab.classList.remove('text-slate-600', 'border-transparent');
