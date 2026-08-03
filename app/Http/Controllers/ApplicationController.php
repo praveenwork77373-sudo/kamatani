@@ -519,11 +519,27 @@ class ApplicationController extends Controller
         $data['items'] = $data['items'] ?? [];
         $data['return_items'] = $data['return_items'] ?? [];
 
+        // Normalize UI payloads: loan checkboxes post as return_items; transfer needs items[]
+        if ($data['type'] === 'transfer' && empty($data['items']) && ! empty($data['return_items'])) {
+            $data['items'] = $data['return_items'];
+            $data['return_items'] = [];
+        }
+
+        // 返却のみ: return_items が空なら items を返却扱い
+        if ($data['type'] === 'return' && empty($data['return_items']) && ! empty($data['items'])) {
+            $data['return_items'] = $data['items'];
+            $data['items'] = [];
+        }
+
         // 種別ごとの明細必須チェック
         if (in_array($data['type'], ['new_loan', 'transfer'], true) && empty($data['items'])) {
-            return redirect()->back()->withInput()->with('error', '少なくとも1つのユニフォームを選択してください。');
+            return redirect()->back()->withInput()->with('error',
+                $data['type'] === 'transfer'
+                    ? '移管する貸与品を選択してください。'
+                    : '少なくとも1つのユニフォームを選択してください。'
+            );
         }
-        if ($data['type'] === 'return' && empty($data['return_items']) && empty($data['items'])) {
+        if ($data['type'] === 'return' && empty($data['return_items'])) {
             return redirect()->back()->withInput()->with('error', '返却する貸与品を選択してください。');
         }
         if (in_array($data['type'], ['exchange', 'resize'], true)
@@ -531,10 +547,8 @@ class ApplicationController extends Controller
             return redirect()->back()->withInput()->with('error', '旧品または新品のユニフォームを選択してください。');
         }
 
-        // 返却のみ: return_items が空なら items を返却扱い
-        if ($data['type'] === 'return' && empty($data['return_items']) && !empty($data['items'])) {
-            $data['return_items'] = $data['items'];
-            $data['items'] = [];
+        if ($data['application_mode'] === 'departmental' && $data['type'] === 'transfer') {
+            return redirect()->back()->withInput()->with('error', '移管申請は個別申請のみ対応しています。');
         }
 
         // 部署・配送先は自医療機関に属するもののみ
@@ -604,6 +618,23 @@ class ApplicationController extends Controller
         foreach ($data['items'] as $item) {
             if (! in_array((int) $item['uniform_product_id'], array_map('intval', $allowedProductIds), true)) {
                 return redirect()->back()->withInput()->with('error', '選択したユニフォームは職員の契約プラン対象外です。');
+            }
+        }
+
+        // Return/transfer lines are existing loans — still must belong to this employee
+        if (in_array($data['type'], ['return', 'transfer', 'exchange', 'resize'], true)) {
+            $loanProductIds = EmployeeLoan::query()
+                ->where('employee_id', $employee->id)
+                ->where('status', 'in_use')
+                ->pluck('uniform_product_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $linesToCheck = $data['type'] === 'transfer' ? $data['items'] : $data['return_items'];
+            foreach ($linesToCheck as $item) {
+                if (! in_array((int) $item['uniform_product_id'], $loanProductIds, true)) {
+                    return redirect()->back()->withInput()->with('error', '選択した貸与品はこの職員の貸与中データと一致しません。');
+                }
             }
         }
 
@@ -738,6 +769,28 @@ class ApplicationController extends Controller
                     }
                 }
 
+                if (in_array($data['type'], ['return', 'exchange', 'resize'], true) && ! empty($data['return_items'])) {
+                    $loanProductIds = EmployeeLoan::query()
+                        ->where('employee_id', $employee->id)
+                        ->where('status', 'in_use')
+                        ->pluck('uniform_product_id')
+                        ->map(fn ($id) => (int) $id)
+                        ->all();
+
+                    $hasMatchingReturn = false;
+                    foreach ($data['return_items'] as $item) {
+                        if (in_array((int) $item['uniform_product_id'], $loanProductIds, true)) {
+                            $hasMatchingReturn = true;
+                            break;
+                        }
+                    }
+
+                    if ($data['type'] === 'return' && ! $hasMatchingReturn) {
+                        $errors[] = "職員 {$employee->name} ({$employee->staff_no}): 返却対象の貸与品がないためスキップしました。";
+                        continue;
+                    }
+                }
+
                 $totalQuantity = array_sum(array_column($data['items'], 'quantity'));
                 $currentLoans = EmployeeLoan::where('employee_id', $employee->id)
                     ->where('status', 'in_use')
@@ -745,14 +798,14 @@ class ApplicationController extends Controller
 
                 $exceedsLimit = false;
                 $rentableLimit = $eligibility->rentableLimit($employee);
-                if ($rentableLimit !== null && $rentableLimit > 0) {
+                if ($rentableLimit !== null && $rentableLimit > 0 && in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
                     if (($currentLoans + $totalQuantity) > $rentableLimit) {
                         $exceedsLimit = true;
                     }
                 }
 
                 $insufficientStock = false;
-                if ($data['type'] !== 'return') {
+                if (! empty($data['items']) && ! in_array($data['type'], ['return', 'transfer'], true)) {
                     foreach ($data['items'] as $item) {
                         $product = UniformProduct::find($item['uniform_product_id']);
                         if ($product && $product->stock_quantity < ($item['quantity'] * $employees->count())) {
@@ -786,6 +839,31 @@ class ApplicationController extends Controller
                     'memo2' => $data['memo2'] ?? null,
                 ]);
 
+                $itemCount = 0;
+
+                foreach ($data['return_items'] as $item) {
+                    if (! in_array($data['type'], ['return', 'exchange', 'resize'], true)) {
+                        break;
+                    }
+
+                    $holds = EmployeeLoan::query()
+                        ->where('employee_id', $employee->id)
+                        ->where('uniform_product_id', $item['uniform_product_id'])
+                        ->where('status', 'in_use')
+                        ->exists();
+                    if (! $holds) {
+                        continue;
+                    }
+
+                    ApplicationItem::create([
+                        'application_id' => $application->id,
+                        'uniform_product_id' => $item['uniform_product_id'],
+                        'quantity' => $item['quantity'],
+                        'action' => in_array($data['type'], ['exchange', 'resize'], true) ? 'exchange_out' : 'return',
+                    ]);
+                    $itemCount++;
+                }
+
                 foreach ($data['items'] as $item) {
                     ApplicationItem::create([
                         'application_id' => $application->id,
@@ -793,6 +871,13 @@ class ApplicationController extends Controller
                         'quantity' => $item['quantity'],
                         'action' => $itemAction,
                     ]);
+                    $itemCount++;
+                }
+
+                if ($itemCount === 0) {
+                    $application->delete();
+                    $errors[] = "職員 {$employee->name} ({$employee->staff_no}): 申請明細を作成できなかったためスキップしました。";
+                    continue;
                 }
 
                 \App\Services\NotificationService::notifyApplicationCreated($application);

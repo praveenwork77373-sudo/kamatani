@@ -3,18 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Application;
 use App\Models\BillingSnapshot;
 use App\Models\CustomerContractPlan;
 use App\Models\MedicalInstitution;
 use App\Services\PlanBillingExportService;
 use App\Services\PlanBillingService;
+use App\Support\Pagination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
-use App\Support\Pagination;
 
 class BillingController extends Controller
 {
@@ -236,39 +233,5 @@ class BillingController extends Controller
         $snapshot->load(['medicalInstitution', 'generatedBy']);
 
         return view('admin.billing.show', ['snapshot' => $snapshot]);
-    }
-
-    public function approve(Request $request, int $applicationId): RedirectResponse
-    {
-        $admin = $request->user()->adminUser;
-
-        if (! $admin || ! in_array($admin->role, ['system_admin', 'operation', 'accounting'], true)) {
-            abort(403, '請求承認権限がありません。');
-        }
-
-        $application = Application::findOrFail($applicationId);
-
-        if (! in_array($application->status, [
-            Application::STATUS_IN_PROGRESS,
-            Application::STATUS_COMPLETED,
-            'approved',
-        ], true)) {
-            return back()->with('error', 'この申請は承認されていません。請求承認は承認済みの申請にのみ可能です。');
-        }
-
-        $hasBillingStatusColumn = Schema::hasColumn('applications', 'billing_status');
-
-        if ($hasBillingStatusColumn && $application->billing_status === 'approved') {
-            return back()->with('error', 'この申請の請求は既に承認済みです。');
-        }
-
-        DB::transaction(function () use ($application) {
-            if (Schema::hasColumn('applications', 'billing_status')) {
-                $application->billing_status = 'approved';
-                $application->save();
-            }
-        });
-
-        return back()->with('status', '請求を承認しました。請求集計は「請求データ生成」から契約プラン基準で出力してください。');
     }
 }

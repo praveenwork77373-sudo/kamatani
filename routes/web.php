@@ -201,7 +201,6 @@ Route::prefix('admin')
             Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\Admin\BillingController::class, 'create'])->name('create');
             Route::post('/generate', [\App\Http\Controllers\Admin\BillingController::class, 'generate'])->name('generate');
-            Route::post('/applications/{application}/approve', [\App\Http\Controllers\Admin\BillingController::class, 'approve'])->name('approve')->where('application', '[0-9]+');
             Route::get('/{snapshot}/export', [\App\Http\Controllers\Admin\BillingController::class, 'export'])->name('export');
             Route::get('/{snapshot}', [\App\Http\Controllers\Admin\BillingController::class, 'show'])->name('show');
         });

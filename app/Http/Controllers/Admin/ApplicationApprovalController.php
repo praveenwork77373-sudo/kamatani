@@ -224,6 +224,10 @@ class ApplicationApprovalController extends Controller
     private function processReturnApproval(Application $application): void
     {
         foreach ($application->items as $item) {
+            $action = $item->action ?: 'return';
+            if (! in_array($action, ['return', 'exchange_out'], true)) {
+                continue;
+            }
             $this->applyLoanReturn($application, $item);
         }
     }
@@ -268,9 +272,11 @@ class ApplicationApprovalController extends Controller
             throw new \Exception('移管先職員が指定されていません。');
         }
 
+        $moved = 0;
         foreach ($application->items as $item) {
             $action = $item->action ?: 'transfer_change';
-            if (!in_array($action, ['loan', 'transfer_change'], true)) {
+            // Accept return-tagged lines from older buggy creates as transfer targets
+            if (! in_array($action, ['loan', 'transfer_change', 'return'], true)) {
                 continue;
             }
 
@@ -280,7 +286,7 @@ class ApplicationApprovalController extends Controller
                 ->where('status', 'in_use')
                 ->first();
 
-            if (!$fromLoan || $fromLoan->quantity < $item->quantity) {
+            if (! $fromLoan || $fromLoan->quantity < $item->quantity) {
                 throw new \Exception('移管元に十分な貸与がありません。');
             }
 
@@ -302,6 +308,11 @@ class ApplicationApprovalController extends Controller
             $toLoan->loan_start_date = $application->start_date ?? now();
             $toLoan->loan_end_date = null;
             $toLoan->save();
+            $moved++;
+        }
+
+        if ($moved === 0) {
+            throw new \Exception('移管する貸与品がありません。');
         }
     }
 
@@ -463,9 +474,11 @@ class ApplicationApprovalController extends Controller
             return back()->with('error', 'キャンセル申請がありません。');
         }
 
-        $application->status = 'cancel_rejected';
-        $application->approved_at = now();
-        $application->approved_by_admin_user_id = $request->user()->id; // users.id
+        // Resume prior workflow so ops can continue shipping after rejecting cancel
+        $restoreStatus = $application->statusAfterCancelReject();
+
+        $application->status = $restoreStatus;
+        $application->approved_by_admin_user_id = $request->user()->id;
         $application->rejection_reason = $request->input('rejection_reason');
         $application->save();
 
@@ -478,7 +491,9 @@ class ApplicationApprovalController extends Controller
             ]);
         }
 
-        return back()->with('status', 'キャンセルを却下しました。');
+        $label = $application->statusLabel();
+
+        return back()->with('status', "キャンセルを却下しました。申請を「{$label}」に戻しました。");
     }
 
     public function exportCsv(Request $request)

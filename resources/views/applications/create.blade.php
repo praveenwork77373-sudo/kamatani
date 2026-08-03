@@ -2298,18 +2298,38 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        const appType = applicationTypeSelect?.value || '';
+
         if (returnItemsHidden) {
             returnItemsHidden.innerHTML = '';
             let rIndex = 0;
-            returnItems.forEach((item, productId) => {
-                if (item.quantity > 0) {
-                    returnItemsHidden.innerHTML += `
-                        <input type="hidden" name="return_items[${rIndex}][uniform_product_id]" value="${productId}">
-                        <input type="hidden" name="return_items[${rIndex}][quantity]" value="${item.quantity}">
-                    `;
-                    rIndex++;
+
+            // Transfer: selected loans become items[] (transfer_change), not return_items
+            if (appType === 'transfer') {
+                const existingItemInputs = selectedItemsContainer.querySelectorAll('input[name^="items["]');
+                if (existingItemInputs.length === 0) {
+                    let tIndex = 0;
+                    returnItems.forEach((item, productId) => {
+                        if (item.quantity > 0) {
+                            selectedItemsContainer.innerHTML += `
+                                <input type="hidden" name="items[${tIndex}][uniform_product_id]" value="${productId}">
+                                <input type="hidden" name="items[${tIndex}][quantity]" value="${item.quantity}">
+                            `;
+                            tIndex++;
+                        }
+                    });
                 }
-            });
+            } else {
+                returnItems.forEach((item, productId) => {
+                    if (item.quantity > 0) {
+                        returnItemsHidden.innerHTML += `
+                            <input type="hidden" name="return_items[${rIndex}][uniform_product_id]" value="${productId}">
+                            <input type="hidden" name="return_items[${rIndex}][quantity]" value="${item.quantity}">
+                        `;
+                        rIndex++;
+                    }
+                });
+            }
         }
     }
 
@@ -2606,12 +2626,33 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
         
-        // Check if form fields were actually created
+        // Validate line items by application type (return/transfer use loan checkboxes → return_items / items)
+        const appType = applicationTypeSelect?.value || '';
         const formItems = selectedItemsContainer.querySelectorAll('input[name^="items["]');
-        if (selectedItems.size === 0 || formItems.length === 0) {
+        const formReturns = returnItemsHidden
+            ? returnItemsHidden.querySelectorAll('input[name^="return_items["]')
+            : [];
+        const hasItems = formItems.length > 0;
+        const hasReturns = formReturns.length > 0;
+
+        let missingLines = false;
+        if (appType === 'return') {
+            missingLines = !hasReturns && !hasItems;
+        } else if (appType === 'transfer') {
+            missingLines = !hasItems && !hasReturns;
+        } else if (appType === 'exchange' || appType === 'resize') {
+            missingLines = !hasItems && !hasReturns;
+        } else {
+            missingLines = selectedItems.size === 0 || !hasItems;
+        }
+
+        if (missingLines) {
             e.preventDefault();
             if (window.showToast) {
-                window.showToast('{{ __('pages.select_uniform') }}', 'error');
+                const msg = (appType === 'return' || appType === 'transfer')
+                    ? (appType === 'return' ? '返却する貸与品を選択してください。' : '移管する貸与品を選択してください。')
+                    : '{{ __('pages.select_uniform') }}';
+                window.showToast(msg, 'error');
             }
             return false;
         }

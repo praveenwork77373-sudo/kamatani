@@ -77,7 +77,27 @@ class Application extends Model
 
     public function isCompletable(): bool
     {
-        return $this->status === self::STATUS_IN_PROGRESS;
+        // cancel_rejected kept for legacy stuck rows created before restore-on-reject fix
+        return in_array($this->status, [
+            self::STATUS_IN_PROGRESS,
+            self::STATUS_CANCEL_REJECTED,
+        ], true);
+    }
+
+    /**
+     * Status to resume after a cancel request is rejected.
+     */
+    public function statusAfterCancelReject(): string
+    {
+        if ($this->accepted_at) {
+            return self::STATUS_IN_PROGRESS;
+        }
+
+        if (! empty($this->special_approval_reason)) {
+            return self::STATUS_WAITING_SPECIAL;
+        }
+
+        return self::STATUS_PENDING;
     }
 
     public function statusLabel(): string
