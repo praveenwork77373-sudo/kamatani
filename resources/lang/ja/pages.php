@@ -332,7 +332,7 @@ return [
     'total_loans_count' => '総貸与数',
     'billing_amount' => '請求金額',
     'billing_month_board' => '月次・医療機関別 請求状況',
-    'billing_month_board_hint' => '締め日基準で、その月の請求データが未作成か作成済みかを一覧表示します（請求書の入金管理ではありません）。',
+    'billing_month_board_hint' => '毎月の医療機関「締め日」時点で請求データが未作成か作成済みかを表示します。契約プラン終了日までの一括請求／入金管理ではありません。',
     'billing_status_pending' => '未作成',
     'billing_status_generated' => '作成済み',
     'billing_status_no_contract' => '契約なし',

@@ -646,7 +646,7 @@
                 </div>
             </header>
 
-            <main class="flex-1 px-3 py-4 sm:px-4 md:px-6 md:py-5 max-w-[1600px] w-full mx-auto">
+            <main class="flex-1 min-w-0 px-3 py-4 sm:px-4 md:px-6 md:py-5 max-w-[1600px] w-full mx-auto overflow-x-hidden">
                 @if (session('status'))
                     <div class="mb-6 text-sm text-emerald-800 bg-emerald-50 border-l-4 border-emerald-500 rounded px-4 py-3 shadow-sm">
                         <div class="flex items-center gap-2">

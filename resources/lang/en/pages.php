@@ -323,7 +323,7 @@ return [
     'total_loans_count' => 'Total Loans',
     'billing_amount' => 'Billing Amount',
     'billing_month_board' => 'Monthly institution billing status',
-    'billing_month_board_hint' => 'By closing day: whether billing data for this month is still pending or already generated (not payment collection).',
+    'billing_month_board_hint' => 'Shows whether monthly billing data was generated as of each hospital’s closing day. Not a lump-sum bill until contract end, and not payment tracking.',
     'billing_status_pending' => 'Pending',
     'billing_status_generated' => 'Generated',
     'billing_status_no_contract' => 'No contract',

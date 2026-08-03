@@ -8,7 +8,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.generate_billing_data') }}</h1>
-                <p class="text-[14px] text-slate-600 mt-1.5">契約プラン × 割当在籍人数 × 単価（税抜）で請求データを生成します。</p>
+                <p class="text-[14px] text-slate-600 mt-1.5">毎月、医療機関の締め日を基準日に「割当在籍人数 × 単価（税抜）」で作成します。顧客契約プランの終了日までの一括請求ではありません。</p>
             </div>
             <a href="{{ route('admin.billing.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
@@ -59,7 +59,7 @@
                         </label>
                         <input type="date" name="target_date" id="target-date" value="{{ old('target_date', $targetDate) }}" required
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
-                        <p class="text-[12px] text-slate-500 mt-1">未指定時は医療機関の締め日を使用します。</p>
+                        <p class="text-[12px] text-slate-500 mt-1">医療機関マスタの締め日（毎月n日）がデフォルト基準日です。契約プランの終了日とは別です。</p>
                         @error('target_date')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror
@@ -97,6 +97,7 @@
                                     <tr>
                                         <th class="px-3 py-2 text-left">プラン</th>
                                         <th class="px-3 py-2 text-left">コード</th>
+                                        <th class="px-3 py-2 text-left">契約期間</th>
                                         <th class="px-3 py-2 text-right">契約口数</th>
                                         <th class="px-3 py-2 text-right">対象人数</th>
                                         <th class="px-3 py-2 text-right">単価</th>
@@ -109,6 +110,11 @@
                                         <tr>
                                             <td class="px-3 py-2">{{ $plan['plan_name'] }}</td>
                                             <td class="px-3 py-2">{{ $plan['plan_code'] }}</td>
+                                            <td class="px-3 py-2 text-[12px] text-slate-600">
+                                                {{ $plan['contract_start_date'] ?? '—' }}
+                                                〜
+                                                {{ $plan['contract_end_date'] ?? '継続' }}
+                                            </td>
                                             <td class="px-3 py-2 text-right">{{ number_format($plan['contracted_slots'] ?? 0) }}</td>
                                             <td class="px-3 py-2 text-right">{{ number_format($plan['assigned_count'] ?? 0) }}</td>
                                             <td class="px-3 py-2 text-right">¥{{ number_format($plan['unit_price_ex_tax'] ?? 0) }}</td>
@@ -116,7 +122,7 @@
                                             <td class="px-3 py-2 text-right text-slate-500">¥{{ number_format($plan['amount_by_contract_slots'] ?? 0) }}</td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="7" class="px-3 py-6 text-center text-slate-500">割当データがありません</td></tr>
+                                        <tr><td colspan="8" class="px-3 py-6 text-center text-slate-500">割当データがありません</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>

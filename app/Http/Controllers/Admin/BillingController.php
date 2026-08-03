@@ -84,22 +84,30 @@ class BillingController extends Controller
             $confirmedPlanCounts
         ) {
             $closingDate = $planService->defaultAsOfDate($institution, $yearMonth);
+            $closingDateStr = $closingDate->toDateString();
             $snapshots = $monthSnapshots->get($institution->id, collect());
-            $latest = $snapshots->first();
+            // Prefer snapshot taken on this hospital's 締め日 for the month
+            $latest = $snapshots->first(function ($s) use ($closingDateStr) {
+                return optional($s->target_date)->toDateString() === $closingDateStr;
+            }) ?? $snapshots->first();
             $hasConfirmed = (int) ($confirmedPlanCounts[$institution->id] ?? 0) > 0;
             $status = ! $hasConfirmed ? 'no_contract' : ($latest ? 'generated' : 'pending');
+
+            $summary = $latest?->data['summary'] ?? [];
 
             return [
                 'institution' => $institution,
                 'closing_day' => (int) ($institution->billing_closing_day ?: 1),
-                'closing_date' => $closingDate->toDateString(),
+                'closing_date' => $closingDateStr,
                 'status' => $status,
                 'snapshot' => $latest,
                 'snapshot_count' => $snapshots->count(),
-                'amount' => $latest?->data['summary']['billing_amount']
-                    ?? $latest?->data['summary']['total_amount_ex_tax']
+                'amount' => $summary['billing_amount']
+                    ?? $summary['total_amount_ex_tax']
                     ?? null,
-                'assigned_count' => $latest?->data['summary']['total_assigned'] ?? null,
+                'assigned_count' => $summary['total_assigned']
+                    ?? $summary['total_targets']
+                    ?? null,
             ];
         });
 

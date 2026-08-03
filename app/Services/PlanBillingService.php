@@ -9,6 +9,21 @@ use App\Models\MedicalInstitution;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
+/**
+ * Monthly plan-based billing (SPEC / 日本語仕様 4.3 + 経理処理の流れ).
+ *
+ * Two different “dates” — do not mix them:
+ * 1) Hospital 締め日 (billing_closing_day): monthly snapshot reference day (e.g. 1st).
+ * 2) Customer contract plan start_date / end_date: when that hospital–plan contract is in force.
+ *
+ * Each month Kamatani generates as-of the hospital 締め日:
+ * - Include only employed staff
+ * - With an active employee↔plan assignment on that day
+ * - Whose hospital customer-contract-plan is confirmed and within start/end on that day
+ * Official amount = assigned headcount × plan unit_price_ex_tax (matches client Excel 対象人数).
+ * 契約口数 (contract_count) is contracted capacity — shown as reference, not the invoice total
+ * unless the client later confirms otherwise (msg.txt wording).
+ */
 class PlanBillingService
 {
     /**
@@ -56,7 +71,7 @@ class PlanBillingService
             ->get();
 
         $staffRows = [];
-        $planAgg = []; // key: customer_contract_plan_id or plan_id
+        $planAgg = []; // key: customer_contract_plan_id
 
         foreach ($employees as $employee) {
             if (! $this->isEmployedAsOf($employee, $asOf)) {
@@ -82,8 +97,9 @@ class PlanBillingService
                 }
 
                 $unitPrice = (float) ($plan->unit_price_ex_tax ?? 0);
-                $contractCount = 1; // per assigned employed staff row
-                $amount = $contractCount * $unitPrice;
+                // One billing unit = one employed person assigned to this plan as of 基準日
+                $headcountUnit = 1;
+                $amount = $headcountUnit * $unitPrice;
 
                 $staffRows[] = [
                     'reference_date' => $asOfStr,
@@ -97,8 +113,10 @@ class PlanBillingService
                     'plan_name' => $plan->name,
                     'plan_code' => $plan->code,
                     'customer_contract_plan_id' => $ccp->id,
+                    'contract_start_date' => optional($ccp->start_date)->format('Y-m-d'),
+                    'contract_end_date' => optional($ccp->end_date)->format('Y-m-d'),
                     'contracted_slots' => (int) $ccp->contract_count,
-                    'contract_count' => $contractCount,
+                    'contract_count' => $headcountUnit, // SPEC output field: units billed for this staff row
                     'unit_price_ex_tax' => $unitPrice,
                     'amount_ex_tax' => $amount,
                     'job_type_label' => $plan->job_type_label,
@@ -115,6 +133,8 @@ class PlanBillingService
                         'job_type_label' => $plan->job_type_label,
                         'rentable_points' => $plan->rentable_points,
                         'work_style' => $plan->work_style,
+                        'contract_start_date' => optional($ccp->start_date)->format('Y-m-d'),
+                        'contract_end_date' => optional($ccp->end_date)->format('Y-m-d'),
                         'contracted_slots' => (int) $ccp->contract_count,
                         'assigned_count' => 0,
                         'unit_price_ex_tax' => $unitPrice,
@@ -128,7 +148,7 @@ class PlanBillingService
             }
         }
 
-        // Include confirmed plans with zero assignment (capacity still visible)
+        // Include confirmed plans active on as-of with zero assignment (capacity still visible)
         $confirmedCcps = CustomerContractPlan::query()
             ->with('contractPlan')
             ->where('medical_institution_id', $institution->id)
@@ -154,6 +174,8 @@ class PlanBillingService
                 'job_type_label' => $plan->job_type_label,
                 'rentable_points' => $plan->rentable_points,
                 'work_style' => $plan->work_style,
+                'contract_start_date' => optional($ccp->start_date)->format('Y-m-d'),
+                'contract_end_date' => optional($ccp->end_date)->format('Y-m-d'),
                 'contracted_slots' => $slots,
                 'assigned_count' => 0,
                 'unit_price_ex_tax' => $unitPrice,
@@ -173,6 +195,7 @@ class PlanBillingService
         return [
             'model' => 'plan_based',
             'reference_date' => $asOfStr,
+            'billing_month' => $asOf->format('Y-m'),
             'closing_day' => (int) ($institution->billing_closing_day ?: 1),
             'institution' => [
                 'id' => $institution->id,
@@ -181,13 +204,16 @@ class PlanBillingService
             ],
             'summary' => [
                 'billing_model' => 'plan_based',
-                // Official invoice total (SPEC as-of): assigned employed staff × unit_price_ex_tax
+                // Official invoice total: assigned employed staff × unit_price as of 基準日
                 'billing_basis' => 'assigned_employed_staff × unit_price（基準日時点・公式）',
+                'billing_basis_note' => '毎月、医療機関の締め日を基準日としてスナップショットします。顧客契約プランの終了日まで「一括請求」するのではなく、契約有効期間中の各月で割当在籍人数×単価を計算します。',
                 'total_targets' => $totalAssigned,
+                'total_assigned' => $totalAssigned,
                 'total_contract_slots' => $totalContractSlots,
                 'plan_count' => count($planSummary),
                 'billing_amount' => $totalAmount,
-                // Reference only (契約口数 × 単価) — not the official bill unless client confirms otherwise
+                'total_amount_ex_tax' => $totalAmount,
+                // Reference only (契約口数 × 単価)
                 'contract_capacity_amount' => $totalCapacityAmount,
                 'unit_price' => null,
                 'return_points' => 0,

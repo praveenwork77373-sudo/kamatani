@@ -155,7 +155,7 @@
         <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
             <h2 class="text-lg font-semibold text-slate-900">請求明細（契約プラン集計）</h2>
             <p class="text-[13px] text-slate-600 mt-1">基準日: {{ $data['reference_date'] ?? $snapshot->target_date?->format('Y-m-d') }}　／　締め日: {{ $data['closing_day'] ?? '-' }}日</p>
-            <p class="text-[12px] text-slate-500 mt-1">【公式】請求金額 = 対象人数（割当）× 単価。契約口数×単価は参考値です。</p>
+            <p class="text-[12px] text-slate-500 mt-1">【公式】請求金額 = 対象人数（基準日時点の割当在籍）× 単価。毎月の医療機関締め日で作成します（契約終了日までの一括請求ではありません）。契約口数×単価は参考値です。</p>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full text-[14px]">
@@ -163,6 +163,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left">プラン名</th>
                         <th class="px-4 py-3 text-left">コード</th>
+                        <th class="px-4 py-3 text-left">契約期間</th>
                         <th class="px-4 py-3 text-right">契約口数</th>
                         <th class="px-4 py-3 text-right">対象人数</th>
                         <th class="px-4 py-3 text-right">単価（税抜）</th>
@@ -175,6 +176,11 @@
                         <tr>
                             <td class="px-4 py-3">{{ $plan['plan_name'] }}</td>
                             <td class="px-4 py-3">{{ $plan['plan_code'] }}</td>
+                            <td class="px-4 py-3 text-[12px] text-slate-600">
+                                {{ $plan['contract_start_date'] ?? '—' }}
+                                〜
+                                {{ $plan['contract_end_date'] ?? '継続' }}
+                            </td>
                             <td class="px-4 py-3 text-right">{{ number_format($plan['contracted_slots'] ?? 0) }}</td>
                             <td class="px-4 py-3 text-right">{{ number_format($plan['assigned_count'] ?? 0) }}</td>
                             <td class="px-4 py-3 text-right">¥{{ number_format($plan['unit_price_ex_tax'] ?? 0) }}</td>
@@ -182,7 +188,7 @@
                             <td class="px-4 py-3 text-right text-slate-500">¥{{ number_format($plan['amount_by_contract_slots'] ?? 0) }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">プラン集計なし</td></tr>
+                        <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">プラン集計なし</td></tr>
                     @endforelse
                 </tbody>
             </table>
