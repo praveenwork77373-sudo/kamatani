@@ -38,6 +38,63 @@ class LoanInventoryService
             ->sum('quantity');
     }
 
+    public function hasActiveLoans(Employee $employee): bool
+    {
+        return EmployeeLoan::query()
+            ->where('employee_id', $employee->id)
+            ->where('status', 'in_use')
+            ->where('quantity', '>', 0)
+            ->exists();
+    }
+
+    /**
+     * Map uniform_product_id => held quantity for in_use loans.
+     *
+     * @return array<int, int>
+     */
+    public function activeLoanQuantitiesByProduct(int $employeeId): array
+    {
+        return EmployeeLoan::query()
+            ->where('employee_id', $employeeId)
+            ->where('status', 'in_use')
+            ->where('quantity', '>', 0)
+            ->pluck('quantity', 'uniform_product_id')
+            ->map(fn ($q) => (int) $q)
+            ->all();
+    }
+
+    /**
+     * Validate return/exchange-out lines against held loan quantities.
+     *
+     * @param  array<int, array{uniform_product_id?: mixed, quantity?: mixed}>  $returnItems
+     * @return string|null  Translation key for error, or null when valid
+     */
+    public function returnItemsValidationError(int $employeeId, array $returnItems): ?string
+    {
+        $held = $this->activeLoanQuantitiesByProduct($employeeId);
+        $requestedByProduct = [];
+
+        foreach ($returnItems as $item) {
+            $productId = (int) ($item['uniform_product_id'] ?? 0);
+            $qty = (int) ($item['quantity'] ?? 0);
+            if ($productId <= 0 || $qty <= 0) {
+                continue;
+            }
+            $requestedByProduct[$productId] = ($requestedByProduct[$productId] ?? 0) + $qty;
+        }
+
+        foreach ($requestedByProduct as $productId => $qty) {
+            if (! isset($held[$productId])) {
+                return 'pages.flash_bcd90f582a';
+            }
+            if ($qty > $held[$productId]) {
+                return 'pages.return_quantity_exceeds_loan';
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Filtered active-loan board for hospital / Kamatani.
      *

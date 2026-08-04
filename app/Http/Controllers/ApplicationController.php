@@ -641,30 +641,31 @@ class ApplicationController extends Controller
         }
 
         $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
-        if (! $eligibility->hasActivePlan($employee)) {
+        $loanInventory = app(\App\Services\LoanInventoryService::class);
+        $isReturnOnly = $data['type'] === 'return';
+
+        // Pure returns must work even after plan detach / before reassignment
+        if (! $isReturnOnly && ! $eligibility->hasActivePlan($employee)) {
             return redirect()->back()->withInput()->with('error', __('pages.flash_3b42393b1f'));
         }
 
-        $allowedProductIds = $eligibility->productIdsAllowed($employee);
-        foreach ($data['items'] as $item) {
-            if (! in_array((int) $item['uniform_product_id'], array_map('intval', $allowedProductIds), true)) {
-                return redirect()->back()->withInput()->with('error', __('pages.flash_7d5b9dface'));
+        if (! $isReturnOnly) {
+            $allowedProductIds = $eligibility->productIdsAllowed($employee);
+            foreach ($data['items'] as $item) {
+                if (! in_array((int) $item['uniform_product_id'], array_map('intval', $allowedProductIds), true)) {
+                    return redirect()->back()->withInput()->with('error', __('pages.flash_7d5b9dface'));
+                }
             }
         }
 
-        // 旧品（返却／異動変更）は当該職員の貸与中データと一致必須
+        // 旧品（返却／異動変更）は当該職員の貸与中データと数量一致必須
         if (in_array($data['type'], ['return', 'transfer', 'exchange', 'resize'], true)) {
-            $loanProductIds = EmployeeLoan::query()
-                ->where('employee_id', $employee->id)
-                ->where('status', 'in_use')
-                ->pluck('uniform_product_id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
-
-            foreach ($data['return_items'] as $item) {
-                if (! in_array((int) $item['uniform_product_id'], $loanProductIds, true)) {
-                    return redirect()->back()->withInput()->with('error', __('pages.flash_bcd90f582a'));
-                }
+            $returnError = $loanInventory->returnItemsValidationError(
+                (int) $employee->id,
+                $data['return_items'] ?? []
+            );
+            if ($returnError) {
+                return redirect()->back()->withInput()->with('error', __($returnError));
             }
         }
 
@@ -786,34 +787,39 @@ class ApplicationController extends Controller
 
         DB::transaction(function () use ($data, $request, $customer, $employees, $itemAction, $departmentId, &$createdCount, &$errors) {
             $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
+            $loanInventory = app(\App\Services\LoanInventoryService::class);
+            $isReturnOnly = $data['type'] === 'return';
 
             foreach ($employees as $employee) {
-                if (! $eligibility->hasActivePlan($employee)) {
+                if (! $isReturnOnly && ! $eligibility->hasActivePlan($employee)) {
                     $errors[] = "職員 {$employee->name} ({$employee->staff_no}): 有効な契約プランが未割当のためスキップしました。";
                     continue;
                 }
 
-                $allowedProductIds = array_map('intval', $eligibility->productIdsAllowed($employee));
-                foreach ($data['items'] as $item) {
-                    if (! in_array((int) $item['uniform_product_id'], $allowedProductIds, true)) {
-                        $errors[] = "職員 {$employee->name} ({$employee->staff_no}): 選択商品が契約プラン対象外のためスキップしました。";
-                        continue 2;
+                if (! $isReturnOnly) {
+                    $allowedProductIds = array_map('intval', $eligibility->productIdsAllowed($employee));
+                    foreach ($data['items'] as $item) {
+                        if (! in_array((int) $item['uniform_product_id'], $allowedProductIds, true)) {
+                            $errors[] = "職員 {$employee->name} ({$employee->staff_no}): 選択商品が契約プラン対象外のためスキップしました。";
+                            continue 2;
+                        }
                     }
                 }
 
                 if (in_array($data['type'], ['return', 'exchange', 'resize'], true) && ! empty($data['return_items'])) {
-                    $loanProductIds = EmployeeLoan::query()
-                        ->where('employee_id', $employee->id)
-                        ->where('status', 'in_use')
-                        ->pluck('uniform_product_id')
-                        ->map(fn ($id) => (int) $id)
-                        ->all();
-
+                    $held = $loanInventory->activeLoanQuantitiesByProduct((int) $employee->id);
                     $hasMatchingReturn = false;
+
                     foreach ($data['return_items'] as $item) {
-                        if (in_array((int) $item['uniform_product_id'], $loanProductIds, true)) {
-                            $hasMatchingReturn = true;
-                            break;
+                        $productId = (int) $item['uniform_product_id'];
+                        $qty = (int) $item['quantity'];
+                        if (! isset($held[$productId])) {
+                            continue;
+                        }
+                        $hasMatchingReturn = true;
+                        if ($qty > $held[$productId]) {
+                            $errors[] = "職員 {$employee->name} ({$employee->staff_no}): ".__('pages.return_quantity_exceeds_loan');
+                            continue 2;
                         }
                     }
 

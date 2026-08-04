@@ -335,6 +335,9 @@ class ApplicationApprovalController extends Controller
 
     private function applyLoanReturn(Application $application, $item): void
     {
+        $requested = (int) $item->quantity;
+        $restocked = 0;
+
         $loan = EmployeeLoan::lockForUpdate()
             ->where('employee_id', $application->employee_id)
             ->where('uniform_product_id', $item->uniform_product_id)
@@ -342,7 +345,10 @@ class ApplicationApprovalController extends Controller
             ->first();
 
         if ($loan) {
-            $loan->quantity = max(0, ($loan->quantity ?? 0) - $item->quantity);
+            $held = (int) ($loan->quantity ?? 0);
+            // Never restock more than the employee actually holds
+            $returned = min($requested, max(0, $held));
+            $loan->quantity = $held - $returned;
             if ($loan->quantity <= 0) {
                 $loan->quantity = 0;
                 $loan->status = 'returned';
@@ -350,11 +356,14 @@ class ApplicationApprovalController extends Controller
             }
             $loan->application_id = $application->id;
             $loan->save();
+            $restocked = $returned;
         }
 
-        $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
-        if ($product) {
-            $product->increment('stock_quantity', $item->quantity);
+        if ($restocked > 0) {
+            $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
+            if ($product) {
+                $product->increment('stock_quantity', $restocked);
+            }
         }
     }
 

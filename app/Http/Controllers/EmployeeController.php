@@ -11,6 +11,7 @@ use App\Models\EmployeePosition;
 use App\Models\JobType;
 use App\Models\MedicalInstitution;
 use App\Services\EmployeeStatusHistoryService;
+use App\Services\LoanInventoryService;
 use App\Support\MasterCodeGenerator;
 use App\Support\Pagination;
 use Illuminate\Http\RedirectResponse;
@@ -314,6 +315,19 @@ class EmployeeController extends Controller
         $widePlanIds = $data['customer_contract_plan_ids'] ?? [];
         unset($data['customer_contract_plan_ids'], $data['positions']);
 
+        // Retire / leave with open loans would orphan inventory — require return apps first
+        $newStatus = $data['status'] ?? $employee->status;
+        if (in_array($newStatus, ['retired', 'on_leave'], true)
+            && $newStatus !== $employee->status
+            && app(LoanInventoryService::class)->hasActiveLoans($employee)) {
+            $qty = app(LoanInventoryService::class)->activeLoanQuantityForEmployee($employee);
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', __('pages.employee_status_blocked_active_loans', ['count' => $qty]));
+        }
+
         DB::transaction(function () use ($data, $request, $employee, $customer, $widePlanIds) {
             $oldStatus = $employee->status;
             $employee->update($data);
@@ -605,6 +619,16 @@ class EmployeeController extends Controller
         if ($customer->role === 'department_admin' && $customer->department_id
             && ! $employee->isAffiliatedWithDepartment((int) $customer->department_id)) {
             abort(403);
+        }
+
+        // Hard delete cascades employee_loans without restocking — block while in use
+        $loanInventory = app(LoanInventoryService::class);
+        if ($loanInventory->hasActiveLoans($employee)) {
+            $qty = $loanInventory->activeLoanQuantityForEmployee($employee);
+
+            return redirect()
+                ->route('employees.show', $employee)
+                ->with('error', __('pages.employee_delete_blocked_active_loans', ['count' => $qty]));
         }
 
         $employee->delete();
