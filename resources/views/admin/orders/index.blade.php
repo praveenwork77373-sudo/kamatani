@@ -53,64 +53,63 @@
     </div>
 
     <div class="ui-card overflow-hidden">
-        <div class="ui-table-wrap">
-            <table class="ui-table">
-                <thead>
+    <div class="ui-table-wrap">
+        <table class="ui-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="orders-select-all" class="rounded"></th>
+                    <th>{{ __('pages.application_id_label') }}</th>
+                    <th>{{ __('pages.type_label') }}</th>
+                    <th class="hidden md:table-cell">{{ __('pages.institution_label') }}</th>
+                    <th>{{ __('pages.employee_label') }}</th>
+                    <th class="hidden sm:table-cell">{{ __('pages.accepted_at') }}</th>
+                    <th>{{ __('pages.status') }}</th>
+                    <th class="hidden lg:table-cell">{{ __('pages.documents_col') }}</th>
+                    <th class="ui-table__actions">{{ __('common.actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($applications as $app)
                     <tr>
-                        <th><input type="checkbox" id="orders-select-all" class="rounded"></th>
-                        <th>{{ __('pages.application_id_label') }}</th>
-                        <th>{{ __('pages.type_label') }}</th>
-                        <th class="hidden md:table-cell">{{ __('pages.institution_label') }}</th>
-                        <th>{{ __('pages.employee_label') }}</th>
-                        <th class="hidden sm:table-cell">{{ __('pages.accepted_at') }}</th>
-                        <th>{{ __('pages.status') }}</th>
-                        <th class="hidden lg:table-cell">{{ __('pages.documents_col') }}</th>
-                        <th class="ui-table__actions">{{ __('common.actions') }}</th>
+                        <td><input type="checkbox" name="application_ids[]" value="{{ $app->id }}" class="order-check rounded"></td>
+                        <td class="font-mono font-semibold">#APP-{{ str_pad($app->id, 4, '0', STR_PAD_LEFT) }}</td>
+                        <td>{{ __('pages.'.$app->type) === 'pages.'.$app->type ? $app->type : __('pages.'.$app->type) }}</td>
+                        <td class="hidden md:table-cell">{{ $app->medicalInstitution?->name }}</td>
+                        <td>
+                            <div class="font-medium">{{ $app->employee?->name }}</div>
+                            <div class="text-[11px] text-slate-500">{{ $app->employee?->staff_no }}</div>
+                        </td>
+                        <td class="hidden sm:table-cell whitespace-nowrap">{{ optional($app->accepted_at)->format('Y-m-d H:i') ?? '—' }}</td>
+                        <td>
+                            @php
+                                $pill = match($app->status) {
+                                    'in_progress', 'approved' => 'brand',
+                                    'completed' => 'success',
+                                    default => 'muted',
+                                };
+                            @endphp
+                            <span class="ui-status-pill ui-status-pill--{{ $pill }}">{{ $app->statusLabel() }}</span>
+                        </td>
+                        <td class="hidden lg:table-cell">{{ __('pages.documents_count', ['count' => $app->documents->count()]) }}</td>
+                        <td class="ui-table__actions">
+                            <div class="ui-table__actions-row">
+                                <x-table-action
+                                    :href="route('admin.applications.show', $app)"
+                                    icon="eye"
+                                    :label="__('pages.details')"
+                                />
+                            </div>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @forelse($applications as $app)
-                        <tr>
-                            <td><input type="checkbox" name="application_ids[]" value="{{ $app->id }}" class="order-check rounded"></td>
-                            <td class="font-mono font-semibold">#APP-{{ str_pad($app->id, 4, '0', STR_PAD_LEFT) }}</td>
-                            <td>{{ __('pages.'.$app->type) === 'pages.'.$app->type ? $app->type : __('pages.'.$app->type) }}</td>
-                            <td class="hidden md:table-cell">{{ $app->medicalInstitution?->name }}</td>
-                            <td>
-                                <div class="font-medium">{{ $app->employee?->name }}</div>
-                                <div class="text-[11px] text-slate-500">{{ $app->employee?->staff_no }}</div>
-                            </td>
-                            <td class="hidden sm:table-cell whitespace-nowrap">{{ optional($app->accepted_at)->format('Y-m-d H:i') ?? '—' }}</td>
-                            <td>
-                                @php
-                                    $pill = match($app->status) {
-                                        'in_progress', 'approved' => 'brand',
-                                        'completed' => 'success',
-                                        default => 'muted',
-                                    };
-                                @endphp
-                                <span class="ui-status-pill ui-status-pill--{{ $pill }}">{{ $app->statusLabel() }}</span>
-                            </td>
-                            <td class="hidden lg:table-cell">{{ __('pages.documents_count', ['count' => $app->documents->count()]) }}</td>
-                            <td class="ui-table__actions">
-                                <div class="ui-table__actions-row">
-                                    <x-table-action
-                                        :href="route('admin.applications.show', $app)"
-                                        icon="eye"
-                                        :label="__('pages.details')"
-                                    />
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="9" class="px-4 py-10 text-center text-slate-500">{{ __('pages.no_orders') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                @empty
+                    <tr><td colspan="9" class="px-4 py-10 text-center text-slate-500">{{ __('pages.no_orders') }}</td></tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
+    <x-table-pagination :paginator="$applications" />
+</div>
 </form>
-
-<div class="mt-4">{{ $applications->links() }}</div>
 
 @push('scripts')
 <script>

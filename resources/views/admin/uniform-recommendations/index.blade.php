@@ -91,6 +91,6 @@
             </tbody>
         </table>
     </div>
-    <div class="p-4">{{ $recommendations->links() }}</div>
+    <x-table-pagination :paginator="$recommendations" />
 </div>
 @endsection
