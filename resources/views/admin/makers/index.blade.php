@@ -4,12 +4,18 @@
 @section('page_title', 'メーカーマスタ')
 
 @section('content')
+@php
+    $adminRole = auth()->user()->adminUser->role ?? null;
+    $canWriteMasters = in_array($adminRole, ['system_admin', 'contract_plan_manager'], true);
+@endphp
 <div class="ui-page-header">
     <div>
         <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">メーカーマスタ</h1>
         <p class="text-[13px] text-slate-600 mt-1">商品に紐づけるメーカーを管理します</p>
     </div>
+    @if($canWriteMasters)
     <a href="{{ route('admin.makers.create') }}" class="ui-btn ui-btn-primary">新規登録</a>
+@endif
 </div>
 
 <div class="ui-card overflow-hidden">
@@ -38,7 +44,11 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">
+                            @if($canWriteMasters)
                             <a href="{{ route('admin.makers.edit', $maker) }}" class="text-primary-600 hover:underline font-medium">編集</a>
+                        @else
+                            <span class="text-slate-400 text-xs">閲覧のみ</span>
+                        @endif
                         </td>
                     </tr>
                 @empty

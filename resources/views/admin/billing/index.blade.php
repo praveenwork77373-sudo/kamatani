@@ -8,7 +8,7 @@
     $user = auth()->user();
     $admin = $user->adminUser ?? null;
     $adminRole = $admin->role ?? null;
-    $canManageBilling = in_array($adminRole, ['system_admin', 'operation', 'accounting'], true);
+    $canManageBilling = in_array($adminRole, ['system_admin', 'accounting'], true);
     $selectedInstitutionId = request('medical_institution_id');
     $billingMonth = $billingMonth ?? now()->format('Y-m');
     $statusFilter = $statusFilter ?? 'all';

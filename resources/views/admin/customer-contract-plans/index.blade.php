@@ -13,7 +13,13 @@
         <h1 class="text-2xl font-bold text-slate-900">顧客契約プラン</h1>
         <p class="text-sm text-slate-600 mt-1">医療機関ごとの契約プラン・契約数（仮登録／本登録）</p>
     </div>
+    @php
+        $ccpRole = auth()->user()->adminUser->role ?? null;
+        $canWriteCcp = in_array($ccpRole, ['system_admin', 'contract_plan_manager'], true);
+    @endphp
+    @if($canWriteCcp)
     <a href="{{ route('admin.customer-contract-plans.create') }}" class="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold">新規登録</a>
+    @endif
 </div>
 
 <form method="GET" class="mb-4 flex gap-2 items-end">
@@ -36,7 +42,7 @@
             <tr>
                 <th class="px-4 py-3 text-left">医療機関</th>
                 <th class="px-4 py-3 text-left">プラン</th>
-                <th class="px-4 py-3 text-right">契約数</th>
+                <th class="px-4 py-3 text-right">契約数（参考）</th>
                 <th class="px-4 py-3 text-left">期間</th>
                 <th class="px-4 py-3 text-left">状態</th>
                 <th class="px-4 py-3 text-right">操作</th>
@@ -64,13 +70,17 @@
                         @endif
                     </td>
                     <td class="px-4 py-3 text-right space-x-2">
-                        @if($row->status === 'draft')
-                            <form method="POST" action="{{ route('admin.customer-contract-plans.confirm', $row) }}" class="inline">
-                                @csrf
-                                <button class="text-emerald-600 hover:underline">本登録</button>
-                            </form>
+                        @if($canWriteCcp)
+                            @if($row->status === 'draft')
+                                <form method="POST" action="{{ route('admin.customer-contract-plans.confirm', $row) }}" class="inline">
+                                    @csrf
+                                    <button class="text-emerald-600 hover:underline">本登録</button>
+                                </form>
+                            @endif
+                            <a href="{{ route('admin.customer-contract-plans.edit', $row) }}" class="text-primary-600 hover:underline">編集</a>
+                        @else
+                            <span class="text-slate-400 text-xs">閲覧のみ</span>
                         @endif
-                        <a href="{{ route('admin.customer-contract-plans.edit', $row) }}" class="text-primary-600 hover:underline">編集</a>
                     </td>
                 </tr>
             @empty

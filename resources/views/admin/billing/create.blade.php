@@ -21,6 +21,7 @@
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
             <div class="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
                 <h2 class="text-lg font-bold text-slate-900">{{ __('pages.billing_generation_conditions') }}</h2>
+                <p class="text-[13px] text-slate-600 mt-1">{{ __('pages.billing_create_hint') }}</p>
             </div>
 
             <div class="p-6">
@@ -58,6 +59,7 @@
                         </label>
                         <input type="date" name="target_date" id="target-date" value="{{ old('target_date', $targetDate) }}" required
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
+                        <p class="text-[12px] text-slate-500 mt-1">{{ __('pages.billing_reference_date_hint') }}</p>
                         @error('target_date')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror

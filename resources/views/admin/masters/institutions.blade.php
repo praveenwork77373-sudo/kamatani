@@ -83,6 +83,11 @@
                                             送信履歴
                                         </a>
                                     @endif
+                                    <a href="{{ route('admin.customer-contract-plans.index', ['medical_institution_id' => $institution->id]) }}"
+                                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 text-[13px] font-medium transition-all">
+                                        <i data-lucide="file-signature" class="w-4 h-4"></i>
+                                        契約プラン
+                                    </a>
                                     <a href="{{ route('admin.masters.institutions.edit', $institution) }}"
                                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 text-[13px] font-medium transition-all">
                                         <i data-lucide="edit" class="w-4 h-4"></i>

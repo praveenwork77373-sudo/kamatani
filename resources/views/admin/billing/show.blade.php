@@ -30,6 +30,14 @@
 @endphp
 
 <div class="space-y-6 min-w-0 w-full">
+    <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-[13px] text-sky-900">
+        <p class="font-semibold">{{ __('pages.billing_how_it_works_title') }}</p>
+        <ul class="mt-1 list-disc pl-5 space-y-0.5 text-sky-800">
+            <li>{{ __('pages.billing_how_it_works_1') }}</li>
+            <li>{{ __('pages.billing_how_it_works_2') }}</li>
+        </ul>
+    </div>
+
     {{-- Header --}}
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="min-w-0">

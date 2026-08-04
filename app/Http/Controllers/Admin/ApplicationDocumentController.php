@@ -41,6 +41,37 @@ class ApplicationDocumentController extends Controller
         return back()->with('status', '帳票PDF（5種）を発行しました。');
     }
 
+    public function bulkIssue(Request $request, ApplicationPdfService $pdfs): RedirectResponse
+    {
+        $this->ensureApprover($request);
+
+        $data = $request->validate([
+            'application_ids' => ['required', 'array', 'min:1'],
+            'application_ids.*' => ['integer', 'exists:applications,id'],
+        ]);
+
+        $ok = 0;
+        $skipped = 0;
+        foreach ($data['application_ids'] as $id) {
+            $application = Application::find($id);
+            if (! $application || ! in_array($application->status, [
+                Application::STATUS_IN_PROGRESS,
+                Application::STATUS_COMPLETED,
+            ], true)) {
+                $skipped++;
+                continue;
+            }
+            try {
+                $pdfs->issueAll($application, $request->user());
+                $ok++;
+            } catch (\Throwable $e) {
+                $skipped++;
+            }
+        }
+
+        return back()->with('status', "一括帳票発行: {$ok}件成功".($skipped ? " / {$skipped}件スキップ" : ''));
+    }
+
     public function reissue(Request $request, Application $application, string $formType, ApplicationPdfService $pdfs): RedirectResponse
     {
         $this->ensureApprover($request);

@@ -125,7 +125,7 @@ class ApplicationPdfService
             'resize' => 'サイズ変更',
             'return' => '返却',
             'exchange' => '交換',
-            'transfer' => '移管',
+            'transfer' => '異動（部分変更）',
         ];
 
         return [

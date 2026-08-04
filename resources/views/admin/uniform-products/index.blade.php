@@ -68,10 +68,15 @@
             <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.uniform_product_list') }}</h1>
             <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.uniform_management_description') }}</p>
         </div>
-        <a href="{{ route('admin.uniform-products.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all">
-            <i class="ph ph-plus text-base"></i>
-            {{ __('pages.new_registration') }}
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('admin.uniform-products.export', request()->query()) }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
+                CSV出力
+            </a>
+            <a href="{{ route('admin.uniform-products.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all">
+                <i class="ph ph-plus text-base"></i>
+                {{ __('pages.new_registration') }}
+            </a>
+        </div>
     </div>
 
     {{-- Statistics Cards --}}

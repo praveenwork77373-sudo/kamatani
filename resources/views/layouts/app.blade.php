@@ -266,6 +266,7 @@
                             </div>
                             @php
                                 $pendingCount = \App\Models\Application::where('status', 'pending')
+                                    ->where('medical_institution_id', $customer->medical_institution_id)
                                     ->when($customer->role === 'department_admin' && $customer->department_id, function($q) use ($customer) {
                                         $q->where('department_id', $customer->department_id);
                                     })
@@ -356,7 +357,7 @@
                     @if(in_array($adminRole, ['system_admin', 'operation']))
                         {{-- Applications Section (Single Item - Direct Link) --}}
                         <a href="{{ route('admin.applications.index') }}"
-                           class="group flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/applications*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                           class="group flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/applications*') && !request()->is('admin/orders*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                             <div class="flex items-center gap-3">
                                 <div class="h-8 w-8 rounded-lg {{ request()->is('admin/applications*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
                                     <i data-lucide="clipboard-check" class="w-4 h-4"></i>
@@ -372,6 +373,13 @@
                                 </span>
                             @endif
                         </a>
+                        <a href="{{ route('admin.orders.index') }}"
+                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/orders*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/orders*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
+                                <i data-lucide="package-check" class="w-4 h-4"></i>
+                            </div>
+                            <span class="font-medium">受注一覧</span>
+                        </a>
                         
                         {{-- Products Section (Single Item - Direct Link) --}}
                         <a href="{{ route('admin.uniform-products.index') }}"
@@ -380,6 +388,13 @@
                                 <i data-lucide="shirt" class="w-4 h-4"></i>
                             </div>
                             <span class="font-medium">{{ __('menu.uniform_products') }}</span>
+                        </a>
+                        <a href="{{ route('admin.uniform-recommendations.index') }}"
+                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/uniform-recommendations*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/uniform-recommendations*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            </div>
+                            <span class="font-medium">推奨／指定ユニフォーム</span>
                         </a>
                     @endif
                     
@@ -479,8 +494,8 @@
                         </a>
                     @endif
 
-                    {{-- Contract Plan masters --}}
-                    @if(in_array($adminRole, ['system_admin', 'contract_plan_manager', 'operation']))
+                    {{-- Contract Plan masters (write roles only in nav; sales has CCP link above) --}}
+                    @if(in_array($adminRole, ['system_admin', 'contract_plan_manager']))
                         <a href="{{ route('admin.makers.index') }}"
                            class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/makers*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                             <div class="h-8 w-8 rounded-lg {{ request()->is('admin/makers*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
@@ -518,19 +533,8 @@
                         </a>
                     @endif
                     
-                    {{-- Billing (plan-based) — System Admin, Operations --}}
-                    @if(in_array($adminRole, ['system_admin', 'operation']))
-                        <a href="{{ route('admin.billing.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/billing*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/billing*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="receipt-text" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.billing') }}</span>
-                        </a>
-                    @endif
-                    
-                    {{-- Accounting: Billing Only (Single Item - Direct Link) --}}
-                    @if($adminRole === 'accounting')
+                    {{-- Billing (plan-based) — System Admin, Operations (view), Accounting --}}
+                    @if(in_array($adminRole, ['system_admin', 'operation', 'accounting', 'sales']))
                         <a href="{{ route('admin.billing.index') }}"
                            class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/billing*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                             <div class="h-8 w-8 rounded-lg {{ request()->is('admin/billing*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">

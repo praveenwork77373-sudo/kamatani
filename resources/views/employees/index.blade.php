@@ -147,9 +147,24 @@
                                         </div>
                                     </td>
                                     <td class="px-5 py-4 text-slate-700">
-                                        <div class="flex items-center gap-2">
-                                            <i data-lucide="briefcase" class="w-4 h-4 text-slate-400"></i>
-                                            <span>{{ $employee->primaryDepartment->name ?? '-' }}</span>
+                                        <div class="flex items-start gap-2">
+                                            <i data-lucide="briefcase" class="w-4 h-4 text-slate-400 mt-0.5 shrink-0"></i>
+                                            <span class="text-[13px]">
+                                                @php
+                                                    $primary = $employee->primaryDepartment?->name;
+                                                    $others = collect($employee->affiliationDepartmentNames())
+                                                        ->reject(fn ($n) => $n === $primary)
+                                                        ->values();
+                                                @endphp
+                                                @if($primary)
+                                                    <span class="font-medium">主: {{ $primary }}</span>
+                                                    @if($others->isNotEmpty())
+                                                        <span class="text-slate-500"> · 兼務: {{ $others->implode('、') }}</span>
+                                                    @endif
+                                                @else
+                                                    {{ $others->isNotEmpty() ? $others->implode(' / ') : '-' }}
+                                                @endif
+                                            </span>
                                         </div>
                                     </td>
                                     <td class="px-5 py-4">

@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\CustomerContractPlan;
 use App\Models\Department;
 use App\Models\Employee;
-use App\Models\EmployeeContractPlan;
 use App\Models\MedicalInstitution;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,9 +40,9 @@ class EmployeeManagementController extends Controller
             $baseQuery->where('medical_institution_id', $institutionId);
         }
 
-        // Filter by department
+        // Filter by department (primary or concurrent)
         if ($departmentId = $request->input('department_id')) {
-            $baseQuery->where('primary_department_id', $departmentId);
+            $baseQuery->inDepartment((int) $departmentId);
         }
 
         // Search
@@ -71,7 +69,7 @@ class EmployeeManagementController extends Controller
             $statsQuery->where('medical_institution_id', $institutionId);
         }
         if ($departmentId) {
-            $statsQuery->where('primary_department_id', $departmentId);
+            $statsQuery->inDepartment((int) $departmentId);
         }
 
         $totalEmployees = (clone $statsQuery)->count();
@@ -141,7 +139,7 @@ class EmployeeManagementController extends Controller
         $query = Employee::where('medical_institution_id', $institutionId);
 
         if ($departmentId = $request->input('department_id')) {
-            $query->where('primary_department_id', $departmentId);
+            $query->inDepartment((int) $departmentId);
         }
 
         if ($status = $request->input('status')) {
@@ -157,6 +155,8 @@ class EmployeeManagementController extends Controller
 
         $employees = $query->with([
             'primaryDepartment',
+            'positions.department',
+            'positions.jobType',
             'contractPlanAssignments.customerContractPlan.contractPlan',
         ])->orderBy('staff_no')->get();
 
@@ -169,38 +169,10 @@ class EmployeeManagementController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function () use ($employees) {
+        $csv = app(\App\Services\EmployeeCsvService::class);
+        $callback = function () use ($employees, $csv) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            fputcsv($file, [
-                '職員番号', '氏名', '性別', '上衣サイズ', 'ズボンサイズ', '靴サイズ',
-                '股下cm', '体型', '部署', '入職日', '退職日', '状態', '契約プランコード',
-            ]);
-            $today = now()->toDateString();
-            foreach ($employees as $emp) {
-                $planCodes = $emp->contractPlanAssignments
-                    ->filter(fn ($a) => $a->isActiveOn($today))
-                    ->map(fn ($a) => $a->customerContractPlan?->contractPlan?->code)
-                    ->filter()
-                    ->unique()
-                    ->implode(',');
-
-                fputcsv($file, [
-                    $emp->staff_no,
-                    $emp->name,
-                    $emp->gender === 'male' ? '男性' : ($emp->gender === 'female' ? '女性' : 'その他'),
-                    $emp->top_size ?? '',
-                    $emp->bottom_size ?? '',
-                    $emp->shoe_size ?? '',
-                    $emp->inseam_cm ?? '',
-                    $emp->body_type ?? '',
-                    $emp->primaryDepartment?->name ?? '',
-                    optional($emp->join_date)->format('Y-m-d') ?? '',
-                    optional($emp->retire_date)->format('Y-m-d') ?? '',
-                    $emp->status === 'employed' ? '在籍' : ($emp->status === 'on_leave' ? '休職' : '退職'),
-                    $planCodes,
-                ]);
-            }
+            $csv->writeExport($file, $employees);
             fclose($file);
         };
 
@@ -222,114 +194,19 @@ class EmployeeManagementController extends Controller
         $file = $request->file('csv_file');
         $path = $file->getRealPath();
         $rows = array_map('str_getcsv', file($path));
-
         $header = array_shift($rows) ?? [];
-        $headerJoined = implode(',', $header);
-        $isNewFormat = str_contains($headerJoined, '股下') || str_contains($headerJoined, '契約プラン');
 
         DB::beginTransaction();
         try {
-            $imported = 0;
-            $updated = 0;
-            $errors = [];
-
-            foreach ($rows as $index => $row) {
-                if (count($row) < 3) {
-                    continue;
-                }
-
-                $staffNo = trim($row[0] ?? '');
-                $name = trim($row[1] ?? '');
-                if ($staffNo === '' || $name === '') {
-                    continue;
-                }
-
-                $gender = null;
-                if (isset($row[2])) {
-                    $g = trim($row[2]);
-                    if (str_contains($g, '男')) {
-                        $gender = 'male';
-                    } elseif (str_contains($g, '女')) {
-                        $gender = 'female';
-                    }
-                }
-
-                $employee = Employee::where('staff_no', $staffNo)
-                    ->where('medical_institution_id', $institutionId)
-                    ->first();
-
-                if ($isNewFormat) {
-                    $deptName = trim($row[8] ?? '');
-                    $statusRaw = trim($row[11] ?? '');
-                    $status = str_contains($statusRaw, '退職') ? 'retired'
-                        : (str_contains($statusRaw, '休職') ? 'on_leave' : 'employed');
-                    $empData = [
-                        'staff_no' => $staffNo,
-                        'name' => $name,
-                        'gender' => $gender,
-                        'top_size' => trim($row[3] ?? '') ?: null,
-                        'bottom_size' => trim($row[4] ?? '') ?: null,
-                        'shoe_size' => trim($row[5] ?? '') ?: null,
-                        'inseam_cm' => is_numeric(trim($row[6] ?? '')) ? (int) trim($row[6]) : null,
-                        'body_type' => trim($row[7] ?? '') ?: null,
-                        'join_date' => trim($row[9] ?? '') ?: null,
-                        'retire_date' => trim($row[10] ?? '') ?: null,
-                        'status' => $status,
-                        'medical_institution_id' => $institutionId,
-                    ];
-                    $planCodesRaw = trim($row[12] ?? '');
-                } else {
-                    $deptName = trim($row[6] ?? '');
-                    $statusRaw = trim($row[7] ?? '');
-                    $empData = [
-                        'staff_no' => $staffNo,
-                        'name' => $name,
-                        'gender' => $gender,
-                        'top_size' => trim($row[3] ?? '') ?: null,
-                        'bottom_size' => trim($row[4] ?? '') ?: null,
-                        'shoe_size' => trim($row[5] ?? '') ?: null,
-                        'status' => str_contains($statusRaw, '退職') ? 'retired' : 'employed',
-                        'medical_institution_id' => $institutionId,
-                    ];
-                    $planCodesRaw = '';
-                }
-
-                if ($deptName !== '') {
-                    $dept = Department::where('name', $deptName)
-                        ->where('medical_institution_id', $institutionId)
-                        ->first();
-                    if ($dept) {
-                        $empData['primary_department_id'] = $dept->id;
-                    }
-                }
-
-                if ($employee) {
-                    $employee->update($empData);
-                    $updated++;
-                } else {
-                    if (empty($empData['primary_department_id'] ?? null)) {
-                        $errors[] = '行'.($index + 2).": 部署が判定できないためスキップしました（職員番号: {$staffNo}）";
-                        continue;
-                    }
-                    $employee = Employee::create($empData);
-                    $imported++;
-                }
-
-                if ($isNewFormat && $employee) {
-                    $planIds = [];
-                    if ($planCodesRaw !== '') {
-                        $codes = array_filter(array_map('trim', explode(',', $planCodesRaw)));
-                        if (! empty($codes)) {
-                            $planIds = CustomerContractPlan::where('medical_institution_id', $institutionId)
-                                ->where('status', 'confirmed')
-                                ->whereHas('contractPlan', fn ($q) => $q->whereIn('code', $codes))
-                                ->pluck('id')
-                                ->all();
-                        }
-                    }
-                    $this->syncEmployeeWidePlans($employee, $planIds, $institutionId);
-                }
-            }
+            $result = app(\App\Services\EmployeeCsvService::class)->importRows(
+                $header,
+                $rows,
+                $institutionId,
+                null
+            );
+            $imported = $result['imported'];
+            $updated = $result['updated'];
+            $errors = $result['errors'];
 
             DB::commit();
 
@@ -348,54 +225,6 @@ class EmployeeManagementController extends Controller
             return redirect()
                 ->route('admin.employees.index', ['medical_institution_id' => $institutionId])
                 ->with('error', 'CSVインポート中にエラーが発生しました: '.$e->getMessage());
-        }
-    }
-
-    /**
-     * Replace employee-wide (null position) plan assignments; keep position-linked.
-     *
-     * @param  array<int, int>  $planIds
-     */
-    private function syncEmployeeWidePlans(Employee $employee, array $planIds, int $institutionId): void
-    {
-        $validIds = CustomerContractPlan::where('medical_institution_id', $institutionId)
-            ->where('status', 'confirmed')
-            ->whereIn('id', $planIds)
-            ->pluck('id')
-            ->all();
-
-        $today = now()->toDateString();
-        $yesterday = now()->subDay()->toDateString();
-
-        $activeWide = $employee->contractPlanAssignments()
-            ->whereNull('employee_position_id')
-            ->where(function ($q) use ($today) {
-                $q->whereNull('assigned_until')
-                    ->orWhere('assigned_until', '>=', $today);
-            })
-            ->get();
-
-        foreach ($activeWide as $assignment) {
-            if (! in_array((int) $assignment->customer_contract_plan_id, $validIds, true)) {
-                $assignment->update(['assigned_until' => $yesterday]);
-            }
-        }
-
-        foreach ($validIds as $ccpId) {
-            $hasActive = $activeWide->contains(
-                fn (EmployeeContractPlan $a) => (int) $a->customer_contract_plan_id === (int) $ccpId
-                    && $a->isActiveOn($today)
-            );
-
-            if (! $hasActive) {
-                EmployeeContractPlan::create([
-                    'employee_id' => $employee->id,
-                    'customer_contract_plan_id' => $ccpId,
-                    'employee_position_id' => null,
-                    'assigned_from' => $today,
-                    'assigned_until' => null,
-                ]);
-            }
         }
     }
 }

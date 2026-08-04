@@ -18,7 +18,7 @@ class BillingController extends Controller
     private function checkManagePermission(): void
     {
         $admin = request()->user()->adminUser ?? null;
-        if (! $admin || ! in_array($admin->role, ['system_admin', 'operation', 'accounting'], true)) {
+        if (! $admin || ! in_array($admin->role, ['system_admin', 'accounting'], true)) {
             abort(403, '請求データの管理権限がありません。');
         }
     }

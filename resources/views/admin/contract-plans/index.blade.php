@@ -4,6 +4,10 @@
 @section('page_title', '契約プランマスタ')
 
 @section('content')
+@php
+    $adminRole = auth()->user()->adminUser->role ?? null;
+    $canWriteMasters = in_array($adminRole, ['system_admin', 'contract_plan_manager'], true);
+@endphp
 @if(session('status'))
     <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-sm">{{ session('status') }}</div>
 @endif
@@ -13,7 +17,9 @@
         <h1 class="text-2xl font-bold text-slate-900">契約プランマスタ</h1>
         <p class="text-sm text-slate-600 mt-1">貸与枚数・単価・適用可能商品を定義します</p>
     </div>
+    @if($canWriteMasters)
     <a href="{{ route('admin.contract-plans.create') }}" class="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold">新規登録</a>
+@endif
 </div>
 
 <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -40,7 +46,11 @@
                     <td class="px-4 py-3">{{ $plan->is_active ? '有効' : '無効' }}</td>
                     <td class="px-4 py-3 text-right space-x-2">
                         <a href="{{ route('admin.contract-plans.show', $plan) }}" class="text-slate-600 hover:underline">詳細</a>
-                        <a href="{{ route('admin.contract-plans.edit', $plan) }}" class="text-primary-600 hover:underline">編集</a>
+                        @if($canWriteMasters)
+                            <a href="{{ route('admin.contract-plans.edit', $plan) }}" class="text-primary-600 hover:underline">編集</a>
+                        @else
+                            <span class="text-slate-400 text-xs">閲覧のみ</span>
+                        @endif
                     </td>
                 </tr>
             @empty

@@ -166,6 +166,7 @@ class AdminUserController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'in:system_admin,operation,sales,accounting,contract_plan_manager'],
+            'receives_app_notifications' => ['nullable', 'boolean'],
         ]);
 
         // password は User の hashed キャストに任せる（二重ハッシュ防止）
@@ -179,6 +180,7 @@ class AdminUserController extends Controller
         AdminUser::create([
             'user_id' => $user->id,
             'role' => $data['role'],
+            'receives_app_notifications' => $request->boolean('receives_app_notifications', true),
         ]);
 
         return redirect()->route('admin.admin-users.index')
@@ -210,6 +212,7 @@ class AdminUserController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($adminUser->user_id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'in:system_admin,operation,sales,accounting,contract_plan_manager'],
+            'receives_app_notifications' => ['nullable', 'boolean'],
         ]);
 
         $this->assertRoleChangeAllowed($adminUser, $data['role']);
@@ -233,6 +236,7 @@ class AdminUserController extends Controller
 
         $adminUser->update([
             'role' => $data['role'],
+            'receives_app_notifications' => $request->boolean('receives_app_notifications'),
         ]);
 
         return redirect()->route('admin.admin-users.index')

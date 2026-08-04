@@ -90,7 +90,7 @@ class DashboardController extends Controller
             // Employee stats
             $employeeQuery = Employee::where('medical_institution_id', $customer->medical_institution_id);
             if ($customer->role === 'department_admin' && $customer->department_id) {
-                $employeeQuery->where('primary_department_id', $customer->department_id);
+                $employeeQuery->inDepartment((int) $customer->department_id);
             }
             
             $totalEmployees = $employeeQuery->count();
@@ -103,7 +103,7 @@ class DashboardController extends Controller
             $activeLoans = EmployeeLoan::whereHas('employee', function($q) use ($customer) {
                 $q->where('medical_institution_id', $customer->medical_institution_id);
                 if ($customer->role === 'department_admin' && $customer->department_id) {
-                    $q->where('primary_department_id', $customer->department_id);
+                    $q->inDepartment((int) $customer->department_id);
                 }
             })
             ->where('status', 'in_use')
@@ -112,7 +112,7 @@ class DashboardController extends Controller
             $loansThisMonth = EmployeeLoan::whereHas('employee', function($q) use ($customer) {
                 $q->where('medical_institution_id', $customer->medical_institution_id);
                 if ($customer->role === 'department_admin' && $customer->department_id) {
-                    $q->where('primary_department_id', $customer->department_id);
+                    $q->inDepartment((int) $customer->department_id);
                 }
             })
             ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
@@ -181,13 +181,14 @@ class DashboardController extends Controller
                 ->get()
                 ->map(function($dept) {
                     $deptLoans = EmployeeLoan::whereHas('employee', function($q) use ($dept) {
-                        $q->where('primary_department_id', $dept->id)
+                        $q->inDepartment((int) $dept->id)
                           ->where('status', 'employed');
                     })
                     ->where('status', 'in_use')
                     ->sum('quantity');
 
-                    $deptEmployeeIds = Employee::where('primary_department_id', $dept->id)
+                    $deptEmployeeIds = Employee::query()
+                        ->inDepartment((int) $dept->id)
                         ->where('status', 'employed')
                         ->pluck('id');
                     $deptLimit = EmployeeContractPlan::query()
@@ -203,7 +204,7 @@ class DashboardController extends Controller
                     return [
                         'id' => $dept->id,
                         'name' => $dept->name,
-                        'employees_count' => $dept->employees_count,
+                        'employees_count' => Employee::query()->inDepartment((int) $dept->id)->where('status', 'employed')->count(),
                         'loans' => $deptLoans,
                         'limit' => $deptLimit,
                         'utilization' => $utilization,

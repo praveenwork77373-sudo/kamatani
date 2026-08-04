@@ -24,7 +24,7 @@
 
     <form method="POST" action="{{ route('applications.store') }}" id="application-form">
         @csrf
-        <input type="hidden" name="application_mode" id="application-mode" value="{{ old('application_mode', 'individual') }}">
+        <input type="hidden" name="application_mode" id="application-mode" value="{{ old('application_mode', request('mode', 'individual')) }}">
         <input type="hidden" name="employee_id" id="selected-employee-id" value="{{ old('employee_id') }}">
 
         {{-- Header --}}
@@ -73,6 +73,7 @@
                                 <option value="transfer" @selected(old('type')==='transfer')>{{ __('pages.transfer') }}</option>
                             </select>
                         </div>
+                        <p id="application-type-hint" class="text-[12px] text-slate-500 mt-1">{{ __('pages.application_type_hint') }}</p>
                         @error('type')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror
@@ -85,13 +86,13 @@
                             {{ __('pages.application_category') }}
                         </label>
                         <div class="flex gap-4">
-                            <label class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all application-category-option {{ old('application_mode', 'individual') === 'individual' ? 'border-primary-500 bg-primary-50' : 'border-slate-300 bg-white' }}" data-category="individual">
-                                <input type="radio" name="application_mode_radio" value="individual" {{ old('application_mode', 'individual') === 'individual' ? 'checked' : '' }} class="text-primary-600">
+                            <label class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all application-category-option {{ old('application_mode', request('mode', 'individual')) === 'individual' ? 'border-primary-500 bg-primary-50' : 'border-slate-300 bg-white' }}" data-category="individual">
+                                <input type="radio" name="application_mode_radio" value="individual" {{ old('application_mode', request('mode', 'individual')) === 'individual' ? 'checked' : '' }} class="text-primary-600">
                                 <i data-lucide="user" class="w-4 h-4 text-primary-600"></i>
                                 <span class="text-[14px] font-medium text-slate-900">{{ __('pages.individual_label') }}</span>
                             </label>
-                            <label class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all application-category-option {{ old('application_mode') === 'departmental' ? 'border-primary-500 bg-primary-50' : 'border-slate-300 bg-white' }}" data-category="departmental">
-                                <input type="radio" name="application_mode_radio" value="departmental" {{ old('application_mode') === 'departmental' ? 'checked' : '' }} class="text-primary-600">
+                            <label class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all application-category-option {{ old('application_mode', request('mode')) === 'departmental' ? 'border-primary-500 bg-primary-50' : 'border-slate-300 bg-white' }}" data-category="departmental">
+                                <input type="radio" name="application_mode_radio" value="departmental" {{ old('application_mode', request('mode')) === 'departmental' ? 'checked' : '' }} class="text-primary-600">
                                 <i data-lucide="users" class="w-4 h-4 text-primary-600"></i>
                                 <span class="text-[14px] font-medium text-slate-900">{{ __('pages.department_batch') }}</span>
                             </label>
@@ -115,7 +116,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <p class="text-[12px] text-slate-500 mt-1">個別申請では職員の主部署が使われます（絞り込み用）。部署一括では必須です。</p>
+                        <p class="text-[12px] text-slate-500 mt-1">個別申請では職員の主部署／兼務の絞り込みに使います。部署一括では必須です。</p>
                         
                         {{-- Department Employees List (for departmental mode) --}}
                         <div id="department-employees-list" class="mt-4 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg border border-slate-200 hidden">
@@ -162,7 +163,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <input type="hidden" id="selected-employee-id" name="employee_id">
                         </div>
                         
                         {{-- Selected Employee Card --}}
@@ -218,28 +218,8 @@
                         @enderror
                     </div>
 
-                    {{-- 移管先職員 --}}
-                    <div id="transfer-target-field" class="hidden">
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
-                            <i data-lucide="user-round-plus" class="w-4 h-4 text-slate-500"></i>
-                            移管先職員 <span class="text-red-500">*</span>
-                        </label>
-                        <select name="transfer_to_employee_id" id="transfer-to-employee-select"
-                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm">
-                            <option value="">選択してください</option>
-                            @foreach($employees as $emp)
-                                <option value="{{ $emp->id }}" @selected(old('transfer_to_employee_id')==$emp->id)>
-                                    {{ $emp->staff_no }} — {{ $emp->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <p class="text-[12px] text-slate-500 mt-1.5">貸与品を受け取る職員を指定します。</p>
-                        @error('transfer_to_employee_id')
-                            <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
-                        @enderror
-                    </div>
 
-                    {{-- 現在の貸与（返却・交換・移管用） --}}
+                    {{-- 現在の貸与（返却・交換・異動用） --}}
                     <div id="current-loans-panel" class="hidden">
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
                             <i data-lucide="package-minus" class="w-4 h-4 text-amber-600"></i>
@@ -272,7 +252,7 @@
                         </label>
                         <input type="date" name="end_date" id="end-date-input" value="{{ old('end_date') }}"
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm">
-                        <p class="text-[12px] text-slate-500 mt-1">返却・移管では任意（未入力時は開始日と同じ扱いになります）</p>
+                        <p class="text-[12px] text-slate-500 mt-1">返却では任意（未入力時は開始日と同じ）。新規貸与・交換・サイズ変更・異動では必須です。</p>
                         @error('end_date')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror
@@ -303,12 +283,12 @@
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-[14px] font-semibold text-slate-700 flex items-center gap-2">
                                 <i data-lucide="shield-check" class="w-4 h-4 text-primary-600"></i>
-                                プラン貸与上限
+                                プラン貸与ポイント上限
                             </span>
                             <span class="text-[14px] text-slate-600">
                                 <span id="selected-items-count">0</span>{{ __('pages.items') }} / 
                                 <span id="contract-limit">—</span>{{ __('pages.items') }}
-                                <span class="text-[12px] text-slate-500">（職員選択でプラン上限に更新）</span>
+                                <span class="text-[12px] text-slate-500">（職員選択で更新・契約口数とは別）</span>
                             </span>
                         </div>
                         <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden shadow-inner">
@@ -344,7 +324,7 @@
                         <button type="button" id="open-special-approval-modal" 
                                 class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all text-[14px] font-medium">
                             <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-                            {{ __('pages.special_approval_reason') }} ({{ __('pages.optional') }})
+                            {{ __('pages.special_approval_reason') }} <span id="special-approval-optional-label">({{ __('pages.optional') }})</span>
                         </button>
                         <input type="hidden" id="special_approval_reason" name="special_approval_reason" value="{{ old('special_approval_reason') }}">
                         @error('special_approval_reason')
@@ -396,7 +376,7 @@
                         <i data-lucide="shopping-cart" class="w-5 h-5 text-primary-600"></i>
                         {{ __('pages.product_selection') }}
                     </h2>
-                    <p class="text-[13px] text-slate-600 mt-1">申請情報の入力後、対象ユニフォームを選択してください。</p>
+                    <p class="text-[13px] text-slate-600 mt-1">申請情報の入力後、契約プラン対象のユニフォームを選択してください。</p>
                 </div>
 
                 <div class="p-6">
@@ -477,9 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const returnItemsHidden = document.getElementById('return-items-hidden');
     const currentLoansPanel = document.getElementById('current-loans-panel');
     const currentLoansList = document.getElementById('current-loans-list');
-    const transferTargetField = document.getElementById('transfer-target-field');
     const applicationTypeSelect = document.getElementById('application-type-select');
-    const transferToSelect = document.getElementById('transfer-to-employee-select');
     let currentCategory = document.querySelector('.category-tab.active')?.dataset.category
         || document.querySelector('.category-tab')?.dataset.category
         || '';
@@ -736,6 +714,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Dashboard deep-link ?mode= (after listeners attached)
+    (function applyUrlMode() {
+        const urlMode = new URLSearchParams(window.location.search).get('mode');
+        if (urlMode !== 'departmental' && urlMode !== 'individual') return;
+        const modeOpt = document.querySelector('.application-category-option[data-category="' + urlMode + '"]');
+        if (!modeOpt) return;
+        const modeRadio = modeOpt.querySelector('input[type="radio"]');
+        if (modeRadio) modeRadio.checked = true;
+        modeOpt.click();
+    })();
+
 
     // Department selection handler
     departmentSelect?.addEventListener('change', async function() {
@@ -2225,6 +2215,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (specialApprovalButtonContainer) {
                 specialApprovalButtonContainer.classList.remove('hidden');
             }
+            const saOpt = document.getElementById('special-approval-optional-label');
+            if (saOpt) {
+                saOpt.textContent = '({{ __('pages.required') }})';
+                saOpt.classList.add('text-amber-800', 'font-semibold');
+            }
             if (total > contractLimit) {
                 contractLimitText.textContent = '{{ __('pages.contract_limit_reached') }}';
                 contractLimitText.classList.remove('text-slate-500');
@@ -2254,6 +2249,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             if (specialApprovalButtonContainer) {
                 specialApprovalButtonContainer.classList.add('hidden');
+            }
+            const saOptOff = document.getElementById('special-approval-optional-label');
+            if (saOptOff) {
+                saOptOff.textContent = '({{ __('pages.optional') }})';
+                saOptOff.classList.remove('text-amber-800', 'font-semibold');
             }
             const specialApprovalReason = document.getElementById('special_approval_reason');
             if (specialApprovalReason) {
@@ -2311,40 +2311,23 @@ document.addEventListener('DOMContentLoaded', () => {
             returnItemsHidden.innerHTML = '';
             let rIndex = 0;
 
-            // Transfer: selected loans become items[] (transfer_change), not return_items
-            if (appType === 'transfer') {
-                const existingItemInputs = selectedItemsContainer.querySelectorAll('input[name^="items["]');
-                if (existingItemInputs.length === 0) {
-                    let tIndex = 0;
-                    returnItems.forEach((item, productId) => {
-                        if (item.quantity > 0) {
-                            selectedItemsContainer.innerHTML += `
-                                <input type="hidden" name="items[${tIndex}][uniform_product_id]" value="${productId}">
-                                <input type="hidden" name="items[${tIndex}][quantity]" value="${item.quantity}">
-                            `;
-                            tIndex++;
-                        }
-                    });
+            // Same-employee change types: selected loans -> return_items[]
+            returnItems.forEach((item, productId) => {
+                if (item.quantity > 0) {
+                    returnItemsHidden.innerHTML += `
+                        <input type="hidden" name="return_items[${rIndex}][uniform_product_id]" value="${productId}">
+                        <input type="hidden" name="return_items[${rIndex}][quantity]" value="${item.quantity}">
+                    `;
+                    rIndex++;
                 }
-            } else {
-                returnItems.forEach((item, productId) => {
-                    if (item.quantity > 0) {
-                        returnItemsHidden.innerHTML += `
-                            <input type="hidden" name="return_items[${rIndex}][uniform_product_id]" value="${productId}">
-                            <input type="hidden" name="return_items[${rIndex}][quantity]" value="${item.quantity}">
-                        `;
-                        rIndex++;
-                    }
-                });
-            }
+            });
         }
     }
 
     function syncTypeDependentUi() {
         const type = applicationTypeSelect?.value || '';
         const needsLoans = ['return', 'exchange', 'resize', 'transfer'].includes(type);
-        const needsTransfer = type === 'transfer';
-        const needsEndDate = ['new_loan', 'exchange', 'resize'].includes(type);
+        const needsEndDate = ['new_loan', 'exchange', 'resize', 'transfer'].includes(type);
 
         const endDateInput = document.getElementById('end-date-input');
         const endDateMark = document.getElementById('end-date-required-mark');
@@ -2358,17 +2341,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentLoansPanel) {
             currentLoansPanel.classList.toggle('hidden', !needsLoans);
         }
-        if (transferTargetField) {
-            transferTargetField.classList.toggle('hidden', !needsTransfer);
-            if (transferToSelect) {
-                transferToSelect.required = needsTransfer;
-            }
+
+        const loansTitle = document.getElementById('current-loans-title');
+        if (loansTitle) {
+            if (type === 'transfer') loansTitle.textContent = @json(__('pages.transfer_old_items_title'));
+            else if (type === 'return') loansTitle.textContent = @json(__('pages.return_items_title'));
+            else if (type === 'resize') loansTitle.textContent = @json(__('pages.resize_items_title'));
+            else loansTitle.textContent = @json(__('pages.exchange_items_title'));
         }
-        const title = document.getElementById('current-loans-title');
-        if (title) {
-            if (type === 'transfer') title.textContent = '移管する貸与品';
-            else if (type === 'return') title.textContent = '返却する貸与品';
-            else title.textContent = '旧品（返却する貸与品）';
+        const typeHintEl = document.getElementById('application-type-hint');
+        if (typeHintEl) {
+            const hints = {
+                new_loan: @json(__('pages.new_loan_hint')),
+                resize: @json(__('pages.resize_hint')),
+                exchange: @json(__('pages.exchange_hint')),
+                return: @json(__('pages.return_hint')),
+                transfer: @json(__('pages.transfer_hint')),
+            };
+            typeHintEl.textContent = hints[type] || @json(__('pages.application_type_hint'));
         }
 
         // 移管時はカート＝移管対象。返却時はカート非表示寄りだが既存UIを維持し return_items を主に使う
@@ -2676,7 +2666,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             if (window.showToast) {
                 const msg = (appType === 'return' || appType === 'transfer')
-                    ? (appType === 'return' ? '返却する貸与品を選択してください。' : '移管する貸与品を選択してください。')
+                    ? (appType === 'return' ? '返却する貸与品を選択してください。' : '変更する旧品または新品を選択してください。')
                     : '{{ __('pages.select_uniform') }}';
                 window.showToast(msg, 'error');
             }

@@ -28,8 +28,8 @@ class ApplicationLifecycleFixTest extends TestCase
     private Department $department;
     private DeliveryLocation $delivery;
     private Employee $employee;
-    private Employee $transferTo;
     private UniformProduct $product;
+    private UniformProduct $productNew;
     private User $customer;
     private User $admin;
 
@@ -59,21 +59,23 @@ class ApplicationLifecycleFixTest extends TestCase
             'name' => '申請者',
             'status' => 'employed',
         ]);
-        $this->transferTo = Employee::create([
-            'medical_institution_id' => $this->institution->id,
-            'primary_department_id' => $this->department->id,
-            'staff_no' => 'E200',
-            'name' => '移管先',
-            'status' => 'employed',
-        ]);
 
         $maker = Maker::create(['code' => 'MK1', 'name' => 'Maker']);
         $this->product = UniformProduct::create([
             'maker_id' => $maker->id,
             'product_code' => 'P-1',
-            'name' => 'スクラブ',
+            'name' => 'スクラブ旧',
             'category' => 'top',
             'size' => 'M',
+            'gender' => 'unisex',
+            'stock_quantity' => 10,
+        ]);
+        $this->productNew = UniformProduct::create([
+            'maker_id' => $maker->id,
+            'product_code' => 'P-2',
+            'name' => 'スクラブ新',
+            'category' => 'top',
+            'size' => 'L',
             'gender' => 'unisex',
             'stock_quantity' => 10,
         ]);
@@ -85,7 +87,7 @@ class ApplicationLifecycleFixTest extends TestCase
             'unit_price_ex_tax' => 1000,
             'is_active' => true,
         ]);
-        $plan->uniformProducts()->attach($this->product->id);
+        $plan->uniformProducts()->attach([$this->product->id, $this->productNew->id]);
 
         $ccp = CustomerContractPlan::create([
             'medical_institution_id' => $this->institution->id,
@@ -96,13 +98,11 @@ class ApplicationLifecycleFixTest extends TestCase
             'confirmed_at' => now(),
         ]);
 
-        foreach ([$this->employee, $this->transferTo] as $emp) {
-            EmployeeContractPlan::create([
-                'employee_id' => $emp->id,
-                'customer_contract_plan_id' => $ccp->id,
-                'assigned_from' => now()->subMonth()->toDateString(),
-            ]);
-        }
+        EmployeeContractPlan::create([
+            'employee_id' => $this->employee->id,
+            'customer_contract_plan_id' => $ccp->id,
+            'assigned_from' => now()->subMonth()->toDateString(),
+        ]);
 
         EmployeeLoan::create([
             'employee_id' => $this->employee->id,
@@ -147,29 +147,33 @@ class ApplicationLifecycleFixTest extends TestCase
         $this->assertSame('return', $app->items->first()->action);
     }
 
-    public function test_transfer_create_normalizes_return_items_into_items(): void
+    public function test_transfer_create_same_employee_partial_change(): void
     {
         $this->actingAs($this->customer)
             ->post(route('applications.store'), [
                 'application_mode' => 'individual',
                 'employee_id' => $this->employee->id,
-                'transfer_to_employee_id' => $this->transferTo->id,
                 'department_id' => $this->department->id,
                 'type' => 'transfer',
                 'start_date' => now()->toDateString(),
-                'end_date' => now()->addDay()->toDateString(),
+                'end_date' => now()->addMonth()->toDateString(),
                 'delivery_location_id' => $this->delivery->id,
                 'return_items' => [
                     ['uniform_product_id' => $this->product->id, 'quantity' => 1],
+                ],
+                'items' => [
+                    ['uniform_product_id' => $this->productNew->id, 'quantity' => 1],
                 ],
             ])
             ->assertRedirect(route('applications.create'));
 
         $app = Application::where('type', 'transfer')->latest('id')->first();
         $this->assertNotNull($app);
-        $this->assertSame($this->transferTo->id, $app->transfer_to_employee_id);
-        $this->assertCount(1, $app->items);
-        $this->assertSame('transfer_change', $app->items->first()->action);
+        $this->assertNull($app->transfer_to_employee_id);
+        $this->assertSame($this->employee->id, $app->employee_id);
+        $this->assertCount(2, $app->items);
+        $actions = $app->items->pluck('action')->sort()->values()->all();
+        $this->assertSame(['exchange_out', 'loan'], $actions);
     }
 
     public function test_cancel_reject_restores_in_progress_and_allows_complete(): void
@@ -231,13 +235,12 @@ class ApplicationLifecycleFixTest extends TestCase
         $this->assertSame(Application::STATUS_COMPLETED, $app->fresh()->status);
     }
 
-    public function test_transfer_approval_moves_loan(): void
+    public function test_transfer_approval_returns_old_and_loans_new_on_same_employee(): void
     {
         $app = Application::create([
             'medical_institution_id' => $this->institution->id,
             'department_id' => $this->department->id,
             'employee_id' => $this->employee->id,
-            'transfer_to_employee_id' => $this->transferTo->id,
             'type' => 'transfer',
             'status' => 'pending',
             'start_date' => now()->toDateString(),
@@ -249,24 +252,33 @@ class ApplicationLifecycleFixTest extends TestCase
             'application_id' => $app->id,
             'uniform_product_id' => $this->product->id,
             'quantity' => 1,
-            'action' => 'transfer_change',
+            'action' => 'exchange_out',
         ]);
+        ApplicationItem::create([
+            'application_id' => $app->id,
+            'uniform_product_id' => $this->productNew->id,
+            'quantity' => 1,
+            'action' => 'loan',
+        ]);
+
+        $stockBefore = (int) $this->productNew->fresh()->stock_quantity;
 
         $this->actingAs($this->admin)
             ->post(route('admin.applications.approve', $app))
             ->assertRedirect();
 
-        $from = EmployeeLoan::where('employee_id', $this->employee->id)
+        $oldLoan = EmployeeLoan::where('employee_id', $this->employee->id)
             ->where('uniform_product_id', $this->product->id)
             ->first();
-        $to = EmployeeLoan::where('employee_id', $this->transferTo->id)
-            ->where('uniform_product_id', $this->product->id)
+        $newLoan = EmployeeLoan::where('employee_id', $this->employee->id)
+            ->where('uniform_product_id', $this->productNew->id)
             ->where('status', 'in_use')
             ->first();
 
-        $this->assertSame(1, (int) $from->quantity);
-        $this->assertNotNull($to);
-        $this->assertSame(1, (int) $to->quantity);
+        $this->assertSame(1, (int) $oldLoan->quantity);
+        $this->assertNotNull($newLoan);
+        $this->assertSame(1, (int) $newLoan->quantity);
+        $this->assertSame($stockBefore - 1, (int) $this->productNew->fresh()->stock_quantity);
         $this->assertSame(Application::STATUS_IN_PROGRESS, $app->fresh()->status);
     }
 }

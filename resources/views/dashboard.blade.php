@@ -380,7 +380,7 @@
                     
                     {{-- Institution Admin Only: Departmental Application --}}
                     @if($customer && $customerRole === 'institution_admin')
-                    <a href="{{ route('applications.create') }}" class="flex items-center gap-2.5 p-2 xl:p-[1em] lg:p-[0.9em] rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
+                    <a href="{{ route('applications.create', ['mode' => 'departmental']) }}" class="flex items-center gap-2.5 p-2 xl:p-[1em] lg:p-[0.9em] rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
                         <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center group-hover:scale-105 transition-transform">
                             <i data-lucide="users" class="w-4 h-4 text-white"></i>
                         </div>

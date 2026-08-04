@@ -131,10 +131,21 @@
             </div>
 
             {{-- テーブル --}}
+            <form method="POST" action="{{ route('admin.applications.documents.bulk_issue') }}" id="bulk-pdf-form">
+                @csrf
+                <div class="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center gap-3">
+                    <button type="submit" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-600 text-white text-[13px] font-semibold hover:bg-primary-700">
+                        <i data-lucide="file-stack" class="w-4 h-4"></i>
+                        一括帳票発行
+                    </button>
+                    <span class="text-[12px] text-slate-500">対応中／完了の申請を選択してPDF（5種）を発行</span>
+                    <a href="{{ route('admin.orders.index') }}" class="ml-auto text-[13px] text-primary-600 hover:underline font-medium">受注一覧へ</a>
+                </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-[13px]">
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
+                            <th class="px-3 py-3.5 text-left"><input type="checkbox" id="bulk-select-all" class="rounded border-slate-300"></th>
                             <th class="px-5 py-3.5 text-left font-semibold text-slate-700 uppercase text-[11px] tracking-wide">{{ __('pages.application_id_label') }}</th>
                             <th class="px-5 py-3.5 text-left font-semibold text-slate-700 uppercase text-[11px] tracking-wide">{{ __('pages.type_label') }}</th>
                             <th class="px-5 py-3.5 text-left font-semibold text-slate-700 uppercase text-[11px] tracking-wide">{{ __('pages.institution_label') }}</th>
@@ -149,6 +160,11 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse($applications as $app)
                             <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="px-3 py-4">
+                                    @if(in_array($app->status, ['in_progress', 'completed', 'approved'], true))
+                                        <input type="checkbox" name="application_ids[]" value="{{ $app->id }}" class="bulk-app-check rounded border-slate-300">
+                                    @endif
+                                </td>
                                 <td class="px-5 py-4 font-semibold text-slate-900">
                                     <div class="flex items-center gap-2">
                                         <i data-lucide="hash" class="w-4 h-4 text-primary-500"></i>
@@ -237,7 +253,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="px-5 py-12 text-center">
+                                <td colspan="10" class="px-5 py-12 text-center">
                                     <div class="flex flex-col items-center gap-3">
                                         <i data-lucide="clipboard-list" class="w-12 h-12 text-slate-300"></i>
                                         <p class="text-slate-500 text-[14px]">{{ __('pages.no_applications') }}</p>
@@ -248,6 +264,7 @@
                     </tbody>
                 </table>
             </div>
+            </form>
 
             <x-table-pagination :paginator="$applications" />
 
@@ -262,12 +279,12 @@
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
-        setTimeout(() => {
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }, 100);
-        setTimeout(() => {
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }, 500);
+    }
+    const all = document.getElementById('bulk-select-all');
+    if (all) {
+        all.addEventListener('change', function () {
+            document.querySelectorAll('.bulk-app-check').forEach(cb => { cb.checked = all.checked; });
+        });
     }
 });
 </script>

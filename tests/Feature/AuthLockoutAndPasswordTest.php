@@ -33,7 +33,7 @@ class AuthLockoutAndPasswordTest extends TestCase
         $this->assertNotNull($user->locked_until);
         $this->assertTrue($user->locked_until->isFuture());
 
-        Mail::assertSent(AccountLockedMail::class, function (AccountLockedMail $mail) use ($user) {
+        Mail::assertQueued(AccountLockedMail::class, function (AccountLockedMail $mail) use ($user) {
             return $mail->user->id === $user->id;
         });
 

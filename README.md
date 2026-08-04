@@ -66,18 +66,24 @@ php artisan storage:link
 
 | ファイル | 内容 |
 |----------|------|
+| `E2E_USER_GUIDE.md` | Fresh-start E2E 手順とシードログイン情報 |
+| `PRODUCTION.md` | 本番チェックリスト・メール／キュー・セキュリティ |
+| `design.md` | 病院／カマタニ UI シェル方針 |
 | `MYSQL_SETUP.md` | MySQL セットアップ手順 |
-| `LOGIN_CREDENTIALS.example.md` | シードユーザーのログイン情報（例） |
 | `LOAN_REGISTRATION_GUIDE.md` | 貸与登録の流れ |
 | `LANGUAGE_SETUP.md` | 日本語／英語切り替えの実装 |
 | `adjust.md` | 不具合修正・DBバックアップ等のレポート |
 
+## メール（ローカルでもフロー確認可）
+
+既定は `MAIL_MAILER=log`（実SMTP不要。内容は `storage/logs` に出力）。申請・特別承認・取消・ロック・利用開始・プラン本登録・パスワード再設定はすべて実装済みで `ShouldQueue` 対応です。本番では SMTP 設定後に `php artisan queue:work` を起動してください。詳細は `PRODUCTION.md`。
+
 ## 主な機能
 
-- 職員の登録・編集・CSV 入出力
-- ユニフォーム申請（新規貸与／返却／交換／サイズ変更／移管）
+- 職員の登録・編集・CSV 入出力（兼務＝複数部署対応）
+- ユニフォーム申請（新規貸与／返却／交換／サイズ変更／異動＝部分変更）
 - 管理者による申請承認と貸与レコード自動作成
-- 契約・請求スナップショット
+- 契約・請求スナップショット（人数×単価）
 - ロール別メニューと権限
 - セッションによる言語切り替え（ja / en）
 

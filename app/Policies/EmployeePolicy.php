@@ -28,7 +28,7 @@ class EmployeePolicy
         }
 
         if ($customer->role === 'department_admin' && $customer->department_id) {
-            return (int) $employee->primary_department_id === (int) $customer->department_id;
+            return $employee->isAffiliatedWithDepartment((int) $customer->department_id);
         }
 
         return true;

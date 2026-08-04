@@ -69,7 +69,7 @@ class ApplicationController extends Controller
             ->orderBy('staff_no');
 
         if ($customer->role === 'department_admin' && $customer->department_id) {
-            $query->where('primary_department_id', $customer->department_id);
+            $query->inDepartment((int) $customer->department_id);
         }
 
         $employees = $query->get();
@@ -205,6 +205,13 @@ class ApplicationController extends Controller
             ];
         });
 
+        $recommendationHints = \App\Models\UniformRecommendation::with('uniformProduct')
+            ->where('medical_institution_id', $customer->medical_institution_id)
+            ->orderByDesc('is_required')
+            ->orderBy('id')
+            ->limit(50)
+            ->get();
+
         return view('applications.create', [
             'employees' => $employees,
             'deliveryLocations' => $deliveryLocations,
@@ -214,6 +221,7 @@ class ApplicationController extends Controller
             'uniformsJson' => $uniformsForJson,
             'categories' => $categories,
             'customer' => $customer,
+            'recommendationHints' => $recommendationHints,
         ]);
     }
 
@@ -240,7 +248,7 @@ class ApplicationController extends Controller
             }
 
             if ($customer->role === 'department_admin' && $customer->department_id
-                && (int) $employee->primary_department_id !== (int) $customer->department_id) {
+                && ! $employee->isAffiliatedWithDepartment((int) $customer->department_id)) {
                 return response()->json([]);
             }
 
@@ -323,9 +331,9 @@ class ApplicationController extends Controller
             ->orderBy('staff_no');
 
         if ($customer->role === 'department_admin' && $customer->department_id) {
-            $query->where('primary_department_id', $customer->department_id);
+            $query->inDepartment((int) $customer->department_id);
         } elseif ($departmentId) {
-            $query->where('primary_department_id', $departmentId);
+            $query->inDepartment((int) $departmentId);
         }
 
         return response()->json($query->get());
@@ -345,25 +353,37 @@ class ApplicationController extends Controller
             ->where('status', 'employed')
             ->with([
                 'primaryDepartment',
+                'positions.department',
                 'positions.jobType',
                 'contractPlanAssignments.customerContractPlan.contractPlan',
             ]);
 
-        // 権限チェック
+        // 権限チェック（主所属または兼務）
         if ($customer->role === 'department_admin' && $customer->department_id) {
-            $query->where('primary_department_id', $customer->department_id);
+            $query->inDepartment((int) $customer->department_id);
         } elseif ($departmentId) {
-            $query->where('primary_department_id', $departmentId);
+            $query->inDepartment((int) $departmentId);
         }
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('staff_no', 'like', "%{$search}%");
-            });
+            $exact = (clone $query)->where('staff_no', $search)->limit(20)->get();
+            if ($exact->isNotEmpty()) {
+                $employees = $exact;
+            } else {
+                $prefix = (clone $query)->where('staff_no', 'like', $search.'%')->orderBy('staff_no')->limit(20)->get();
+                if ($prefix->isNotEmpty()) {
+                    $employees = $prefix;
+                } else {
+                    $employees = $query->where(function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                          ->orWhere('staff_no', 'like', "%{$search}%");
+                    })->orderBy('staff_no')->limit(20)->get();
+                }
+            }
+        } else {
+            $employees = $query->orderBy('staff_no')->limit(20)->get();
         }
 
-        $employees = $query->orderBy('staff_no')->limit(20)->get();
         $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
 
         return response()->json($employees->map(function ($emp) use ($eligibility) {
@@ -440,6 +460,7 @@ class ApplicationController extends Controller
                 'body_type' => $emp->body_type,
                 'department_id' => $emp->primary_department_id,
                 'department_name' => $emp->primaryDepartment?->name,
+                'affiliation_departments' => $emp->affiliationDepartmentNames(),
                 'job_type_id' => $emp->positions->first()?->job_type_id,
                 'job_type_name' => $emp->positions->first()?->jobType?->name,
                 'plans' => $activePlans,
@@ -463,7 +484,7 @@ class ApplicationController extends Controller
         }
 
         if ($customer->role === 'department_admin' && $customer->department_id
-            && (int) $employee->primary_department_id !== (int) $customer->department_id) {
+            && ! $employee->isAffiliatedWithDepartment((int) $customer->department_id)) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
@@ -500,7 +521,6 @@ class ApplicationController extends Controller
         $data = $request->validate([
             'application_mode' => ['required', 'in:individual,departmental'],
             'employee_id' => ['required_if:application_mode,individual', 'nullable', 'exists:employees,id'],
-            'transfer_to_employee_id' => ['nullable', 'required_if:type,transfer', 'exists:employees,id', 'different:employee_id'],
             'department_id' => ['required_if:application_mode,departmental', 'nullable', 'exists:departments,id'],
             'type' => ['required', 'in:new_loan,resize,return,exchange,transfer'],
             'start_date' => ['required', 'date'],
@@ -517,22 +537,25 @@ class ApplicationController extends Controller
             'memo2' => ['nullable', 'string', 'max:500'],
         ], [
             'employee_id.required_if' => '職員を選択してください。',
-            'transfer_to_employee_id.required_if' => '移管先の職員を選択してください。',
-            'transfer_to_employee_id.different' => '移管先は申請元と別の職員を選択してください。',
             'department_id.required_if' => '部署を選択してください。',
         ]);
 
-        // Loan-period types still need an end date
-        if (in_array($data['type'], ['new_loan', 'exchange', 'resize'], true) && empty($data['end_date'])) {
+        // Loan-period types still need an end date (異動 = same-employee partial change, like exchange)
+        if (in_array($data['type'], ['new_loan', 'exchange', 'resize', 'transfer'], true) && empty($data['end_date'])) {
             return redirect()->back()->withInput()->withErrors([
                 'end_date' => '貸出終了日を入力してください。',
             ]);
         }
 
-        // Individual apps: department defaults to employee's primary department
+        // Individual apps: prefer applying dept for affiliated staff, else primary
         if ($data['application_mode'] === 'individual' && empty($data['department_id']) && ! empty($data['employee_id'])) {
             $emp = Employee::find($data['employee_id']);
-            $data['department_id'] = $emp?->primary_department_id;
+            if ($customer->role === 'department_admin' && $customer->department_id
+                && $emp && $emp->isAffiliatedWithDepartment((int) $customer->department_id)) {
+                $data['department_id'] = $customer->department_id;
+            } else {
+                $data['department_id'] = $emp?->primary_department_id;
+            }
         }
 
         if (empty($data['department_id'])) {
@@ -548,12 +571,6 @@ class ApplicationController extends Controller
         $data['items'] = $data['items'] ?? [];
         $data['return_items'] = $data['return_items'] ?? [];
 
-        // Normalize UI payloads: loan checkboxes post as return_items; transfer needs items[]
-        if ($data['type'] === 'transfer' && empty($data['items']) && ! empty($data['return_items'])) {
-            $data['items'] = $data['return_items'];
-            $data['return_items'] = [];
-        }
-
         // 返却のみ: return_items が空なら items を返却扱い
         if ($data['type'] === 'return' && empty($data['return_items']) && ! empty($data['items'])) {
             $data['return_items'] = $data['items'];
@@ -561,23 +578,20 @@ class ApplicationController extends Controller
         }
 
         // 種別ごとの明細必須チェック
-        if (in_array($data['type'], ['new_loan', 'transfer'], true) && empty($data['items'])) {
-            return redirect()->back()->withInput()->with('error',
-                $data['type'] === 'transfer'
-                    ? '移管する貸与品を選択してください。'
-                    : '少なくとも1つのユニフォームを選択してください。'
-            );
+        // 異動（部分変更）= exchange と同形（旧品 return_items + 新品 items）
+        if ($data['type'] === 'new_loan' && empty($data['items'])) {
+            return redirect()->back()->withInput()->with('error', '少なくとも1つのユニフォームを選択してください。');
         }
         if ($data['type'] === 'return' && empty($data['return_items'])) {
             return redirect()->back()->withInput()->with('error', '返却する貸与品を選択してください。');
         }
-        if (in_array($data['type'], ['exchange', 'resize'], true)
+        if (in_array($data['type'], ['exchange', 'resize', 'transfer'], true)
             && empty($data['items']) && empty($data['return_items'])) {
-            return redirect()->back()->withInput()->with('error', '旧品または新品のユニフォームを選択してください。');
+            return redirect()->back()->withInput()->with('error', '変更する旧品または新品のユニフォームを選択してください。');
         }
 
         if ($data['application_mode'] === 'departmental' && $data['type'] === 'transfer') {
-            return redirect()->back()->withInput()->with('error', '移管申請は個別申請のみ対応しています。');
+            return redirect()->back()->withInput()->with('error', '異動（部分変更）申請は個別申請のみ対応しています。');
         }
 
         // 部署・配送先は自医療機関に属するもののみ
@@ -606,8 +620,8 @@ class ApplicationController extends Controller
     {
         return match ($type) {
             'return' => 'return',
-            'exchange', 'resize' => 'loan', // 選定商品は新品側。旧品は別明細で exchange_out を想定
-            'transfer' => 'transfer_change',
+            // 選定商品は新品側。旧品は別明細で exchange_out（異動も同形）
+            'exchange', 'resize', 'transfer' => 'loan',
             default => 'loan',
         };
     }
@@ -621,21 +635,9 @@ class ApplicationController extends Controller
             return redirect()->back()->withInput()->with('error', '自医療機関の職員のみ申請できます。');
         }
 
-        if ($customer->role === 'department_admin' && (int) $employee->primary_department_id !== (int) $customer->department_id) {
+        if ($customer->role === 'department_admin' && $customer->department_id
+            && ! $employee->isAffiliatedWithDepartment((int) $customer->department_id)) {
             return redirect()->back()->with('error', '自部署の職員のみ申請できます。');
-        }
-
-        $transferToId = null;
-        if ($data['type'] === 'transfer') {
-            $transferTo = Employee::findOrFail($data['transfer_to_employee_id']);
-            if ((int) $transferTo->medical_institution_id !== (int) $customer->medical_institution_id) {
-                return redirect()->back()->withInput()->with('error', '移管先は自医療機関の職員を選択してください。');
-            }
-            if ($customer->role === 'department_admin'
-                && (int) $transferTo->primary_department_id !== (int) $customer->department_id) {
-                return redirect()->back()->withInput()->with('error', '移管先は自部署の職員を選択してください。');
-            }
-            $transferToId = $transferTo->id;
         }
 
         $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
@@ -650,7 +652,7 @@ class ApplicationController extends Controller
             }
         }
 
-        // Return/transfer lines are existing loans — still must belong to this employee
+        // 旧品（返却／異動変更）は当該職員の貸与中データと一致必須
         if (in_array($data['type'], ['return', 'transfer', 'exchange', 'resize'], true)) {
             $loanProductIds = EmployeeLoan::query()
                 ->where('employee_id', $employee->id)
@@ -659,31 +661,32 @@ class ApplicationController extends Controller
                 ->map(fn ($id) => (int) $id)
                 ->all();
 
-            $linesToCheck = $data['type'] === 'transfer' ? $data['items'] : $data['return_items'];
-            foreach ($linesToCheck as $item) {
+            foreach ($data['return_items'] as $item) {
                 if (! in_array((int) $item['uniform_product_id'], $loanProductIds, true)) {
                     return redirect()->back()->withInput()->with('error', '選択した貸与品はこの職員の貸与中データと一致しません。');
                 }
             }
         }
 
-        // 上限チェック（プラン貸与ポイント／旧契約フォールバック）
+        // 上限チェック（プラン貸与ポイント）— 異動の新品側も含む
         $totalQuantity = array_sum(array_column($data['items'], 'quantity'));
+        $returnQuantity = array_sum(array_column($data['return_items'], 'quantity'));
         $currentLoans = EmployeeLoan::where('employee_id', $employee->id)
             ->where('status', 'in_use')
             ->sum('quantity');
 
         $exceedsLimit = false;
         $rentableLimit = $eligibility->rentableLimit($employee);
-        if ($rentableLimit !== null && $rentableLimit > 0 && in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
-            if (($currentLoans + $totalQuantity) > $rentableLimit) {
+        if ($rentableLimit !== null && $rentableLimit > 0 && in_array($data['type'], ['new_loan', 'exchange', 'resize', 'transfer'], true)) {
+            $projected = $currentLoans - $returnQuantity + $totalQuantity;
+            if ($projected > $rentableLimit) {
                 $exceedsLimit = true;
             }
         }
 
         // 在庫チェック（新品側のみ）
         $insufficientStock = false;
-        if (!empty($data['items']) && !in_array($data['type'], ['return', 'transfer'], true)) {
+        if (! empty($data['items']) && $data['type'] !== 'return') {
             foreach ($data['items'] as $item) {
                 $product = UniformProduct::find($item['uniform_product_id']);
                 if ($product && $product->stock_quantity < $item['quantity']) {
@@ -703,12 +706,12 @@ class ApplicationController extends Controller
             $status = 'waiting_special_approval';
         }
 
-        DB::transaction(function () use ($data, $request, $customer, $employee, $status, $transferToId) {
+        DB::transaction(function () use ($data, $request, $customer, $employee, $status) {
             $application = Application::create([
                 'medical_institution_id' => $customer->medical_institution_id,
-                'department_id' => $employee->primary_department_id,
+                'department_id' => $data['department_id'] ?? $employee->primary_department_id,
                 'employee_id' => $employee->id,
-                'transfer_to_employee_id' => $transferToId,
+                'transfer_to_employee_id' => null,
                 'type' => $data['type'],
                 'status' => $status,
                 'start_date' => $data['start_date'],
@@ -720,17 +723,17 @@ class ApplicationController extends Controller
                 'memo2' => $data['memo2'] ?? null,
             ]);
 
-            // 旧品（返却／交換アウト）
+            // 旧品（返却／交換・異動アウト）
             foreach ($data['return_items'] as $item) {
                 ApplicationItem::create([
                     'application_id' => $application->id,
                     'uniform_product_id' => $item['uniform_product_id'],
                     'quantity' => $item['quantity'],
-                    'action' => in_array($data['type'], ['exchange', 'resize'], true) ? 'exchange_out' : 'return',
+                    'action' => in_array($data['type'], ['exchange', 'resize', 'transfer'], true) ? 'exchange_out' : 'return',
                 ]);
             }
 
-            // 新品／移管対象
+            // 新品
             $newAction = $this->itemActionForType($data['type']);
             foreach ($data['items'] as $item) {
                 ApplicationItem::create([
@@ -767,9 +770,9 @@ class ApplicationController extends Controller
             return redirect()->back()->with('error', '自部署のみ申請できます。');
         }
 
-        // Get all active employees in the department
+        // Get all active employees affiliated with the department (primary or concurrent)
         $employees = Employee::where('medical_institution_id', $customer->medical_institution_id)
-            ->where('primary_department_id', $departmentId)
+            ->inDepartment($departmentId)
             ->where('status', 'employed')
             ->get();
 
@@ -781,7 +784,7 @@ class ApplicationController extends Controller
         $errors = [];
         $itemAction = $this->itemActionForType($data['type']);
 
-        DB::transaction(function () use ($data, $request, $customer, $employees, $itemAction, &$createdCount, &$errors) {
+        DB::transaction(function () use ($data, $request, $customer, $employees, $itemAction, $departmentId, &$createdCount, &$errors) {
             $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
 
             foreach ($employees as $employee) {
@@ -855,7 +858,7 @@ class ApplicationController extends Controller
 
                 $application = Application::create([
                     'medical_institution_id' => $customer->medical_institution_id,
-                    'department_id' => $employee->primary_department_id,
+                    'department_id' => $departmentId,
                     'employee_id' => $employee->id,
                     'type' => $data['type'],
                     'status' => $status,

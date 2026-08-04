@@ -86,6 +86,15 @@
                         <p class="mt-1.5 text-[13px] text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
+
+                <div>
+                    <label class="inline-flex items-center gap-2 text-[13px] text-slate-700">
+                        <input type="checkbox" name="receives_app_notifications" value="1"
+                               @checked(old('receives_app_notifications', true))
+                               class="rounded border-slate-300">
+                        申請関連メール通知を受け取る
+                    </label>
+                </div>
             </div>
 
             <div class="flex gap-3 mt-8 pt-6 border-t border-slate-200">

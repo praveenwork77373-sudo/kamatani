@@ -22,9 +22,14 @@ class UniformProductController extends Controller
 
         // Search filter
         if ($search = $request->string('search')->toString()) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('product_code', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%");
+                  ->orWhere('name', 'like', "%{$search}%")
+                  ->orWhere('maker_product_code', 'like', "%{$search}%")
+                  ->orWhereHas('maker', function ($mq) use ($search) {
+                      $mq->where('name', 'like', "%{$search}%")
+                         ->orWhere('code', 'like', "%{$search}%");
+                  });
             });
         }
 
@@ -154,6 +159,46 @@ class UniformProductController extends Controller
                 'out_of_stock_products' => $outOfStockProducts,
             ],
         ]);
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $query = UniformProduct::with('maker')->orderBy('product_code');
+
+        if ($search = $request->string('search')->toString()) {
+            $query->where(function ($q) use ($search) {
+                $q->where('product_code', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%")
+                  ->orWhere('maker_product_code', 'like', "%{$search}%")
+                  ->orWhereHas('maker', function ($mq) use ($search) {
+                      $mq->where('name', 'like', "%{$search}%")
+                         ->orWhere('code', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $rows = $query->get();
+        $filename = 'uniform_products_'.now()->format('Ymd_His').'.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['商品コード', '商品名', 'カテゴリ', 'サイズ', '性別', '在庫', 'メーカーコード', 'メーカー名', 'メーカー品番']);
+            foreach ($rows as $p) {
+                fputcsv($out, [
+                    $p->product_code,
+                    $p->name,
+                    $p->category,
+                    $p->size,
+                    $p->gender,
+                    $p->stock_quantity,
+                    $p->maker?->code,
+                    $p->maker?->name,
+                    $p->maker_product_code,
+                ]);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function create(Request $request): View

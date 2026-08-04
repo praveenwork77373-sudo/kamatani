@@ -90,7 +90,7 @@
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
                             <i class="ph ph-buildings text-slate-500"></i>
-                            部署 <span class="text-red-500">*</span>
+                            主部署 <span class="text-red-500">*</span>
                         </label>
                         @if(isset($customer) && $customer->role === 'department_admin')
                             {{-- 部署管理者は自部署に固定 --}}

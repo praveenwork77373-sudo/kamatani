@@ -64,6 +64,56 @@ class Employee extends Model
     }
 
     /**
+     * Primary department OR any concurrent position in the department.
+     */
+    public function scopeInDepartment($query, int $departmentId)
+    {
+        return $query->where(function ($q) use ($departmentId) {
+            $q->where('primary_department_id', $departmentId)
+                ->orWhereHas('positions', fn ($p) => $p->where('department_id', $departmentId));
+        });
+    }
+
+    public function isAffiliatedWithDepartment(int $departmentId): bool
+    {
+        if ((int) $this->primary_department_id === $departmentId) {
+            return true;
+        }
+
+        if ($this->relationLoaded('positions')) {
+            return $this->positions->contains(fn ($p) => (int) $p->department_id === $departmentId);
+        }
+
+        return $this->positions()->where('department_id', $departmentId)->exists();
+    }
+
+    /**
+     * Display labels for all affiliations (primary first).
+     *
+     * @return list<string>
+     */
+    public function affiliationDepartmentNames(): array
+    {
+        $names = [];
+        if ($this->primaryDepartment?->name) {
+            $names[] = $this->primaryDepartment->name;
+        }
+
+        $positions = $this->relationLoaded('positions')
+            ? $this->positions
+            : $this->positions()->with('department')->get();
+
+        foreach ($positions as $position) {
+            $name = $position->department?->name;
+            if ($name && ! in_array($name, $names, true)) {
+                $names[] = $name;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
      * Get employee status as of a specific date
      */
     public function getStatusAsOf($date)

@@ -16,14 +16,14 @@ Route::middleware('guest')->group(function () {
 
     // Hospital (customer) login
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:20,1')->name('login.post');
 
     // Kamatani admin login
     Route::get('/admin/login', [AuthController::class, 'showAdminLoginForm'])->name('admin.login');
-    Route::post('/admin/login', [AuthController::class, 'adminLogin'])->name('admin.login.post');
+    Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware('throttle:20,1')->name('admin.login.post');
 
     Route::get('/password/forgot', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
-    Route::post('/password/email', [AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/password/email', [AuthController::class, 'sendResetLink'])->middleware('throttle:5,1')->name('password.email');
     Route::get('/password/reset/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
     Route::post('/password/reset', [AuthController::class, 'resetPassword'])->name('password.update');
 });
@@ -129,11 +129,15 @@ Route::prefix('admin')
             Route::post('/applications/{application}/cancel-approve', [ApplicationApprovalController::class, 'approveCancel'])->name('applications.cancel_approve');
             Route::post('/applications/{application}/cancel-reject', [ApplicationApprovalController::class, 'rejectCancel'])->name('applications.cancel_reject');
             Route::post('/applications/{application}/documents/issue', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'issueAll'])->name('applications.documents.issue');
+            Route::post('/applications/documents/bulk-issue', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'bulkIssue'])->name('applications.documents.bulk_issue');
             Route::post('/applications/{application}/documents/{formType}/reissue', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'reissue'])->name('applications.documents.reissue');
             Route::get('/application-documents/{document}/download', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'download'])->name('application-documents.download');
             Route::get('/application-documents/{document}/preview', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'preview'])->name('application-documents.preview');
+            Route::get('/orders', [ApplicationApprovalController::class, 'orders'])->name('orders.index');
 
             Route::resource('uniform-products', UniformProductController::class);
+            Route::get('/uniform-products-export', [UniformProductController::class, 'exportCsv'])->name('uniform-products.export');
+            Route::resource('uniform-recommendations', \App\Http\Controllers\Admin\UniformRecommendationController::class)->except(['show']);
         });
         
         // 管理者ユーザー管理 (System Admin Only)
@@ -189,23 +193,37 @@ Route::prefix('admin')
         });
         
         // 契約プラン中心ドメイン（SPEC 2026-07-31）
-        Route::middleware('admin.role:system_admin,contract_plan_manager,operation,sales')->group(function () {
-            Route::resource('makers', \App\Http\Controllers\Admin\MakerController::class)->except(['show']);
-            Route::resource('uniform-categories', \App\Http\Controllers\Admin\UniformCategoryController::class)->except(['show']);
-            Route::resource('product-unit-prices', \App\Http\Controllers\Admin\ProductUnitPriceController::class)->except(['show']);
-            Route::resource('contract-plans', \App\Http\Controllers\Admin\ContractPlanController::class);
-            Route::resource('customer-contract-plans', \App\Http\Controllers\Admin\CustomerContractPlanController::class)->except(['show']);
+        // 閲覧: 営業含む / 書込: システム管理者・契約プラン管理のみ
+        Route::middleware('admin.role:system_admin,contract_plan_manager,sales')->group(function () {
+            Route::get('makers', [\App\Http\Controllers\Admin\MakerController::class, 'index'])->name('makers.index');
+            Route::get('contract-plans', [\App\Http\Controllers\Admin\ContractPlanController::class, 'index'])->name('contract-plans.index');
+            Route::get('contract-plans/{contract_plan}', [\App\Http\Controllers\Admin\ContractPlanController::class, 'show'])->name('contract-plans.show');
+            Route::get('customer-contract-plans', [\App\Http\Controllers\Admin\CustomerContractPlanController::class, 'index'])->name('customer-contract-plans.index');
+            Route::get('product-unit-prices', [\App\Http\Controllers\Admin\ProductUnitPriceController::class, 'index'])->name('product-unit-prices.index');
+            Route::get('uniform-categories', [\App\Http\Controllers\Admin\UniformCategoryController::class, 'index'])->name('uniform-categories.index');
+        });
+
+        Route::middleware('admin.role:system_admin,contract_plan_manager')->group(function () {
+            Route::resource('makers', \App\Http\Controllers\Admin\MakerController::class)->except(['show', 'index']);
+            Route::resource('uniform-categories', \App\Http\Controllers\Admin\UniformCategoryController::class)->except(['show', 'index']);
+            Route::resource('product-unit-prices', \App\Http\Controllers\Admin\ProductUnitPriceController::class)->except(['show', 'index']);
+            Route::resource('contract-plans', \App\Http\Controllers\Admin\ContractPlanController::class)->except(['index', 'show']);
+            Route::resource('customer-contract-plans', \App\Http\Controllers\Admin\CustomerContractPlanController::class)->except(['show', 'index']);
             Route::post('/customer-contract-plans/{customerContractPlan}/confirm', [\App\Http\Controllers\Admin\CustomerContractPlanController::class, 'confirm'])
                 ->name('customer-contract-plans.confirm');
         });
         
-        // 請求データ
-        Route::prefix('billing')->name('billing.')->middleware('admin.role:system_admin,operation,accounting,sales')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'index'])->name('index');
-            Route::get('/create', [\App\Http\Controllers\Admin\BillingController::class, 'create'])->name('create');
-            Route::post('/generate', [\App\Http\Controllers\Admin\BillingController::class, 'generate'])->name('generate');
-            Route::get('/{snapshot}/export', [\App\Http\Controllers\Admin\BillingController::class, 'export'])->name('export');
-            Route::get('/{snapshot}', [\App\Http\Controllers\Admin\BillingController::class, 'show'])->name('show');
+        // 請求データ: 生成は経理・システム管理者のみ。閲覧・Export は営業・運営も可
+        Route::prefix('billing')->name('billing.')->group(function () {
+            Route::middleware('admin.role:system_admin,accounting')->group(function () {
+                Route::get('/create', [\App\Http\Controllers\Admin\BillingController::class, 'create'])->name('create');
+                Route::post('/generate', [\App\Http\Controllers\Admin\BillingController::class, 'generate'])->name('generate');
+            });
+            Route::middleware('admin.role:system_admin,operation,accounting,sales')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'index'])->name('index');
+                Route::get('/{snapshot}/export', [\App\Http\Controllers\Admin\BillingController::class, 'export'])->name('export');
+                Route::get('/{snapshot}', [\App\Http\Controllers\Admin\BillingController::class, 'show'])->name('show');
+            });
         });
         
         // システム管理者: 全職員管理

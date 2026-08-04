@@ -1,7 +1,7 @@
 # ユニフォーム管理システム — 修正・調整レポート
 
 監査日: 2026-07-29  
-最終更新: 2026-07-29  
+最終更新: 2026-08-01（仕様優先度・残作業メモを追記）  
 対象: Laravel 12 医療ユニフォーム貸与・請求アプリ
 
 ---
@@ -15,7 +15,7 @@
 | 中 16〜21 | ルート・スキーマ・通知・残骸 | ✅ |
 | 残: 移管先 UI / 交換旧品 UI | ✅ 実装済 |
 | 残: Policy + Feature テスト | ✅ 導入済 |
-| 残: LOGIN_CREDENTIALS / db.sql | ✅ `.gitignore` + example |
+| 残: LOGIN_CREDENTIALS / db.sql | ✅ credentials → `E2E_USER_GUIDE.md`; `db.sql` gitignored |
 | **新機能: DBバックアップ管理** | ✅ system_admin 向け |
 
 ---
@@ -67,13 +67,26 @@ php c:\xampp\htdocs\uniform-system\artisan schedule:run
 
 | ファイル | 扱い |
 |----------|------|
-| `LOGIN_CREDENTIALS.example.md` | リポジトリに残すサンプル |
-| `LOGIN_CREDENTIALS.md` | `.gitignore`（ローカルのみ） |
+| `E2E_USER_GUIDE.md` | Fresh-start E2E + シードログイン情報 |
+| `db.sql` | `.gitignore`（ローカルのみ） |
 | `db.sql` | `.gitignore` |
 
 ---
 
-## 推奨の残作業（任意）
+## 仕様との関係（2026-08-01）
+
+本レポートの修正は **現行デモ基盤の安定化** 向け。  
+E2E 手順とシードログインは **`E2E_USER_GUIDE.md`**。
+
+残作業の全体像・コード差分は **`REQUIREMENTS_GAP_ANALYSIS.md`（2026-08-01 更新）** を参照。
+
+主な未実装（仕様側）:
+- 契約プラン中心モデル（メーカー／プラン／顧客契約プラン／職員割当）
+- 申請ステータス 申請 → 対応中 → 完了 + PDF 発行
+- 請求 = プラン × 割当人数 × 単価（現行 FIXED/POINT は置き換え対象）
+- 病院向け契約・上限の参照画面（現状メニューが admin へ飛び 403）
+
+## 推奨の残作業（任意・基盤）
 
 1. Windows タスクに `schedule:run` を登録する手順書（運用）  
 2. 交換 UI で旧品数量のバリデーション強化（貸与数量超過防止をサーバ側で厳密化）  

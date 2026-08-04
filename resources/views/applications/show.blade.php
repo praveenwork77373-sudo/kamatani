@@ -77,9 +77,10 @@
                             <span class="text-slate-500 text-[13px] ml-2">({{ $application->employee?->staff_no ?? '-' }})</span>
                         </dd>
                     </div>
+                    {{-- legacy handoff field; new 異動 apps do not set transfer_to --}}
                     @if($application->type === 'transfer' && $application->transfer_to_employee_id)
                     <div>
-                        <dt class="text-slate-500 mb-1">移管先職員</dt>
+                        <dt class="text-slate-500 mb-1">移管先職員（旧データ）</dt>
                         <dd class="text-slate-900">
                             {{ $application->transferToEmployee?->name ?? '-' }}
                             <span class="text-slate-500 text-[13px] ml-2">({{ $application->transferToEmployee?->staff_no ?? '-' }})</span>
@@ -111,6 +112,7 @@
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">商品コード</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">商品名</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">サイズ</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">区分</th>
                                 <th class="px-4 py-3 text-right font-semibold text-slate-700">数量</th>
                             </tr>
                         </thead>
@@ -120,6 +122,15 @@
                                     <td class="px-4 py-3 text-slate-900">{{ $item->uniformProduct?->product_code ?? '-' }}</td>
                                     <td class="px-4 py-3 text-slate-900">{{ $item->uniformProduct?->name ?? '-' }}</td>
                                     <td class="px-4 py-3 text-slate-600">{{ $item->uniformProduct?->size ?? '-' }}</td>
+                                    <td class="px-4 py-3 text-slate-600 text-[13px]">
+                                        @if($item->action === 'exchange_out')
+                                            旧品（返却）
+                                        @elseif($item->action === 'return')
+                                            返却
+                                        @else
+                                            新品（貸与）
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ $item->quantity }}</td>
                                 </tr>
                             @endforeach

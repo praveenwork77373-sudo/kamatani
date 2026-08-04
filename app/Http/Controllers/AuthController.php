@@ -23,6 +23,16 @@ class AuthController extends Controller
     private const MAX_FAILED_ATTEMPTS = 5;
     private const LOCK_MINUTES = 15;
 
+    private function maxFailedAttempts(): int
+    {
+        return (int) config('auth.lockout.max_attempts', self::MAX_FAILED_ATTEMPTS);
+    }
+
+    private function lockMinutes(): int
+    {
+        return (int) config('auth.lockout.decay_minutes', self::LOCK_MINUTES);
+    }
+
     public function showLoginForm(): View
     {
         return view('auth.login', ['portal' => self::PORTAL_HOSPITAL]);
@@ -67,11 +77,6 @@ class AuthController extends Controller
             ]);
         }
 
-        // Reject wrong portal before Auth::attempt when we can identify the user
-        if ($user) {
-            $this->assertPortalAllowed($user, $portal);
-        }
-
         $successful = Auth::attempt($credentials, $request->boolean('remember'));
 
         LoginAttempt::create([
@@ -92,6 +97,17 @@ class AuthController extends Controller
         }
 
         $authUser = Auth::user();
+
+        try {
+            $this->assertPortalAllowed($authUser, $portal);
+        } catch (ValidationException $e) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw $e;
+        }
+
         $adminProfile = $authUser?->adminUser()->withTrashed()->first();
 
         if ($portal === self::PORTAL_ADMIN) {
@@ -181,20 +197,23 @@ class AuthController extends Controller
 
     private function handleFailedLogin(User $user): void
     {
+        $lockMinutes = $this->lockMinutes();
+        $maxAttempts = $this->maxFailedAttempts();
+
         $recentFails = LoginAttempt::where('user_id', $user->id)
             ->where('is_success', false)
-            ->where('attempted_at', '>=', now()->subMinutes(self::LOCK_MINUTES))
+            ->where('attempted_at', '>=', now()->subMinutes($lockMinutes))
             ->orderByDesc('attempted_at')
-            ->take(self::MAX_FAILED_ATTEMPTS)
+            ->take($maxAttempts)
             ->get();
 
-        if ($recentFails->count() < self::MAX_FAILED_ATTEMPTS) {
+        if ($recentFails->count() < $maxAttempts) {
             return;
         }
 
         $wasAlreadyLocked = $user->locked_until && $user->locked_until->isFuture();
 
-        $user->locked_until = Carbon::now()->addMinutes(self::LOCK_MINUTES);
+        $user->locked_until = Carbon::now()->addMinutes($lockMinutes);
         $user->save();
 
         if (! $wasAlreadyLocked) {
@@ -207,7 +226,7 @@ class AuthController extends Controller
         try {
             Mail::to($user->email)->send(new AccountLockedMail(
                 $user,
-                self::LOCK_MINUTES,
+                $this->lockMinutes(),
                 $user->locked_until->timezone(config('app.timezone'))->format('Y年n月j日 H:i')
             ));
         } catch (\Throwable $e) {
@@ -252,8 +271,16 @@ class AuthController extends Controller
             'portal' => ['nullable', 'in:hospital,admin'],
         ]);
 
-        Password::sendResetLink($request->only('email'));
+        try {
+            Password::sendResetLink($request->only('email'));
+        } catch (\Throwable $e) {
+            Log::error('Password reset email failed', [
+                'email' => $request->input('email'),
+                'error' => $e->getMessage(),
+            ]);
+        }
 
+        // Always generic success — do not leak whether the email exists
         return back()->with([
             'status' => '登録されているメールアドレスの場合、パスワード再設定用のURLを送信しました。（有効期限: 24時間・1回限り）',
         ]);

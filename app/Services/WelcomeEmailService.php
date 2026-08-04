@@ -31,8 +31,8 @@ class WelcomeEmailService
             'user_id' => $recipient->id,
             'sent_by_user_id' => $sender?->id,
             'destination_email' => $recipient->email,
-            'status' => 'sent',
-            'sent_at' => now(),
+            'status' => 'pending',
+            'sent_at' => null,
         ]);
 
         try {
@@ -42,6 +42,11 @@ class WelcomeEmailService
                 $temporaryPassword,
                 $loginUrl,
             ));
+            $history->update([
+                'status' => 'sent',
+                'sent_at' => now(),
+                'error_message' => null,
+            ]);
         } catch (\Throwable $e) {
             $history->update([
                 'status' => 'failed',

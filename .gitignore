@@ -23,9 +23,11 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# ローカル秘密情報・本番データダンプ（例は LOGIN_CREDENTIALS.example.md を参照）
+# Local secrets / dumps (use LOGIN_CREDENTIALS.example.md)
 /LOGIN_CREDENTIALS.md
 /db.sql
 /storage/app/backups/*
 !/storage/app/backups/.gitignore
 /storage/app/private/application-pdfs/
+
+

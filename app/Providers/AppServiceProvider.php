@@ -27,6 +27,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Application::class, ApplicationPolicy::class);
         Gate::policy(Employee::class, EmployeePolicy::class);
 
+        if ($this->app->environment('production')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         Gate::define('manage-masters', function ($user) {
             if (!$user) {
                 return false;

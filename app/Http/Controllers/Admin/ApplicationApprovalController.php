@@ -65,6 +65,40 @@ class ApplicationApprovalController extends Controller
         ]);
     }
 
+    /**
+     * 受注一覧（対応中／完了の申請）— SPEC 4.5
+     */
+    public function orders(Request $request): View
+    {
+        $this->ensureApprover($request);
+
+        $query = Application::with(['employee', 'department', 'medicalInstitution', 'documents'])
+            ->whereIn('status', [Application::STATUS_IN_PROGRESS, Application::STATUS_COMPLETED]);
+
+        if ($type = $request->string('type')->toString()) {
+            $query->where('type', $type);
+        }
+
+        if ($status = $request->string('status')->toString()) {
+            $query->where('status', $status);
+        }
+
+        if ($institutionId = $request->integer('institution_id')) {
+            $query->where('medical_institution_id', $institutionId);
+        }
+
+        $applications = $query->orderByDesc('accepted_at')->orderByDesc('id')
+            ->paginate(Pagination::perPage($request))
+            ->withQueryString();
+
+        $institutions = MedicalInstitution::orderBy('name')->get();
+
+        return view('admin.orders.index', [
+            'applications' => $applications,
+            'institutions' => $institutions,
+        ]);
+    }
+
     public function show(Application $application): View
     {
         $application->load([
@@ -128,8 +162,7 @@ class ApplicationApprovalController extends Controller
 
                 match ($application->type) {
                     'return' => $this->processReturnApproval($application),
-                    'exchange', 'resize' => $this->processExchangeOrResizeApproval($application, $hasSpecialApproval),
-                    'transfer' => $this->processTransferApproval($application, $hasSpecialApproval),
+                    'exchange', 'resize', 'transfer' => $this->processExchangeOrResizeApproval($application, $hasSpecialApproval),
                     default => $this->processNewLoanApproval($application, $hasSpecialApproval),
                 };
 
@@ -233,13 +266,11 @@ class ApplicationApprovalController extends Controller
     }
 
     /**
-     * 交換／サイズ変更: exchange_out/return は返却、loan/exchange_in は新規貸与
-     * 明細に outbound のみの場合は選定商品を新品として貸与
+     * 交換／サイズ変更／異動（部分変更）: exchange_out/return は返却、loan/exchange_in は新規貸与
      */
     private function processExchangeOrResizeApproval(Application $application, bool $hasSpecialApproval): void
     {
         $hasOutbound = $application->items->contains(fn ($i) => in_array($i->action, ['loan', 'exchange_in'], true) || empty($i->action));
-        $hasInbound = $application->items->contains(fn ($i) => in_array($i->action, ['return', 'exchange_out'], true));
 
         if ($hasOutbound) {
             $this->assertStockForOutboundItems($application, $hasSpecialApproval);
@@ -256,63 +287,6 @@ class ApplicationApprovalController extends Controller
             if (in_array($action, ['loan', 'exchange_in'], true)) {
                 $this->applyLoanOutbound($application, $item, $hasSpecialApproval);
             }
-        }
-
-        // 旧品明細がなく新品のみの場合でも貸与処理済み（上記ループ）
-        unset($hasInbound);
-    }
-
-    /**
-     * 移管: 申請元職員の貸与を移管先へ移動（在庫変動なし）
-     */
-    private function processTransferApproval(Application $application, bool $hasSpecialApproval): void
-    {
-        $toEmployeeId = $application->transfer_to_employee_id;
-        if (!$toEmployeeId) {
-            throw new \Exception('移管先職員が指定されていません。');
-        }
-
-        $moved = 0;
-        foreach ($application->items as $item) {
-            $action = $item->action ?: 'transfer_change';
-            // Accept return-tagged lines from older buggy creates as transfer targets
-            if (! in_array($action, ['loan', 'transfer_change', 'return'], true)) {
-                continue;
-            }
-
-            $fromLoan = EmployeeLoan::lockForUpdate()
-                ->where('employee_id', $application->employee_id)
-                ->where('uniform_product_id', $item->uniform_product_id)
-                ->where('status', 'in_use')
-                ->first();
-
-            if (! $fromLoan || $fromLoan->quantity < $item->quantity) {
-                throw new \Exception('移管元に十分な貸与がありません。');
-            }
-
-            $fromLoan->quantity = $fromLoan->quantity - $item->quantity;
-            if ($fromLoan->quantity <= 0) {
-                $fromLoan->quantity = 0;
-                $fromLoan->status = 'returned';
-                $fromLoan->loan_end_date = now();
-            }
-            $fromLoan->save();
-
-            $toLoan = EmployeeLoan::lockForUpdate()->firstOrNew([
-                'employee_id' => $toEmployeeId,
-                'uniform_product_id' => $item->uniform_product_id,
-            ]);
-            $toLoan->quantity = ($toLoan->quantity ?? 0) + $item->quantity;
-            $toLoan->status = 'in_use';
-            $toLoan->application_id = $application->id;
-            $toLoan->loan_start_date = $application->start_date ?? now();
-            $toLoan->loan_end_date = null;
-            $toLoan->save();
-            $moved++;
-        }
-
-        if ($moved === 0) {
-            throw new \Exception('移管する貸与品がありません。');
         }
     }
 
@@ -554,7 +528,7 @@ class ApplicationApprovalController extends Controller
                     'resize' => 'サイズ交換',
                     'return' => '返却',
                     'exchange' => '交換',
-                    'transfer' => '譲渡',
+                    'transfer' => '異動（部分変更）',
                 ];
 
                 $statusLabels = [

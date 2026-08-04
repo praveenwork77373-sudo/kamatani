@@ -24,7 +24,12 @@ class NotificationService
         return User::whereHas('adminUser', function ($q) use ($roles) {
             $q->whereIn('role', $roles)
               ->whereNull('blocked_at')
-              ->whereNull('deleted_at');
+              ->whereNull('deleted_at')
+              ->where(function ($nq) {
+                  // Spec: configurable notify destinations; default true for ops/system
+                  $nq->where('receives_app_notifications', true)
+                     ->orWhereNull('receives_app_notifications');
+              });
         })->get();
     }
 

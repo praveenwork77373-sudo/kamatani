@@ -14,6 +14,7 @@ class AdminUser extends Model
     protected $fillable = [
         'user_id',
         'role',
+        'receives_app_notifications',
         'blocked_at',
         'blocked_reason',
         'deleted_reason',
@@ -22,6 +23,7 @@ class AdminUser extends Model
     protected $casts = [
         'blocked_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'receives_app_notifications' => 'boolean',
     ];
 
     public function user(): BelongsTo

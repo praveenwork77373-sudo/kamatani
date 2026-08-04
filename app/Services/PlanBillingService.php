@@ -10,7 +10,12 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Monthly plan-based billing (SPEC / 日本語仕様 4.3 + 経理処理の流れ).
+ * Monthly plan-based billing (SPEC / 日本語仕様 4.3).
+ *
+ * Confirmed billing basis (client):
+ *   Official amount = contract plan unit_price_ex_tax × number of people on that plan
+ *   (employed staff with an active assignment as of 締め日 / 基準日)
+ *   NOT unit price × number of uniform pieces / SKUs.
  *
  * Two different “dates” — do not mix them:
  * 1) Hospital 締め日 (billing_closing_day): monthly snapshot reference day (e.g. 1st).
@@ -20,9 +25,7 @@ use Illuminate\Support\Collection;
  * - Include only employed staff
  * - With an active employee↔plan assignment on that day
  * - Whose hospital customer-contract-plan is confirmed and within start/end on that day
- * Official amount = assigned headcount × plan unit_price_ex_tax (matches client Excel 対象人数).
- * 契約口数 (contract_count) is contracted capacity — shown as reference, not the invoice total
- * unless the client later confirms otherwise (msg.txt wording).
+ * 契約口数 (CCP contract_count) is contracted capacity — shown as reference only, not the invoice total.
  */
 class PlanBillingService
 {
@@ -213,9 +216,9 @@ class PlanBillingService
             ],
             'summary' => [
                 'billing_model' => 'plan_based',
-                // Official invoice total: assigned employed staff × unit_price as of 基準日
-                'billing_basis' => 'assigned_employed_staff × unit_price（基準日時点・公式）',
-                'billing_basis_note' => '毎月、医療機関の締め日を基準日としてスナップショットします。顧客契約プランの終了日まで「一括請求」するのではなく、契約有効期間中の各月で割当在籍人数×単価を計算します。',
+                // Official: plan unit price × people on that plan (not × uniforms)
+                'billing_basis' => '契約プラン単価 × 当該プラン割当在籍人数（基準日時点・公式）',
+                'billing_basis_note' => '請求額はユニフォーム枚数ではなく、基準日時点で在職し当該契約プランに割り当てられた人数×契約プラン単価（税抜）です。契約口数は参考表示のみ。',
                 'total_targets' => $totalAssigned,
                 'total_assigned' => $totalAssigned,
                 'total_contract_slots' => $totalContractSlots,

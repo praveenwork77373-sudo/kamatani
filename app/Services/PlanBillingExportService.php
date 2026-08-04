@@ -54,7 +54,7 @@ class PlanBillingExportService
 
     private function fillPlanSummarySheet($sheet, array $data, string $ref, string $institutionName): void
     {
-        $sheet->setCellValue('A1', '請求集計（公式：契約プラン×割当人数×単価）');
+        $sheet->setCellValue('A1', '請求集計（公式：契約プラン単価 × 当該プラン人数）');
         $sheet->setCellValue('A2', '医療機関');
         $sheet->setCellValue('B2', $institutionName);
         $sheet->setCellValue('A3', '基準日');
@@ -104,7 +104,7 @@ class PlanBillingExportService
         $sheet->getStyle("A{$row}:J{$row}")->getFont()->setBold(true);
 
         $noteRow = $row + 2;
-        $sheet->setCellValue("A{$noteRow}", '【公式】請求金額＝基準日時点の在籍割当人数×単価。契約口数×単価は参考（契約容量）。');
+        $sheet->setCellValue("A{$noteRow}", '【公式】請求金額＝契約プラン単価（税抜）×当該プランに割り当てられた在籍人数。ユニフォーム枚数では計算しない。契約口数×単価は参考（契約容量）。');
 
         foreach (range('A', 'J') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
@@ -123,16 +123,16 @@ class PlanBillingExportService
             'A5' => '基準日',
             'B5' => '医療機関名',
             'C5' => '職員番号',
-            'D5' => '氏名',
+            'D5' => '個人名',
             'E5' => '部署',
             'F5' => '入職日',
             'G5' => '退職日',
-            'H5' => 'プラン名',
-            'I5' => 'プランコード',
-            'J5' => '請求単位',
+            'H5' => '契約プラン名',
+            'I5' => '契約プランコード',
+            'J5' => '契約数',
             'K5' => '契約口数（参考）',
-            'L5' => '単価（税抜）',
-            'M5' => '金額（税抜）',
+            'L5' => '契約単価（税抜）',
+            'M5' => '税抜金額',
         ];
         foreach ($headers as $cell => $label) {
             $sheet->setCellValue($cell, $label);
