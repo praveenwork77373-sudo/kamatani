@@ -50,7 +50,7 @@ class UniformCategoryController extends Controller
 
         return redirect()
             ->route('admin.uniform-categories.index')
-            ->with('status', 'カテゴリを登録しました。');
+            ->with('status', __('pages.flash_08185fa71e'));
     }
 
     public function edit(UniformCategory $uniformCategory): View
@@ -81,7 +81,7 @@ class UniformCategoryController extends Controller
 
         return redirect()
             ->route('admin.uniform-categories.index')
-            ->with('status', 'カテゴリを更新しました。');
+            ->with('status', __('pages.flash_f3a481fd80'));
     }
 
     public function destroy(UniformCategory $uniformCategory): RedirectResponse
@@ -93,7 +93,7 @@ class UniformCategoryController extends Controller
 
             return redirect()
                 ->route('admin.uniform-categories.index')
-                ->with('status', '商品で使用中のため無効化しました（削除していません）。');
+                ->with('status', __('pages.flash_5ae3877b16'));
         }
 
         $uniformCategory->delete();
@@ -101,6 +101,6 @@ class UniformCategoryController extends Controller
 
         return redirect()
             ->route('admin.uniform-categories.index')
-            ->with('status', 'カテゴリを削除しました。');
+            ->with('status', __('pages.flash_b9e7d17a34'));
     }
 }

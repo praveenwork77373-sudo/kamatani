@@ -30,7 +30,7 @@
                         </label>
                         <input type="text" name="name" value="{{ old('name') }}" required
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all"
-                               placeholder="例: 本館 1階 受付">
+                               placeholder="{{ __('pages.example_reception') }}">
                         @error('name')
                             <p class="text-[13px] text-red-600 mt-1.5 flex items-center gap-1">
                                 <i data-lucide="alert-circle" class="w-4 h-4"></i>
@@ -46,7 +46,7 @@
                         </label>
                         <textarea name="note" rows="3"
                                   class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all resize-none"
-                                  placeholder="例: 平日 9:00-17:00">{{ old('note') }}</textarea>
+                                  placeholder="{{ __('pages.example_hours') }}">{{ old('note') }}</textarea>
                         @error('note')
                             <p class="text-[13px] text-red-600 mt-1.5 flex items-center gap-1">
                                 <i data-lucide="alert-circle" class="w-4 h-4"></i>

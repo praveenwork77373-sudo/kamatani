@@ -111,10 +111,10 @@
 
                 <div class="border-t border-slate-200 pt-6">
                     <h3 class="text-[15px] font-semibold text-slate-700 mb-1">{{ __('pages.additional_settings') }}</h3>
-                    <p class="text-[13px] text-slate-500 mb-4">請求は契約プランの単価（税抜）× 割当人数で計算します。</p>
+                    <p class="text-[13px] text-slate-500 mb-4">{{ __('pages.ui_5512345361') }}</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="ui-label">締め日（請求基準日） <span class="text-[12px] font-normal text-slate-500">(1〜28)</span></label>
+                            <label class="ui-label">{{ __('pages.closing_day_billing') }} <span class="text-[12px] font-normal text-slate-500">(1〜28)</span></label>
                             <div class="ui-field-icon">
                                 <i data-lucide="calendar"></i>
                                 <input type="number" name="billing_closing_day" value="{{ old('billing_closing_day', $institution->billing_closing_day ?? 1) }}" min="1" max="28" class="ui-input">
@@ -122,11 +122,11 @@
                             @error('billing_closing_day')<p class="ui-error">{{ $message }}</p>@enderror
                         </div>
                         <div>
-                            <label class="ui-label">担当セールス名</label>
+                            <label class="ui-label">{{ __('pages.sales_rep_name') }}</label>
                             <div class="ui-field-icon">
                                 <i data-lucide="user-check"></i>
                                 <input type="text" name="sales_person_name" value="{{ old('sales_person_name', $institution->sales_person_name) }}" class="ui-input"
-                                       placeholder="例: 山田 太郎">
+                                       placeholder="{{ __('pages.employee_name_placeholder') }}">
                             </div>
                             @error('sales_person_name')<p class="ui-error">{{ $message }}</p>@enderror
                         </div>

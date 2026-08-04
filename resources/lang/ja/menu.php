@@ -34,6 +34,9 @@ return [
     'menu_contract' => '契約',
     'menu_contract_billing' => '契約・請求',
     'menu_billing' => '請求',
-    'menu_admin_users' => '管理者ユーザー',
+    'menu_products_inventory' => '商品・在庫',
+    'menu_management' => '管理',
+    'orders' => '受注一覧',
+    'uniform_recommendations' => '推奨／指定ユニフォーム',
 ];
 

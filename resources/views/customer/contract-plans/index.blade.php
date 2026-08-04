@@ -1,19 +1,19 @@
 @extends('layouts.app')
 
-@section('title', '契約情報')
-@section('page_title', '契約情報')
+@section('title', __('menu.contract_info'))
+@section('page_title', __('menu.contract_info'))
 
 @section('content')
 <div class="mb-6">
-    <h1 class="text-2xl font-bold text-slate-900">契約情報・上限</h1>
-    <p class="text-sm text-slate-600 mt-1">{{ $institution->name ?? '' }} — 本登録済みの契約プランと割当状況</p>
+    <h1 class="text-2xl font-bold text-slate-900">{{ __('pages.ui_10fd78192e') }}</h1>
+    <p class="text-sm text-slate-600 mt-1">{{ __('pages.confirmed_plans_status', ['name' => $institution->name ?? '']) }}</p>
 </div>
 
 @if($institution)
     <p class="text-sm text-slate-600 mb-4">
-        締め日: 毎月 {{ $institution->billing_closing_day ?? 1 }} 日
+        {{ __('pages.closing_day_monthly', ['day' => $institution->billing_closing_day ?? 1]) }}
         @if($institution->sales_person_name)
-            ／ 担当セールス: {{ $institution->sales_person_name }}
+            {{ __('pages.sales_person_prefix', ['name' => $institution->sales_person_name]) }}
         @endif
     </p>
 @endif
@@ -22,12 +22,12 @@
     <table class="min-w-full text-sm">
         <thead class="bg-slate-50 text-slate-600">
             <tr>
-                <th class="px-4 py-3 text-left">プランコード</th>
-                <th class="px-4 py-3 text-left">プラン名</th>
-                <th class="px-4 py-3 text-right">貸与枚数</th>
-                <th class="px-4 py-3 text-right">単価（税抜）</th>
-                <th class="px-4 py-3 text-right">契約数</th>
-                <th class="px-4 py-3 text-right">割当中（在籍）</th>
+                <th class="px-4 py-3 text-left">{{ __('pages.plan_code') }}</th>
+                <th class="px-4 py-3 text-left">{{ __('pages.plan_name') }}</th>
+                <th class="px-4 py-3 text-right">{{ __('pages.rentable_qty') }}</th>
+                <th class="px-4 py-3 text-right">{{ __('pages.unit_price_ex_tax') }}</th>
+                <th class="px-4 py-3 text-right">{{ __('pages.contract_count') }}</th>
+                <th class="px-4 py-3 text-right">{{ __('pages.ui_433b7faaf4') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -44,7 +44,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">本登録の契約プランがありません。カマタニへご連絡ください。</td></tr>
+                <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">{{ __('pages.ui_50a869e66e') }}</td></tr>
             @endforelse
         </tbody>
     </table>

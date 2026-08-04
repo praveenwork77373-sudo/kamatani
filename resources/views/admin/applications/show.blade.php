@@ -1,18 +1,18 @@
 @extends('layouts.app')
 
-@section('title', '管理: 申請詳細 | ユニフォーム管理システム')
-@section('page_title', '申請詳細')
+@section('title', __('pages.ui_f33add7e53'))
+@section('page_title', __('pages.application_detail'))
 
 @section('content')
     <div class="mb-6">
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">申請詳細</h1>
-                <p class="text-[14px] text-slate-600 mt-1.5">申請内容を確認し、承認・却下・キャンセル承認ができます。</p>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.application_detail') }}</h1>
+                <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.ui_2551238c99') }}</p>
             </div>
             <a href="{{ route('admin.applications.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
                 <i class="ph ph-arrow-left text-base"></i>
-                一覧へ戻る
+                {{ __('pages.back_to_list') }}
             </a>
         </div>
     </div>
@@ -21,14 +21,14 @@
         <div class="lg:col-span-2 space-y-6">
             {{-- 基本情報 --}}
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">基本情報</h2>
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('pages.basic_info') }}</h2>
                 <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[14px]">
                     <div>
-                        <dt class="text-slate-500 mb-1.5 text-[13px]">申請ID</dt>
+                        <dt class="text-slate-500 mb-1.5 text-[13px]">{{ __('pages.application_id') }}</dt>
                         <dd class="font-semibold text-slate-900">#APP-{{ str_pad($application->id, 4, '0', STR_PAD_LEFT) }}</dd>
                     </div>
                     <div>
-                        <dt class="text-slate-500 mb-1.5 text-[13px]">医療機関</dt>
+                        <dt class="text-slate-500 mb-1.5 text-[13px]">{{ __('pages.medical_institution') }}</dt>
                         <dd class="text-slate-900">{{ $application->medicalInstitution?->name ?? '-' }}</dd>
                     </div>
                     <div>
@@ -58,23 +58,7 @@
                     <div>
                         <dt class="text-slate-500 mb-1.5 text-[13px]">{{ __('pages.status') }}</dt>
                         <dd>
-                            @php
-                                $statusConfig = [
-                                    'pending' => ['label' => '申請', 'class' => 'bg-slate-100 text-slate-700'],
-                                    'waiting_special_approval' => ['label' => __('pages.status_waiting_special_approval'), 'class' => 'bg-amber-100 text-amber-700'],
-                                    'in_progress' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700'],
-                                    'completed' => ['label' => '完了', 'class' => 'bg-emerald-100 text-emerald-700'],
-                                    'approved' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700'],
-                                    'rejected' => ['label' => __('pages.status_rejected'), 'class' => 'bg-red-100 text-red-700'],
-                                    'cancel_request' => ['label' => __('pages.status_cancel_request'), 'class' => 'bg-orange-100 text-orange-700'],
-                                    'cancel_approved' => ['label' => __('pages.status_cancel_approved'), 'class' => 'bg-slate-100 text-slate-700'],
-                                    'cancel_rejected' => ['label' => __('pages.status_cancel_rejected'), 'class' => 'bg-red-100 text-red-700'],
-                                ];
-                                $status = $statusConfig[$application->status] ?? ['label' => $application->status, 'class' => 'bg-slate-100 text-slate-700'];
-                            @endphp
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full {{ $status['class'] }} text-[13px] font-medium">
-                                {{ $status['label'] }}
-                            </span>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full {{ $application->statusBadgeClass() }} text-[13px] font-medium">{{ $application->statusLabel() }}</span>
                         </dd>
                     </div>
                     <div>
@@ -94,15 +78,15 @@
 
             {{-- 申請アイテム --}}
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">申請アイテム</h2>
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('pages.application_items') }}</h2>
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-[14px]">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">商品コード</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">商品名</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">サイズ</th>
-                                <th class="px-4 py-3 text-right font-semibold text-slate-700">数量</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">{{ __('pages.product_code') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">{{ __('pages.product_name') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">{{ __('pages.size') }}</th>
+                                <th class="px-4 py-3 text-right font-semibold text-slate-700">{{ __('pages.quantity') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -121,28 +105,28 @@
 
             @if($application->special_approval_reason)
                 <div class="bg-amber-50 border-l-4 border-amber-500 rounded-lg px-4 py-3">
-                    <h3 class="text-[14px] font-semibold text-amber-800 mb-1">特別承認理由</h3>
+                    <h3 class="text-[14px] font-semibold text-amber-800 mb-1">{{ __('pages.special_approval_reason') }}</h3>
                     <p class="text-[13px] text-amber-700">{{ $application->special_approval_reason }}</p>
                 </div>
             @endif
 
             {{-- メモ（帳票印字） --}}
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">メモ（帳票）</h2>
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('pages.memo_documents') }}</h2>
                 <form method="POST" action="{{ route('admin.applications.update_memos', $application) }}" class="space-y-4">
                     @csrf
                     <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">メモ1</label>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">{{ __('pages.memo1') }}</label>
                         <input type="text" name="memo1" value="{{ old('memo1', $application->memo1) }}" maxlength="500"
                                class="w-full px-3 py-2 rounded-lg border border-slate-300 text-[14px]">
                     </div>
                     <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">メモ2</label>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">{{ __('pages.memo2') }}</label>
                         <input type="text" name="memo2" value="{{ old('memo2', $application->memo2) }}" maxlength="500"
                                class="w-full px-3 py-2 rounded-lg border border-slate-300 text-[14px]">
                     </div>
                     <button type="submit" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-[13px] font-medium hover:bg-slate-900">
-                        メモを保存
+                        {{ __('pages.save_memo') }}
                     </button>
                 </form>
             </div>
@@ -151,23 +135,23 @@
             @if(in_array($application->status, ['in_progress', 'completed'], true))
                 <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
                     <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
-                        <h2 class="text-lg font-semibold text-slate-900">帳票PDF</h2>
+                        <h2 class="text-lg font-semibold text-slate-900">{{ __('pages.ui_1e27b32bc8') }}</h2>
                         <form method="POST" action="{{ route('admin.applications.documents.issue', $application) }}">
                             @csrf
                             <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 text-[13px] font-medium">
                                 <i class="ph ph-file-pdf text-base"></i>
-                                {{ ($latestDocuments ?? collect())->isEmpty() ? '5種を発行' : '5種を再発行' }}
+                                {{ ($latestDocuments ?? collect())->isEmpty() ? __('pages.issue_five_types') : __('pages.reissue_five_types') }}
                             </button>
                         </form>
                     </div>
                     <div class="space-y-2">
                         @php
                             $types = [
-                                'order_slip' => '受注伝票',
-                                'delivery_notice' => '納入予定ご連絡書',
-                                'shipping_sales' => '出荷指示書（営業所用）',
-                                'shipping_warehouse' => '出荷指示書（倉庫用）',
-                                'work_slip' => '作業用伝票',
+                                'order_slip' => __('pages.doc_order_slip'),
+                                'delivery_notice' => __('pages.doc_delivery_notice'),
+                                'shipping_sales' => __('pages.doc_shipping_sales'),
+                                'shipping_warehouse' => __('pages.doc_shipping_warehouse'),
+                                'work_slip' => __('pages.doc_work_slip'),
                             ];
                             $latestDocuments = $latestDocuments ?? collect();
                         @endphp
@@ -179,20 +163,20 @@
                                     @if($doc)
                                         <p class="text-[11px] text-slate-500">v{{ $doc->version }} · {{ optional($doc->issued_at)->format('Y-m-d H:i') }}</p>
                                     @else
-                                        <p class="text-[11px] text-slate-400">未発行</p>
+                                        <p class="text-[11px] text-slate-400">{{ __('pages.not_issued') }}</p>
                                     @endif
                                 </div>
                                 <div class="flex items-center gap-2">
                                     @if($doc)
                                         <a href="{{ route('admin.application-documents.preview', $doc) }}" target="_blank"
-                                           class="px-2.5 py-1 rounded border border-slate-300 text-[12px] text-slate-700 hover:bg-white">表示</a>
+                                           class="px-2.5 py-1 rounded border border-slate-300 text-[12px] text-slate-700 hover:bg-white">{{ __('pages.view') }}</a>
                                         <a href="{{ route('admin.application-documents.download', $doc) }}"
                                            class="px-2.5 py-1 rounded border border-slate-300 text-[12px] text-slate-700 hover:bg-white">DL</a>
                                     @endif
                                     <form method="POST" action="{{ route('admin.applications.documents.reissue', [$application, $type]) }}">
                                         @csrf
                                         <button type="submit" class="px-2.5 py-1 rounded border border-emerald-300 text-[12px] text-emerald-700 hover:bg-emerald-50">
-                                            {{ $doc ? '再発行' : '発行' }}
+                                            {{ $doc ? __('pages.reissue') : __('pages.issue') }}
                                         </button>
                                     </form>
                                 </div>
@@ -201,7 +185,7 @@
                     </div>
                     @if(($documentHistory ?? collect())->where('is_latest', false)->isNotEmpty())
                         <details class="mt-4">
-                            <summary class="text-[13px] text-slate-600 cursor-pointer">過去バージョン履歴</summary>
+                            <summary class="text-[13px] text-slate-600 cursor-pointer">{{ __('pages.document_history') }}</summary>
                             <ul class="mt-2 space-y-1 text-[12px] text-slate-600">
                                 @foreach(($documentHistory ?? collect())->where('is_latest', false)->sortByDesc('issued_at') as $old)
                                     <li class="flex justify-between gap-2">
@@ -219,28 +203,28 @@
         {{-- アクションサイドバー --}}
         <div class="lg:col-span-1">
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 sticky top-6">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">操作</h2>
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('common.actions') }}</h2>
                 <div class="space-y-3">
                     @if(in_array($application->status, ['pending', 'waiting_special_approval']))
                         <form method="POST" action="{{ route('admin.applications.approve', $application) }}" class="inline-block w-full">
                             @csrf
                             <button type="submit" class="w-full px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
                                 <i class="ph ph-check-circle text-base"></i>
-                                受付する（対応中）
+                                {{ __('pages.accept_in_progress') }}
                             </button>
                         </form>
                         <button type="button" onclick="openRejectModal()" class="w-full px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
                             <i class="ph ph-x-circle text-base"></i>
-                            却下する
+                            {{ __('pages.reject_do') }}
                         </button>
                     @endif
 
                     @if($application->status === 'in_progress')
-                        <form method="POST" action="{{ route('admin.applications.complete', $application) }}" class="inline-block w-full" onsubmit="return confirm('出荷完了として申請を完了にしますか？');">
+                        <form method="POST" action="{{ route('admin.applications.complete', $application) }}" class="inline-block w-full" onsubmit="return confirm(@json(__('pages.confirm_ship_complete')));">
                             @csrf
                             <button type="submit" class="w-full px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
                                 <i class="ph ph-truck text-base"></i>
-                                出荷登録（完了）
+                                {{ __('pages.ship_complete') }}
                             </button>
                         </form>
                     @endif
@@ -250,12 +234,12 @@
                             @csrf
                             <button type="submit" class="w-full px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
                                 <i class="ph ph-check-circle text-base"></i>
-                                キャンセル承認
+                                {{ __('pages.cancel_approved') }}
                             </button>
                         </form>
                         <button type="button" onclick="openRejectCancelModal()" class="w-full px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
                             <i class="ph ph-x-circle text-base"></i>
-                            キャンセル却下
+                            {{ __('pages.cancel_rejected') }}
                         </button>
                     @endif
                 </div>
@@ -267,7 +251,7 @@
     <div id="reject-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-slate-900">申請を却下</h3>
+                <h3 class="text-lg font-semibold text-slate-900">{{ __('pages.ui_14b0eb3aa8') }}</h3>
                 <button type="button" onclick="closeRejectModal()" class="text-slate-400 hover:text-slate-600">
                     <i class="ph ph-x text-xl"></i>
                 </button>
@@ -276,18 +260,18 @@
                 @csrf
                 <div class="mb-4">
                     <label class="block text-slate-700 text-[14px] font-semibold mb-2">
-                        却下理由 <span class="text-red-500">*</span>
+                        {{ __('pages.rejection_reason_label') }} <span class="text-red-500">*</span>
                     </label>
                     <textarea name="rejection_reason" rows="4" required
                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all resize-none"
-                              placeholder="却下理由を入力してください"></textarea>
+                              placeholder="{{ __('pages.rejection_reason_placeholder') }}"></textarea>
                 </div>
                 <div class="flex items-center justify-end gap-3">
                     <button type="button" onclick="closeRejectModal()" class="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
-                        キャンセル
+                        {{ __('pages.cancel') }}
                     </button>
                     <button type="submit" class="px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[14px] font-semibold transition-all">
-                        却下する
+                        {{ __('pages.reject_do') }}
                     </button>
                 </div>
             </form>
@@ -298,7 +282,7 @@
     <div id="reject-cancel-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-slate-900">キャンセルを却下</h3>
+                <h3 class="text-lg font-semibold text-slate-900">{{ __('pages.reject_cancel') }}</h3>
                 <button type="button" onclick="closeRejectCancelModal()" class="text-slate-400 hover:text-slate-600">
                     <i class="ph ph-x text-xl"></i>
                 </button>
@@ -307,18 +291,18 @@
                 @csrf
                 <div class="mb-4">
                     <label class="block text-slate-700 text-[14px] font-semibold mb-2">
-                        却下理由 <span class="text-red-500">*</span>
+                        {{ __('pages.rejection_reason_label') }} <span class="text-red-500">*</span>
                     </label>
                     <textarea name="rejection_reason" rows="4" required
                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all resize-none"
-                              placeholder="却下理由を入力してください"></textarea>
+                              placeholder="{{ __('pages.rejection_reason_placeholder') }}"></textarea>
                 </div>
                 <div class="flex items-center justify-end gap-3">
                     <button type="button" onclick="closeRejectCancelModal()" class="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
-                        キャンセル
+                        {{ __('pages.cancel') }}
                     </button>
                     <button type="submit" class="px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[14px] font-semibold transition-all">
-                        却下する
+                        {{ __('pages.reject_do') }}
                     </button>
                 </div>
             </form>

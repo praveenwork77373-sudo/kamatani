@@ -1,102 +1,73 @@
 @extends('layouts.app')
 
-@section('title', '申請一覧 | ユニフォーム管理システム')
-@section('page_title', 'ユニフォーム申請履歴')
+@section('title', __('pages.ui_8123ac616d'))
+@section('page_title', __('pages.applications_history_title'))
 
 @section('content')
     <div class="mb-6">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">ユニフォーム申請履歴</h1>
-                <p class="text-[14px] text-slate-600 mt-1.5">最新順に表示しています。</p>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.applications_history_title') }}</h1>
+                <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.ui_3f94b4803b') }}</p>
             </div>
             <a href="{{ route('applications.create') }}"
                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all">
                 <i class="ph ph-plus text-base"></i>
-                新規申請
+                {{ __('pages.new_application_short') }}
             </a>
         </div>
     </div>
 
-    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-[14px]">
-                <thead class="bg-slate-50 border-b border-slate-200">
+    <div class="ui-card overflow-hidden">
+        <div class="ui-table-wrap">
+            <table class="ui-table">
+                <thead>
                     <tr>
-                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">申請ID</th>
-                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">職員</th>
-                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">部署</th>
-                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">種別</th>
-                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">状態</th>
-                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">申請日</th>
-                        <th class="px-5 py-3.5 text-right font-semibold text-slate-700">操作</th>
+                        <th>{{ __('pages.application_id') }}</th>
+                        <th>{{ __('common.employees') }}</th>
+                        <th class="hidden md:table-cell">{{ __('pages.department') }}</th>
+                        <th>{{ __('pages.type') }}</th>
+                        <th>{{ __('pages.status') }}</th>
+                        <th class="hidden sm:table-cell">{{ __('pages.application_date') }}</th>
+                        <th class="ui-table__actions">{{ __('common.actions') }}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody>
                     @forelse($applications as $app)
-                        <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="px-5 py-4 font-semibold text-slate-900">
+                        <tr>
+                            <td class="font-semibold">
                                 #APP-{{ str_pad($app->id, 4, '0', STR_PAD_LEFT) }}
                             </td>
-                            <td class="px-5 py-4 text-slate-800">
-                                {{ $app->employee?->name ?? '-' }}
-                                <span class="text-slate-500 text-[13px] ml-2">({{ $app->employee?->staff_no ?? '-' }})</span>
+                            <td>
+                                <div class="font-medium">{{ $app->employee?->name ?? '-' }}</div>
+                                <div class="text-[11px] text-slate-500">{{ $app->employee?->staff_no ?? '-' }}</div>
                             </td>
-                            <td class="px-5 py-4 text-slate-600">{{ $app->department?->name ?? '-' }}</td>
-                            <td class="px-5 py-4">
-                                @php
-                                    $typeLabels = [
-                                        'new_loan' => ['label' => '新規貸与', 'class' => 'bg-primary-100 text-primary-700'],
-                                        'resize' => ['label' => 'サイズ交換', 'class' => 'bg-slate-100 text-slate-700'],
-                                        'return' => ['label' => '返却', 'class' => 'bg-slate-100 text-slate-700'],
-                                        'exchange' => ['label' => '交換', 'class' => 'bg-slate-100 text-slate-700'],
-                                        'transfer' => ['label' => '異動', 'class' => 'bg-slate-100 text-slate-700'],
-                                    ];
-                                    $type = $typeLabels[$app->type] ?? ['label' => $app->type, 'class' => 'bg-slate-100 text-slate-700'];
-                                @endphp
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full {{ $type['class'] }} text-[13px] font-medium">
-                                    {{ $type['label'] }}
-                                </span>
+                            <td class="hidden md:table-cell text-slate-600">{{ $app->department?->name ?? '-' }}</td>
+                            <td>
+                                <span class="ui-status-pill ui-status-pill--{{ $app->typePillTone() }}">{{ $app->typeLabel() }}</span>
                             </td>
-                            <td class="px-5 py-4">
-                                @php
-                                    $statusConfig = [
-                                        'pending' => ['label' => '申請', 'class' => 'bg-slate-100 text-slate-700'],
-                                        'waiting_special_approval' => ['label' => '特別承認待ち', 'class' => 'bg-amber-100 text-amber-700'],
-                                        'in_progress' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700'],
-                                        'completed' => ['label' => '完了', 'class' => 'bg-emerald-100 text-emerald-700'],
-                                        'approved' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700'],
-                                        'rejected' => ['label' => '却下', 'class' => 'bg-red-100 text-red-700'],
-                                        'cancel_request' => ['label' => 'キャンセル依頼中', 'class' => 'bg-orange-100 text-orange-700'],
-                                        'cancel_approved' => ['label' => 'キャンセル承認', 'class' => 'bg-slate-100 text-slate-700'],
-                                        'cancel_rejected' => ['label' => 'キャンセル却下', 'class' => 'bg-red-100 text-red-700'],
-                                    ];
-                                    $status = $statusConfig[$app->status] ?? ['label' => $app->status, 'class' => 'bg-slate-100 text-slate-700'];
-                                @endphp
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full {{ $status['class'] }} text-[13px] font-medium">
-                                    @if($app->status === 'pending')
-                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                                    @endif
-                                    {{ $status['label'] }}
-                                </span>
+                            <td>
+                                <span class="ui-status-pill ui-status-pill--{{ $app->statusPillTone() }}">{{ $app->statusLabel() }}</span>
                             </td>
-                            <td class="px-5 py-4 text-slate-600">{{ $app->created_at->format('Y-m-d') }}</td>
-                            <td class="px-5 py-4 text-right">
-                                <a href="{{ route('applications.show', $app) }}"
-                                   class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 text-[13px] font-medium transition-all">
-                                    <i class="ph ph-eye text-sm"></i>
-                                </a>
+                            <td class="hidden sm:table-cell text-slate-600 whitespace-nowrap">{{ $app->created_at->format('Y-m-d') }}</td>
+                            <td class="ui-table__actions">
+                                <div class="ui-table__actions-row">
+                                    <x-table-action
+                                        :href="route('applications.show', $app)"
+                                        icon="eye"
+                                        :label="__('common.view')"
+                                    />
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="7" class="px-5 py-12 text-center">
                                 <div class="flex flex-col items-center gap-3">
-                                    <i class="ph ph-clipboard-text text-4xl text-slate-300"></i>
-                                    <p class="text-slate-500 text-[14px]">申請はまだありません。</p>
-                                    <a href="{{ route('applications.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[13px] font-medium shadow-md transition-all">
-                                        <i class="ph ph-plus text-sm"></i>
-                                        新規申請を作成する
+                                    <i data-lucide="clipboard-list" class="w-12 h-12 text-slate-300"></i>
+                                    <p class="text-slate-500 text-[14px]">{{ __('pages.no_applications') }}</p>
+                                    <a href="{{ route('applications.create') }}" class="ui-btn ui-btn-primary">
+                                        {{ __('pages.new_application_short') }}{{ __('pages.create_one') }}
                                     </a>
                                 </div>
                             </td>

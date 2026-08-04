@@ -22,24 +22,6 @@
         </div>
     </div>
 
-    @if(session('status'))
-        <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                <span class="text-[14px] text-emerald-800 font-medium">{{ session('status') }}</span>
-            </div>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i data-lucide="alert-circle" class="w-5 h-5 text-red-600"></i>
-                <span class="text-[14px] text-red-800 font-medium">{{ session('error') }}</span>
-            </div>
-        </div>
-    @endif
-
     @if($errors->any())
         <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
             <ul class="list-disc list-inside text-[14px] text-red-800">
@@ -248,7 +230,6 @@
                 </div>
 
             <x-table-pagination :paginator="$backups" />
-
 
             </div>
         </div>

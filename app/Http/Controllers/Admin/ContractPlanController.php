@@ -53,7 +53,7 @@ class ContractPlanController extends Controller
         $plan = ContractPlan::create($data);
         $plan->uniformProducts()->sync($productIds);
 
-        return redirect()->route('admin.contract-plans.index')->with('status', '契約プランを登録しました。');
+        return redirect()->route('admin.contract-plans.index')->with('status', __('pages.flash_100ce5f6c9'));
     }
 
     public function show(ContractPlan $contractPlan): View
@@ -97,13 +97,13 @@ class ContractPlanController extends Controller
         $contractPlan->update($data);
         $contractPlan->uniformProducts()->sync($productIds);
 
-        return redirect()->route('admin.contract-plans.index')->with('status', '契約プランを更新しました。');
+        return redirect()->route('admin.contract-plans.index')->with('status', __('pages.flash_b24bf7b4f0'));
     }
 
     public function destroy(ContractPlan $contractPlan): RedirectResponse
     {
         $contractPlan->update(['is_active' => false]);
 
-        return redirect()->route('admin.contract-plans.index')->with('status', '契約プランを無効化しました。');
+        return redirect()->route('admin.contract-plans.index')->with('status', __('pages.flash_970fead912'));
     }
 }

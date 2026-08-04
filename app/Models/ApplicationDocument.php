@@ -51,11 +51,11 @@ class ApplicationDocument extends Model
     public function label(): string
     {
         return match ($this->form_type) {
-            self::TYPE_ORDER_SLIP => '受注伝票',
-            self::TYPE_DELIVERY_NOTICE => '納入予定ご連絡書',
-            self::TYPE_SHIPPING_SALES => '出荷指示書（営業所用）',
-            self::TYPE_SHIPPING_WAREHOUSE => '出荷指示書（倉庫用）',
-            self::TYPE_WORK_SLIP => '作業用伝票',
+            self::TYPE_ORDER_SLIP => __('pages.doc_order_slip'),
+            self::TYPE_DELIVERY_NOTICE => __('pages.doc_delivery_notice'),
+            self::TYPE_SHIPPING_SALES => __('pages.doc_shipping_sales'),
+            self::TYPE_SHIPPING_WAREHOUSE => __('pages.doc_shipping_warehouse'),
+            self::TYPE_WORK_SLIP => __('pages.doc_work_slip'),
             default => $this->form_type,
         };
     }

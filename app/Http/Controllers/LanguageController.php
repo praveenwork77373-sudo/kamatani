@@ -9,13 +9,18 @@ class LanguageController extends Controller
 {
     public function switch(Request $request, string $locale): RedirectResponse
     {
-        if (in_array($locale, ['ja', 'en'])) {
+        if (in_array($locale, ['ja', 'en'], true)) {
             session(['locale' => $locale]);
         } else {
-            // Default to Japanese if invalid locale
             session(['locale' => 'ja']);
         }
 
-        return redirect()->back();
+        $fallback = $request->user()
+            ? route('dashboard')
+            : (str_contains((string) $request->headers->get('referer'), '/admin')
+                ? route('admin.login')
+                : route('login'));
+
+        return redirect()->back(fallback: $fallback);
     }
 }

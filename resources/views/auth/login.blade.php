@@ -6,8 +6,8 @@
     <div class="guest-card px-8 py-10 w-full">
         <div class="text-center mb-6">
             <img
-                src="{{ asset('brand.png') }}"
-                alt="ユニフォーム管理システム — KAMATANI"
+                src="{{ asset('images/brand/logo.png') }}"
+                alt="{{ __('pages.system_brand_line') }}"
                 class="mx-auto w-full max-w-[240px] h-auto object-contain select-none"
                 decoding="async"
             >
@@ -48,7 +48,7 @@
                         class="guest-input w-full px-4 py-3 pr-11 text-[14px] text-slate-900"
                         placeholder="{{ __('auth.password') }}">
                     <button type="button" id="toggle-password"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slatebrand text-[12px] font-medium hover:text-brand">表示</button>
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slatebrand text-[12px] font-medium hover:text-brand">{{ __('pages.view') }}</button>
                 </div>
                 @error('password')
                     <p class="mt-1.5 text-[13px] text-red-600">{{ $message }}</p>
@@ -69,10 +69,6 @@
                 {{ __('auth.login') }}
             </button>
         </form>
-
-        <p class="mt-6 text-center text-[12px] text-slate-500">
-            <a href="{{ route('admin.login') }}" class="text-brand hover:underline">{{ __('auth.admin_login') }}</a>
-        </p>
     </div>
 
     <script>
@@ -83,7 +79,7 @@
             btn.addEventListener('click', function () {
                 var show = input.type === 'password';
                 input.type = show ? 'text' : 'password';
-                btn.textContent = show ? '隠す' : '表示';
+                btn.textContent = show ? @json(__('pages.hide')) : @json(__('pages.show'));
             });
         })();
     </script>

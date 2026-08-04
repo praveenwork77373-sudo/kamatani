@@ -22,7 +22,7 @@ class ApplicationApprovalController extends Controller
         $admin = $request->user()->adminUser;
 
         if (!$admin || !in_array($admin->role, ['system_admin', 'operation'], true)) {
-            abort(403, '承認権限がありません。');
+            abort(403, __('pages.flash_0a61eb6b8f'));
         }
 
         return $admin;
@@ -133,7 +133,7 @@ class ApplicationApprovalController extends Controller
 
         return redirect()
             ->route('admin.applications.show', $application)
-            ->with('status', 'メモを保存しました。帳票再発行で反映されます。');
+            ->with('status', __('pages.flash_7313a390f0'));
     }
 
     public function approve(Request $request, Application $application): RedirectResponse
@@ -141,7 +141,7 @@ class ApplicationApprovalController extends Controller
         $this->ensureApprover($request);
 
         if (!in_array($application->status, ['pending', 'waiting_special_approval'], true)) {
-            return back()->with('error', 'この申請は承認できません。');
+            return back()->with('error', __('pages.flash_b2b180ac53'));
         }
 
         $userId = $request->user()->id;
@@ -197,7 +197,7 @@ class ApplicationApprovalController extends Controller
                     'application_id' => $applicationId,
                     'error' => $e->getMessage(),
                 ]);
-                return back()->with('status', '申請を受付し対応中にしました。帳票PDFの自動発行に失敗したため、詳細画面から再発行してください。');
+                return back()->with('status', __('pages.flash_aaa5e96fa9'));
             }
         } catch (\Exception $e) {
             Log::error('Application approval failed', [
@@ -208,7 +208,7 @@ class ApplicationApprovalController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('status', '申請を受付し、対応中にしました。帳票PDF（5種）を発行しました。');
+        return back()->with('status', __('pages.flash_54ae2dae16'));
     }
 
     /**
@@ -219,7 +219,7 @@ class ApplicationApprovalController extends Controller
         $this->ensureApprover($request);
 
         if (! $application->isCompletable()) {
-            return back()->with('error', '対応中の申請のみ完了にできます。');
+            return back()->with('error', __('pages.flash_9bf4ce5709'));
         }
 
         $application->status = Application::STATUS_COMPLETED;
@@ -227,7 +227,7 @@ class ApplicationApprovalController extends Controller
         $application->completed_at = now();
         $application->save();
 
-        return back()->with('status', '出荷登録し、申請を完了にしました。');
+        return back()->with('status', __('pages.flash_19eb46a946'));
     }
 
     /**
@@ -363,7 +363,7 @@ class ApplicationApprovalController extends Controller
         $this->ensureApprover($request);
 
         if (!in_array($application->status, ['pending', 'waiting_special_approval'], true)) {
-            return back()->with('error', 'この申請は却下できません。');
+            return back()->with('error', __('pages.flash_667b6ceddf'));
         }
 
         $application->status = 'rejected';
@@ -374,7 +374,7 @@ class ApplicationApprovalController extends Controller
 
         \App\Services\NotificationService::notifyApplicationRejected($application);
 
-        return back()->with('status', '申請を却下しました。');
+        return back()->with('status', __('pages.flash_3782da7077'));
     }
 
     public function approveCancel(Request $request, Application $application): RedirectResponse
@@ -382,7 +382,7 @@ class ApplicationApprovalController extends Controller
         $this->ensureApprover($request);
 
         if ($application->status !== 'cancel_request') {
-            return back()->with('error', 'キャンセル申請がありません。');
+            return back()->with('error', __('pages.flash_07fcf2b9a8'));
         }
 
         $userId = $request->user()->id;
@@ -432,7 +432,7 @@ class ApplicationApprovalController extends Controller
             ]);
         }
 
-        return back()->with('status', 'キャンセルを承認しました。');
+        return back()->with('status', __('pages.flash_3bf28c3894'));
     }
 
     public function rejectCancel(Request $request, Application $application): RedirectResponse
@@ -440,7 +440,7 @@ class ApplicationApprovalController extends Controller
         $this->ensureApprover($request);
 
         if ($application->status !== 'cancel_request') {
-            return back()->with('error', 'キャンセル申請がありません。');
+            return back()->with('error', __('pages.flash_07fcf2b9a8'));
         }
 
         // Resume prior workflow so ops can continue shipping after rejecting cancel
@@ -518,38 +518,18 @@ class ApplicationApprovalController extends Controller
             ]);
 
             foreach ($applications as $app) {
-                $typeLabels = [
-                    'new_loan' => '新規貸与',
-                    'resize' => 'サイズ交換',
-                    'return' => '返却',
-                    'exchange' => '交換',
-                    'transfer' => '異動（部分変更）',
-                ];
-
-                $statusLabels = [
-                    'pending' => '申請',
-                    'waiting_special_approval' => '特別承認待ち',
-                    'in_progress' => '対応中',
-                    'completed' => '完了',
-                    'approved' => '対応中',
-                    'rejected' => '却下',
-                    'cancel_request' => 'キャンセル依頼中',
-                    'cancel_approved' => 'キャンセル承認',
-                    'cancel_rejected' => 'キャンセル却下',
-                ];
-
                 if ($app->items->count() > 0) {
                     foreach ($app->items as $item) {
                         fputcsv($file, [
                             '#APP-' . str_pad($app->id, 4, '0', STR_PAD_LEFT),
-                            $typeLabels[$app->type] ?? $app->type,
+                            $app->typeLabel(),
                             $app->medicalInstitution?->name ?? '',
                             $app->department?->name ?? '',
                             $app->employee?->name ?? '',
                             $app->employee?->staff_no ?? '',
                             $app->employee?->positions->first()?->jobType?->name ?? '',
                             $app->start_date?->format('Y-m-d') ?? '',
-                            $statusLabels[$app->status] ?? $app->status,
+                            $app->statusLabel(),
                             $item->uniformProduct?->product_code ?? '',
                             $item->uniformProduct?->name ?? '',
                             $item->uniformProduct?->size ?? '',
@@ -561,14 +541,14 @@ class ApplicationApprovalController extends Controller
                 } else {
                     fputcsv($file, [
                         '#APP-' . str_pad($app->id, 4, '0', STR_PAD_LEFT),
-                        $typeLabels[$app->type] ?? $app->type,
+                        $app->typeLabel(),
                         $app->medicalInstitution?->name ?? '',
                         $app->department?->name ?? '',
                         $app->employee?->name ?? '',
                         $app->employee?->staff_no ?? '',
                         $app->employee?->positions->first()?->jobType?->name ?? '',
                         $app->start_date?->format('Y-m-d') ?? '',
-                        $statusLabels[$app->status] ?? $app->status,
+                        $app->statusLabel(),
                         '',
                         '',
                         '',

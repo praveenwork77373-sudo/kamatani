@@ -221,11 +221,11 @@
                         @enderror
                     </div>
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">股下 (cm)</label>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.inseam_cm') }}</label>
                         <div class="ui-field-icon">
                             <i data-lucide="ruler"></i>
                             <select name="inseam_cm" class="ui-select">
-                                <option value="">未設定</option>
+                                <option value="">{{ __('pages.not_set') }}</option>
                                 @for($cm = 60; $cm <= 90; $cm++)
                                     <option value="{{ $cm }}" @selected(old('inseam_cm', $employee->inseam_cm)==$cm)>{{ $cm }}</option>
                                 @endfor
@@ -233,21 +233,21 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">体型</label>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.body_type') }}</label>
                         <div class="ui-field-icon">
                             <i data-lucide="user"></i>
-                            <input type="text" name="body_type" value="{{ old('body_type', $employee->body_type) }}" class="ui-input" placeholder="例: 7号, 11号">
+                            <input type="text" name="body_type" value="{{ old('body_type', $employee->body_type) }}" class="ui-input" placeholder="{{ __('pages.example_sizes') }}">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">入職日</label>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.hire_date') }}</label>
                         <div class="ui-field-icon">
                             <i data-lucide="calendar"></i>
                             <input type="date" name="join_date" value="{{ old('join_date', optional($employee->join_date)->format('Y-m-d')) }}" class="ui-input">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">退職日</label>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.retire_date') }}</label>
                         <div class="ui-field-icon">
                             <i data-lucide="calendar"></i>
                             <input type="date" name="retire_date" value="{{ old('retire_date', optional($employee->retire_date)->format('Y-m-d')) }}" class="ui-input">
@@ -256,8 +256,8 @@
                 </div>
 
                 <div class="mt-6 mb-4">
-                    <h3 class="text-[15px] font-semibold text-slate-700 mb-2">共通契約プラン（所属指定なし）</h3>
-                    <p class="text-[13px] text-slate-500 mb-3">兼務に紐づけないプラン。所属ごとのプランは下の兼務行で設定します。</p>
+                    <h3 class="text-[15px] font-semibold text-slate-700 mb-2">{{ __('pages.shared_contract_plans') }}</h3>
+                    <p class="text-[13px] text-slate-500 mb-3">{{ __('pages.shared_plans_hint') }}</p>
                     <div class="space-y-2 border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto">
                         @php
                             $today = now()->toDateString();
@@ -277,7 +277,7 @@
                                 <span>{{ $ccp->contractPlan->name ?? '' }}</span>
                             </label>
                         @empty
-                            <p class="text-slate-500 text-sm">本登録の契約プランがありません</p>
+                            <p class="text-slate-500 text-sm">{{ __('pages.no_confirmed_plans') }}</p>
                         @endforelse
                     </div>
                 </div>
@@ -291,7 +291,7 @@
                         <i data-lucide="briefcase" class="w-4 h-4 text-slate-500"></i>
                         <h3 class="text-[15px] font-semibold text-slate-700">{{ __('pages.multiple_positions') }}</h3>
                     </div>
-                    <p class="text-[13px] text-slate-500 mb-4">兼務ごとに異なる契約プランを割当できます。</p>
+                    <p class="text-[13px] text-slate-500 mb-4">{{ __('pages.ui_4bcc616f00') }}</p>
                 </div>
 
                 <div id="positions-area" class="space-y-4">
@@ -357,7 +357,7 @@
                                 </div>
                             </div>
                             <div class="position-plans border-t border-slate-200 pt-3">
-                                <p class="text-[12px] font-semibold text-slate-600 mb-2">この所属の契約プラン</p>
+                                <p class="text-[12px] font-semibold text-slate-600 mb-2">{{ __('pages.affiliation_contract_plans') }}</p>
                                 <div class="space-y-1.5 max-h-36 overflow-y-auto">
                                     @forelse(($availablePlans ?? []) as $ccp)
                                         <label class="flex items-center gap-2 text-sm">
@@ -369,7 +369,7 @@
                                             <span>{{ $ccp->contractPlan->name ?? '' }}</span>
                                         </label>
                                     @empty
-                                        <p class="text-slate-500 text-xs">本登録の契約プランがありません</p>
+                                        <p class="text-slate-500 text-xs">{{ __('pages.no_confirmed_plans') }}</p>
                                     @endforelse
                                 </div>
                             </div>

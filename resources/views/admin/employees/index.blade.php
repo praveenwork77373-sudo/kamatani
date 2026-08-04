@@ -16,9 +16,9 @@
                     <input type="hidden" name="q" value="{{ $searchQuery }}">
                     <button type="submit"
                             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium shadow-sm transition-all {{ $selectedInstitutionId ? '' : 'opacity-50 cursor-not-allowed' }}"
-                            @if(!$selectedInstitutionId) disabled title="医療機関を選択してから出力してください" @endif>
+                            @if(!$selectedInstitutionId) disabled :title="__('pages.select_institution_before_export')" @endif>
                         <i data-lucide="download" class="w-4 h-4"></i>
-                        CSV出力
+                        {{ __('pages.csv_export') }}
                     </button>
                 </form>
                 <form method="POST" action="{{ route('admin.employees.import_csv') }}" enctype="multipart/form-data" class="inline" id="admin-csv-import-form">
@@ -26,7 +26,7 @@
                     <input type="hidden" name="medical_institution_id" value="{{ $selectedInstitutionId }}">
                     <label class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium shadow-sm transition-all {{ $selectedInstitutionId ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed' }}">
                         <i data-lucide="upload" class="w-4 h-4"></i>
-                        CSV取込
+                        {{ __('pages.csv_import') }}
                         <input type="file" name="csv_file" accept=".csv,.txt" class="hidden"
                                @if(!$selectedInstitutionId) disabled @endif
                                onchange="if(this.files.length){ document.getElementById('admin-csv-import-form').submit(); }">
@@ -35,27 +35,9 @@
             </div>
         </div>
         @if(!$selectedInstitutionId)
-            <p class="text-[13px] text-amber-700 mt-2">CSV出力・取込にはフィルタで医療機関を選択してください。</p>
+            <p class="text-[13px] text-amber-700 mt-2">{{ __('pages.csv_need_institution') }}</p>
         @endif
     </div>
-
-    @if(session('status'))
-        <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                <span class="text-[14px] text-emerald-800 font-medium">{{ session('status') }}</span>
-            </div>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i data-lucide="alert-circle" class="w-5 h-5 text-red-600"></i>
-                <span class="text-[14px] text-red-800 font-medium">{{ session('error') }}</span>
-            </div>
-        </div>
-    @endif
 
     @if($errors->any())
         <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
@@ -189,20 +171,11 @@
                                 </td>
                                 <td class="px-5 py-4">
                                     @if($employee->status === 'employed')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                                            {{ __('pages.employed') }}
-                                        </span>
+                                        <span class="ui-status-pill ui-status-pill--success">{{ __('pages.employed') }}</span>
                                     @elseif($employee->status === 'on_leave')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-amber-100 text-amber-800 border border-amber-200">
-                                            <i data-lucide="pause-circle" class="w-3.5 h-3.5"></i>
-                                            {{ __('pages.on_leave') }}
-                                        </span>
+                                        <span class="ui-status-pill ui-status-pill--warning">{{ __('pages.on_leave') }}</span>
                                     @else
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-slate-100 text-slate-800 border border-slate-200">
-                                            <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
-                                            {{ __('pages.retired') }}
-                                        </span>
+                                        <span class="ui-status-pill ui-status-pill--muted">{{ __('pages.retired') }}</span>
                                     @endif
                                 </td>
                                 <td class="px-5 py-4 text-slate-600 text-[13px]">
@@ -230,12 +203,14 @@
                                         @endif
                                     </div>
                                 </td>
-                                <td class="px-5 py-4 text-center">
-                                    <a href="{{ route('admin.employees.show', $employee) }}"
-                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 hover:bg-primary-100 text-primary-700 text-[13px] font-medium transition-all border border-primary-200 hover:border-primary-300">
-                                        <i data-lucide="eye" class="w-4 h-4"></i>
-                                        {{ __('common.view') }}
-                                    </a>
+                                <td class="px-5 py-4 text-center ui-table__actions">
+                                    <div class="ui-table__actions-row justify-center">
+                                        <x-table-action
+                                            :href="route('admin.employees.show', $employee)"
+                                            icon="eye"
+                                            :label="__('common.view')"
+                                        />
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -256,8 +231,6 @@
             </div>
 
             <x-table-pagination :paginator="$employees" />
-
-
 
         </div>
     </div>

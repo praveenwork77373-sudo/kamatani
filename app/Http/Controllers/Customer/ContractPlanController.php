@@ -17,7 +17,7 @@ class ContractPlanController extends Controller
     {
         $customer = $request->user()->customerUser;
         if (!$customer || $customer->role !== 'institution_admin') {
-            abort(403, '契約情報を参照する権限がありません。');
+            abort(403, __('pages.flash_4b6ac15711'));
         }
 
         $plans = CustomerContractPlan::with(['contractPlan.uniformProducts'])

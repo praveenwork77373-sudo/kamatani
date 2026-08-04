@@ -38,7 +38,7 @@
 
   /* Assets — masters: logo.png / favicon.png */
   --logo-master: url("/images/brand/logo.png");
-  --logo-mark: url("/images/brand/logo-mark.svg");
+  --logo-mark: url("/images/brand/logo-mark-64.png");
   --logo-mark-png: url("/images/brand/logo-mark-64.png");
   --favicon: url("/images/brand/favicon-32.png");
 }

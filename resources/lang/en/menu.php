@@ -34,6 +34,9 @@ return [
     'menu_contract' => 'Contract',
     'menu_contract_billing' => 'Contract & Billing',
     'menu_billing' => 'Billing',
-    'menu_admin_users' => 'Admin Users',
+    'menu_products_inventory' => 'Products & Inventory',
+    'menu_management' => 'Management',
+    'orders' => 'Orders',
+    'uniform_recommendations' => 'Recommended Uniforms',
 ];
 

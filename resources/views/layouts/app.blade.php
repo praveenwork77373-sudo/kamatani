@@ -4,22 +4,25 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', __('auth.system_title'))</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" href="{{ asset('images/brand/favicon-32.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/brand/apple-touch-icon.png') }}">
     {{-- Google Fonts: Noto Sans JP --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/brand-tokens.css') }}?v={{ filemtime(public_path('css/brand-tokens.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/brand-shell.css') }}?v={{ filemtime(public_path('css/brand-shell.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/ui-kit.css') }}?v={{ filemtime(public_path('css/ui-kit.css')) }}">
     <script src="{{ asset('js/custom-select.js') }}?v={{ filemtime(public_path('js/custom-select.js')) }}" defer></script>
     <script src="{{ asset('js/master-code.js') }}?v={{ filemtime(public_path('js/master-code.js')) }}" defer></script>
     {{-- Tailwind CSS CDN --}}
     <script src="https://cdn.tailwindcss.com"></script>
-    {{-- Lucide Icons - Modern, Beautiful Icons --}}
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    {{-- Lucide Icons --}}
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
     {{-- Phosphor Icons - Fallback for some icons --}}
     <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
-    {{-- Ensure icons load before page renders --}}
     <script>
-        // Preload icon libraries
         if (typeof lucide === 'undefined') {
             console.warn('Lucide icons library not loaded');
         }
@@ -29,7 +32,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     {{-- ApexCharts for Advanced Visualizations --}}
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.44.0/dist/apexcharts.min.js"></script>
-    {{-- Tailwind Config --}}
+    {{-- Tailwind Config — brand teal primary (public/images/brand) --}}
     <script>
         tailwind.config = {
             theme: {
@@ -38,23 +41,26 @@
                         sans: ['"Noto Sans JP"', 'system-ui', 'sans-serif'],
                     },
                     colors: {
-                        primary: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            200: '#bae6fd',
-                            300: '#7dd3fc',
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e',
+                        brand: {
+                            DEFAULT: '#0F6B6B',
+                            hover: '#0B5555',
+                            soft: '#E6F3F3',
+                            muted: '#3D8A8A',
                         },
-                        gradient: {
-                            blue: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            purple: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                            green: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                            orange: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                        primary: {
+                            50: '#E6F3F3',
+                            100: '#C5E4E4',
+                            200: '#9AD0D0',
+                            300: '#6BB8B8',
+                            400: '#3D8A8A',
+                            500: '#1A7A7A',
+                            600: '#0F6B6B',
+                            700: '#0B5555',
+                            800: '#084444',
+                            900: '#053333',
+                        },
+                        slatebrand: {
+                            DEFAULT: '#5C6B7A',
                         },
                     },
                 },
@@ -63,71 +69,35 @@
     </script>
     <style>
         body {
-            font-family: 'Noto Sans JP', sans-serif;
-            background-image: url('https://images.unsplash.com/photo-1583912267550-1153b9a9e277?auto=format&fit=crop&w=1600&q=80');
-            background-size: cover;
-            background-attachment: fixed;
-            background-position: center right;
+            font-family: var(--font-sans, 'Noto Sans JP', sans-serif);
         }
-        /* Layered backdrop for app shell */
         .app-shell {
             backdrop-filter: blur(14px);
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
-            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.02);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(244, 246, 247, 0.96) 100%);
         }
-        
-        /* Fix icon click issues - icons inside buttons/links should not capture clicks */
+
         button [data-lucide],
         a [data-lucide],
         button i[data-lucide],
         a i[data-lucide],
         .btn [data-lucide],
-        .button [data-lucide] {
-            pointer-events: none;
-        }
-        
-        /* Ensure form buttons with icons work correctly */
+        .button [data-lucide],
         form button [data-lucide],
         form a [data-lucide] {
             pointer-events: none;
         }
-        
-        /* Beautiful gradient cards */
-        .gradient-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-        }
-        
-        .gradient-card-green {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            box-shadow: 0 10px 30px rgba(17, 153, 142, 0.3);
-        }
-        
-        .gradient-card-orange {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.3);
-        }
-        
-        .gradient-card-blue {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
-        }
-        
-        /* Icon wrapper for Lucide */
+
         .icon-wrapper {
             display: inline-flex;
             align-items: center;
             justify-content: center;
         }
-        /* Smooth scroll */
         html { scroll-behavior: smooth; }
-        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        /* Mobile menu overlay */
+
         .mobile-menu-overlay {
             transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
         }
@@ -135,8 +105,7 @@
             opacity: 1;
             visibility: visible;
         }
-        
-        /* Mobile sidebar */
+
         .mobile-sidebar {
             transform: translateX(-100%);
             transition: transform 0.3s ease-in-out;
@@ -149,413 +118,96 @@
         .mobile-sidebar.active {
             transform: translateX(0);
         }
-        
-        /* Responsive table styles */
+
         @media (max-width: 768px) {
-            table {
-                font-size: 12px;
-            }
+            table { font-size: 12px; }
             table th,
             table td {
                 padding: 0.5rem 0.75rem;
                 white-space: nowrap;
             }
-            /* Ensure tables scroll horizontally on mobile */
             .overflow-x-auto {
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: thin;
             }
-            /* Make table containers more mobile-friendly */
             .overflow-x-auto table {
-                min-width: 600px; /* Minimum width to ensure horizontal scroll */
+                min-width: 600px;
             }
         }
-        
-        /* Ensure sidebar scrolls on mobile */
+
         @media (max-width: 767px) {
             #sidebar {
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
             }
         }
-        
-        /* Menu Section Styles */
-        .menu-section {
-            margin-bottom: 0.25rem;
-        }
-        
-        .menu-section-header {
-            cursor: pointer;
-        }
-        
+
+        .menu-section { margin-bottom: 0.25rem; }
+        .menu-section-header { cursor: pointer; }
         .menu-section-content {
             max-height: 1000px;
             overflow: hidden;
             transition: max-height 0.3s ease-in-out;
         }
-        
-        .menu-section.collapsed .menu-section-content {
-            max-height: 0;
-        }
-        
-        .menu-section.expanded .menu-chevron {
-            transform: rotate(0deg);
-        }
-        
-        .menu-section.collapsed .menu-chevron {
-            transform: rotate(-90deg);
-        }
-        
-        /* Prevent flicker - ensure smooth transitions */
+        .menu-section.collapsed .menu-section-content { max-height: 0; }
+        .menu-section.expanded .menu-chevron { transform: rotate(0deg); }
+        .menu-section.collapsed .menu-chevron { transform: rotate(-90deg); }
         .menu-section[data-initialized] .menu-section-content {
             transition: max-height 0.3s ease-in-out;
         }
     </style>
 </head>
-<body class="min-h-screen bg-slate-50 text-[15px] antialiased">
+@php
+    $shellUser = auth()->user();
+    $isKamataniShell = (bool) ($shellUser?->adminUser);
+    $shellCustomer = $shellUser?->customerUser;
+    $hospitalName = $shellCustomer?->medicalInstitution?->name;
+@endphp
+<body class="app-brand min-h-screen text-[15px] antialiased {{ $isKamataniShell ? 'shell-kamatani' : 'shell-hospital' }}">
     <div class="min-h-screen flex">
         <!-- Mobile Menu Overlay -->
         <div id="mobile-menu-overlay" class="mobile-menu-overlay fixed inset-0 bg-black/50 z-40 opacity-0 invisible md:hidden" onclick="toggleMobileMenu()"></div>
         
-        <!-- サイドバー - Modern Redesign -->
-        <aside id="sidebar" class="mobile-sidebar fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white border-r border-slate-200 shadow-sm app-shell md:translate-x-0 h-screen">
-            {{-- Logo Section with Gradient --}}
-            <div class="px-4 py-5 border-b border-slate-200 bg-gradient-to-br from-slate-50 to-white flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 via-primary-600 to-blue-600 flex items-center justify-center text-white text-base font-bold shadow-md ring-2 ring-primary-100">
-                        <i data-lucide="briefcase" class="w-5 h-5"></i>
+        <!-- サイドバー -->
+        <aside id="sidebar" class="mobile-sidebar fixed inset-y-0 left-0 z-50 flex flex-col w-64 border-r shadow-sm md:translate-x-0 h-screen {{ $isKamataniShell ? '' : 'app-shell bg-white border-slate-200' }}">
+            {{-- Brand header --}}
+            <div class="sidebar-brand px-4 py-4 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="brand-mark">
+                        <img src="{{ asset('images/brand/logo-mark-64.png') }}" alt="{{ __('auth.system_title') }}" width="40" height="40">
                     </div>
-                    <div class="text-[12px] leading-tight">
-                        <div class="font-bold text-slate-900 text-[13px]">Kamatani</div>
-                        <div class="text-[10px] text-slate-500">Uniform System</div>
+                    <div class="min-w-0">
+                        <div class="brand-title truncate">{{ __('auth.system_title') }}</div>
+                        @if($isKamataniShell)
+                            <div class="brand-kamatani"><span>KAMATANI</span></div>
+                        @else
+                            <div class="brand-hospital-name" title="{{ $hospitalName }}">{{ $hospitalName ?: __('pages.hospital_fallback') }}</div>
+                        @endif
                     </div>
                 </div>
-                <!-- Mobile Close Button -->
-                <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all" aria-label="Close menu" type="button">
+                <button onclick="toggleMobileMenu()" class="mobile-close-btn md:hidden p-2 hover:bg-slate-100 rounded-lg transition-all" aria-label="Close menu" type="button">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
 
-            <nav class="flex-1 px-2 py-4 text-[13px] space-y-1 overflow-y-auto">
-                @php
-                    $user = auth()->user();
-                    $customer = $user->customerUser;
-                    $admin = $user->adminUser;
-                @endphp
-
-                <div class="space-y-1">
-                    {{-- Overview Section (Single Item - Direct Link) --}}
-                    <a href="{{ route('dashboard') }}"
-                       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                        <div class="h-8 w-8 rounded-lg {{ request()->routeIs('dashboard') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-                        </div>
-                        <span class="font-medium">{{ __('menu.dashboard') }}</span>
-                    </a>
-
-                    {{-- 医療機関側ユーザーのみ 申請 / 職員 メニューを表示 --}}
-                    @if($customer)
-                        {{-- Applications Section (Single Item - Direct Link) --}}
-                        <a href="{{ route('applications.index') }}"
-                           class="group flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('applications*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="flex items-center gap-3">
-                                <div class="h-8 w-8 rounded-lg {{ request()->is('applications*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                    <i data-lucide="file-text" class="w-4 h-4"></i>
-                                </div>
-                                <span class="font-medium">{{ __('menu.applications') }}</span>
-                            </div>
-                            @php
-                                $pendingCount = \App\Models\Application::where('status', 'pending')
-                                    ->where('medical_institution_id', $customer->medical_institution_id)
-                                    ->when($customer->role === 'department_admin' && $customer->department_id, function($q) use ($customer) {
-                                        $q->where('department_id', $customer->department_id);
-                                    })
-                                    ->count();
-                            @endphp
-                            @if($pendingCount > 0)
-                                <span class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold shadow-md">
-                                    {{ $pendingCount > 9 ? '9+' : $pendingCount }}
-                                </span>
-                            @endif
-                        </a>
-                        
-                        {{-- Employees Section (Single Item - Direct Link) --}}
-                        <a href="{{ route('employees.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('employees*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('employees*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="users" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.employees') }}</span>
-                        </a>
-                        
-                        @if($customer->role === 'institution_admin')
-                            {{-- Master Data Section --}}
-                            @php
-                                $isMasterDataActive = request()->is('customer/masters/departments*') || 
-                                                     request()->is('customer/masters/job-types*') || 
-                                                     request()->is('customer/masters/delivery-locations*') || 
-                                                     request()->is('customer/masters/department-admins*');
-                            @endphp
-                            <div class="menu-section {{ $isMasterDataActive ? 'expanded' : 'collapsed' }}" data-initialized="true">
-                                <button type="button" class="menu-section-header w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-50 transition-all" onclick="toggleMenuSection(this)">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="database" class="w-4 h-4 text-slate-500"></i>
-                                        <span class="text-[13px] font-semibold">{{ __('menu.menu_master_data') }}</span>
-                                    </div>
-                                    <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 menu-chevron transition-transform duration-200"></i>
-                                </button>
-                                <div class="menu-section-content pl-4 mt-1 space-y-1">
-                                    <a href="{{ route('customer.masters.departments') }}"
-                                       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('customer/masters/departments*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                        <div class="h-8 w-8 rounded-lg {{ request()->is('customer/masters/departments*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                            <i data-lucide="briefcase" class="w-4 h-4"></i>
-                                        </div>
-                                        <span class="font-medium">{{ __('menu.departments') }}</span>
-                                    </a>
-                                    <a href="{{ route('customer.masters.job-types') }}"
-                                       class="group mt-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('customer/masters/job-types*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                        <div class="h-8 w-8 rounded-lg {{ request()->is('customer/masters/job-types*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                            <i data-lucide="user-check" class="w-4 h-4"></i>
-                                        </div>
-                                        <span class="font-medium">{{ __('menu.job_types') }}</span>
-                                    </a>
-                                    <a href="{{ route('customer.masters.delivery-locations') }}"
-                                       class="group mt-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('customer/masters/delivery-locations*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                        <div class="h-8 w-8 rounded-lg {{ request()->is('customer/masters/delivery-locations*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                            <i data-lucide="map-pin" class="w-4 h-4"></i>
-                                        </div>
-                                        <span class="font-medium">{{ __('menu.delivery_locations') }}</span>
-                                    </a>
-                                    <a href="{{ route('customer.masters.department-admins') }}"
-                                       class="group mt-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('customer/masters/department-admins*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                        <div class="h-8 w-8 rounded-lg {{ request()->is('customer/masters/department-admins*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                            <i data-lucide="user-cog" class="w-4 h-4"></i>
-                                        </div>
-                                        <span class="font-medium">{{ __('menu.department_admins') }}</span>
-                                    </a>
-                                </div>
-                            </div>
-                            
-                            {{-- Contract plans / limits (hospital read-only) --}}
-                            <a href="{{ route('customer.contract-plans.index') }}"
-                               class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('customer/contract-plans*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                <div class="h-8 w-8 rounded-lg {{ request()->is('customer/contract-plans*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                    <i data-lucide="file-signature" class="w-4 h-4"></i>
-                                </div>
-                                <span class="font-medium">{{ __('menu.contract_info') }}</span>
-                            </a>
-                        @endif
-                    @endif
-                </div>
-
-                @if($admin)
-                    @php
-                        $adminRole = $admin->role;
-                    @endphp
-                    
-                    {{-- System Admin & Operations: Full Management Access --}}
-                    @if(in_array($adminRole, ['system_admin', 'operation']))
-                        {{-- Applications Section (Single Item - Direct Link) --}}
-                        <a href="{{ route('admin.applications.index') }}"
-                           class="group flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/applications*') && !request()->is('admin/orders*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="flex items-center gap-3">
-                                <div class="h-8 w-8 rounded-lg {{ request()->is('admin/applications*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                    <i data-lucide="clipboard-check" class="w-4 h-4"></i>
-                                </div>
-                                <span class="font-medium">{{ __('menu.applications') }}</span>
-                            </div>
-                            @php
-                                $pendingCount = \App\Models\Application::whereIn('status', ['pending', 'waiting_special_approval'])->count();
-                            @endphp
-                            @if($pendingCount > 0)
-                                <span class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold shadow-md">
-                                    {{ $pendingCount > 9 ? '9+' : $pendingCount }}
-                                </span>
-                            @endif
-                        </a>
-                        <a href="{{ route('admin.orders.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/orders*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/orders*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="package-check" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">受注一覧</span>
-                        </a>
-                        
-                        {{-- Products Section (Single Item - Direct Link) --}}
-                        <a href="{{ route('admin.uniform-products.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/uniform-products*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/uniform-products*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="shirt" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.uniform_products') }}</span>
-                        </a>
-                        <a href="{{ route('admin.uniform-recommendations.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/uniform-recommendations*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/uniform-recommendations*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="sparkles" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">推奨／指定ユニフォーム</span>
-                        </a>
-                    @endif
-                    
-                    {{-- System Admin Only: Master Data Management --}}
-                    @if($adminRole === 'system_admin')
-                        @php
-                            $isAdminMasterDataActive = request()->is('admin/masters/institutions*') || 
-                                                       request()->is('admin/masters/departments*') || 
-                                                       request()->is('admin/masters/job-types*') || 
-                                                       request()->is('admin/masters/delivery-locations*');
-                        @endphp
-                        {{-- Master Data Section --}}
-                        <div class="menu-section {{ $isAdminMasterDataActive ? 'expanded' : 'collapsed' }}" data-initialized="true">
-                            <button type="button" class="menu-section-header w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-700 hover:bg-slate-50 transition-all" onclick="toggleMenuSection(this)">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="database" class="w-4 h-4 text-slate-500"></i>
-                                    <span class="text-[13px] font-semibold">{{ __('menu.menu_master_data') }}</span>
-                                </div>
-                                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 menu-chevron transition-transform duration-200"></i>
-                            </button>
-                            <div class="menu-section-content pl-4 mt-1 space-y-1">
-                                <a href="{{ route('admin.masters.institutions') }}"
-                                   class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/masters/institutions*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                    <div class="h-8 w-8 rounded-lg {{ request()->is('admin/masters/institutions*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                        <i data-lucide="building" class="w-4 h-4"></i>
-                                    </div>
-                                    <span class="font-medium">{{ __('menu.institutions') }}</span>
-                                </a>
-                                <a href="{{ route('admin.masters.departments') }}"
-                                   class="group mt-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/masters/departments*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                    <div class="h-8 w-8 rounded-lg {{ request()->is('admin/masters/departments*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                        <i data-lucide="briefcase" class="w-4 h-4"></i>
-                                    </div>
-                                    <span class="font-medium">{{ __('menu.departments') }}</span>
-                                </a>
-                                <a href="{{ route('admin.masters.job-types') }}"
-                                   class="group mt-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/masters/job-types*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                    <div class="h-8 w-8 rounded-lg {{ request()->is('admin/masters/job-types*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                        <i data-lucide="user-check" class="w-4 h-4"></i>
-                                    </div>
-                                    <span class="font-medium">{{ __('menu.job_types') }}</span>
-                                </a>
-                                <a href="{{ route('admin.masters.delivery-locations') }}"
-                                   class="group mt-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/masters/delivery-locations*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                                    <div class="h-8 w-8 rounded-lg {{ request()->is('admin/masters/delivery-locations*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                        <i data-lucide="map-pin" class="w-4 h-4"></i>
-                                    </div>
-                                    <span class="font-medium">{{ __('menu.delivery_locations') }}</span>
-                                </a>
-                            </div>
-                        </div>
-                        
-                        {{-- Admin Users Section (Single Item - Direct Link) --}}
-                        <a href="{{ route('admin.admin-users.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/admin-users*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/admin-users*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="user-cog" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.admin_users_management') }}</span>
-                        </a>
-
-                        <a href="{{ route('admin.account-locks.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/account-locks*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/account-locks*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="lock-keyhole" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.account_locks') }}</span>
-                        </a>
-
-                        {{-- Database Management --}}
-                        <a href="{{ route('admin.database-backups.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/database-backups*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/database-backups*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="database-backup" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.database_management') }}</span>
-                        </a>
-                        
-                        {{-- Employees Section (Single Item - Direct Link) --}}
-                        <a href="{{ route('admin.employees.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/employees*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/employees*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="users" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.all_employees') }}</span>
-                        </a>
-                    @endif
-                    
-                    {{-- Sales: Contract Info Only (Single Item - Direct Link) --}}
-                    @if($adminRole === 'sales')
-                        <a href="{{ route('admin.customer-contract-plans.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/customer-contract-plans*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/customer-contract-plans*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="file-signature" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.customer_contract_plans') }}</span>
-                        </a>
-                    @endif
-
-                    {{-- Contract Plan masters (write roles only in nav; sales has CCP link above) --}}
-                    @if(in_array($adminRole, ['system_admin', 'contract_plan_manager']))
-                        <a href="{{ route('admin.makers.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/makers*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/makers*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="factory" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.makers') }}</span>
-                        </a>
-                        <a href="{{ route('admin.uniform-categories.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/uniform-categories*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/uniform-categories*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="tags" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.uniform_categories') }}</span>
-                        </a>
-                        <a href="{{ route('admin.contract-plans.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/contract-plans*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/contract-plans*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="clipboard-list" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.contract_plans') }}</span>
-                        </a>
-                        <a href="{{ route('admin.customer-contract-plans.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/customer-contract-plans*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/customer-contract-plans*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="building-2" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.customer_contract_plans') }}</span>
-                        </a>
-                    @endif
-                    
-                    {{-- Billing (plan-based) — System Admin, Operations (view), Accounting --}}
-                    @if(in_array($adminRole, ['system_admin', 'operation', 'accounting', 'sales']))
-                        <a href="{{ route('admin.billing.index') }}"
-                           class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {{ request()->is('admin/billing*') ? 'bg-gradient-to-r from-primary-50 to-blue-50 text-primary-700 shadow-sm border border-primary-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                            <div class="h-8 w-8 rounded-lg {{ request()->is('admin/billing*') ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white' : 'bg-slate-100 group-hover:bg-slate-200 text-slate-600' }} flex items-center justify-center transition-all">
-                                <i data-lucide="receipt-text" class="w-4 h-4"></i>
-                            </div>
-                            <span class="font-medium">{{ __('menu.billing') }}</span>
-                        </a>
-                    @endif
-                @endif
+            <nav class="flex-1 overflow-y-auto">
+                @include('layouts.partials.sidebar-nav')
             </nav>
 
             {{-- User Profile Section --}}
-            <div class="px-4 py-4 border-t border-slate-200 bg-gradient-to-br from-slate-50 to-white mt-auto flex-shrink-0">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 via-primary-600 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-md ring-2 ring-primary-100">
+            <div class="sidebar-footer mt-auto flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="user-avatar">
                         {{ mb_substr(auth()->user()->name ?? 'U', 0, 1) }}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-[13px] font-semibold text-slate-900 truncate">{{ auth()->user()->name ?? '' }}</p>
-                        <p class="text-[11px] text-slate-500 truncate">
+                        <p class="user-name truncate">{{ auth()->user()->name ?? '' }}</p>
+                        <p class="user-role truncate">
                             @php
                                 $customer = auth()->user()->customerUser;
                             @endphp
                             @if(auth()->user()->adminUser)
-                                @php
-                                    $adminRole = auth()->user()->adminUser->role;
-                                @endphp
-                                {{ __('roles.' . $adminRole) }}
+                                {{ __('roles.' . auth()->user()->adminUser->role) }}
                             @elseif($customer)
                                 {{ $customer->role === 'institution_admin' ? __('roles.institution_admin') : __('roles.department_admin') }}
                             @endif
@@ -563,16 +215,13 @@
                     </div>
                 </div>
 
-               
-
-                <form method="POST" action="{{ route('logout') }}" class="mt-2">
+                <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button class="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-slate-200 transition-all duration-200" type="submit">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
-                        <span class="font-medium">{{ __('menu.logout') }}</span>
+                    <button class="nav-link w-full text-left" type="submit">
+                        <i data-lucide="log-out" class="nav-ico"></i>
+                        <span>{{ __('menu.logout') }}</span>
                     </button>
                 </form>
-                <p class="text-[9px] text-slate-400 mt-3 text-center">© {{ date('Y') }} KAMATANI</p>
             </div>
         </aside>
 
@@ -593,7 +242,14 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                        <a href="{{ route('notifications.index') }}" class="relative p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title="{{ __('menu.notifications') }}">
+                        @unless($isKamataniShell)
+                            <a href="{{ route('applications.create') }}"
+                               class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[13px] font-semibold shadow-sm transition-all">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>{{ __('pages.new_application_cta') }}</span>
+                            </a>
+                        @endunless
+                        <a href="{{ route('notifications.index') }}" class="relative p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all" title="{{ __('menu.notifications') }}" data-notify-bell>
                             <i data-lucide="bell" class="w-5 h-5"></i>
                             @php
                                 $notificationCount = \App\Models\Notification::where('user_id', auth()->id())
@@ -645,25 +301,58 @@
 
             <main class="flex-1 min-w-0 px-3 py-4 sm:px-4 md:px-6 md:py-5 max-w-[1600px] w-full mx-auto overflow-x-hidden">
                 @if (session('status'))
-                    <div class="mb-6 text-sm text-emerald-800 bg-emerald-50 border-l-4 border-emerald-500 rounded px-4 py-3 shadow-sm">
-                        <div class="flex items-center gap-2">
-                            <i class="ph ph-check-circle text-lg"></i>
+                    <div class="ui-flash ui-flash--success mb-4" role="status" data-ui-flash>
+                        <div class="ui-flash__body">
+                            <i data-lucide="check-circle-2" class="ui-flash__icon"></i>
                             <span>{{ session('status') }}</span>
                         </div>
+                        <button type="button" class="ui-flash__close" aria-label="Close" onclick="this.closest('[data-ui-flash]')?.remove()">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
                     </div>
                 @endif
 
                 @if (session('error'))
-                    <div class="mb-6 text-sm text-red-800 bg-red-50 border-l-4 border-red-500 rounded px-4 py-3 shadow-sm">
-                        <div class="flex items-center gap-2">
-                            <i class="ph ph-warning text-lg"></i>
+                    <div class="ui-flash ui-flash--error mb-4" role="alert" data-ui-flash>
+                        <div class="ui-flash__body">
+                            <i data-lucide="alert-circle" class="ui-flash__icon"></i>
                             <span>{{ session('error') }}</span>
                         </div>
+                        <button type="button" class="ui-flash__close" aria-label="Close" onclick="this.closest('[data-ui-flash]')?.remove()">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
                     </div>
                 @endif
 
                 @yield('content')
             </main>
+
+            @unless($isKamataniShell)
+                @php
+                    $bottomHome = request()->routeIs('dashboard');
+                    $bottomApps = request()->is('applications*');
+                    $bottomCreate = request()->routeIs('applications.create');
+                    $bottomStaff = request()->is('employees*');
+                @endphp
+                <nav class="hospital-bottom-nav md:hidden" aria-label="{{ __('pages.home') }}">
+                    <a href="{{ route('dashboard') }}" class="{{ $bottomHome ? 'is-active' : '' }}">
+                        <i data-lucide="home"></i>
+                        <span>{{ __('pages.home') }}</span>
+                    </a>
+                    <a href="{{ route('applications.index') }}" class="{{ $bottomApps && ! $bottomCreate ? 'is-active' : '' }}">
+                        <i data-lucide="clipboard-list"></i>
+                        <span>{{ __('common.applications') }}</span>
+                    </a>
+                    <a href="{{ route('applications.create') }}" class="{{ $bottomCreate ? 'is-active' : '' }}">
+                        <i data-lucide="plus-circle"></i>
+                        <span>{{ __('pages.new_application_short') }}</span>
+                    </a>
+                    <a href="{{ route('employees.index') }}" class="{{ $bottomStaff ? 'is-active' : '' }}">
+                        <i data-lucide="users"></i>
+                        <span>{{ __('common.employees') }}</span>
+                    </a>
+                </nav>
+            @endunless
         </div>
     </div>
 </body>
@@ -687,7 +376,9 @@ function toggleMobileMenu() {
         }
         
         // Reinitialize icons after toggle
-        if (typeof lucide !== 'undefined') {
+        if (typeof window.refreshLucideIcons === 'function') {
+            window.refreshLucideIcons();
+        } else if (typeof lucide !== 'undefined') {
             setTimeout(() => lucide.createIcons(), 100);
         }
     }
@@ -757,95 +448,90 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Initialize Lucide Icons - Enhanced with retry and MutationObserver
+// Initialize Lucide Icons (debounced; observer paused during createIcons to avoid re-render loops)
 document.addEventListener('DOMContentLoaded', () => {
-    // Function to fix icon click issues - ensure icons inside buttons/links don't capture clicks
-    function fixIconClicks() {
-        // Find all icons inside buttons, links, and forms
-        const clickableSelectors = ['button', 'a', 'form button', 'form a', '.btn', '.button'];
-        clickableSelectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(element => {
-                const icons = element.querySelectorAll('[data-lucide], i[data-lucide]');
-                icons.forEach(icon => {
-                    icon.style.pointerEvents = 'none';
-                });
-            });
+    let iconObserver = null;
+    let iconInitTimer = null;
+    let iconsReady = typeof lucide !== 'undefined';
+
+    function fixIconClicks(root = document) {
+        root.querySelectorAll('button [data-lucide], a [data-lucide], button svg.lucide, a svg.lucide').forEach((icon) => {
+            icon.style.pointerEvents = 'none';
         });
     }
-    
-    // Function to initialize Lucide icons
+
+    /** Only unconverted placeholders: <i data-lucide> / <span data-lucide>, not already-rendered SVGs */
+    function hasPendingLucideIcons(root = document) {
+        return !!root.querySelector('i[data-lucide], span[data-lucide], [data-lucide]:not(svg)');
+    }
+
     function initLucideIcons() {
-        if (typeof lucide !== 'undefined') {
-            try {
-                lucide.createIcons();
-                // Also try with specific container
-                const containers = [document.body, document.querySelector('main'), document.querySelector('.content')];
-                containers.forEach(container => {
-                    if (container) {
-                        try {
-                            lucide.createIcons({ container: container });
-                        } catch (e) {
-                            // Ignore errors for specific containers
-                        }
-                    }
-                });
-                // Fix icon clicks after icons are created
-                fixIconClicks();
-            } catch (e) {
-                console.error('Error initializing Lucide icons:', e);
+        if (typeof lucide === 'undefined') {
+            if (!iconsReady) {
+                setTimeout(initLucideIcons, 100);
             }
-        } else {
-            console.warn('Lucide library not loaded yet, retrying...');
-            // Retry after a short delay
-            setTimeout(initLucideIcons, 100);
+            return;
+        }
+        iconsReady = true;
+        if (!hasPendingLucideIcons()) {
+            fixIconClicks();
+            return;
+        }
+        try {
+            if (iconObserver) {
+                iconObserver.disconnect();
+            }
+            lucide.createIcons();
+            fixIconClicks();
+        } catch (e) {
+            console.error('Error initializing Lucide icons:', e);
+        } finally {
+            if (iconObserver) {
+                iconObserver.observe(document.body, { childList: true, subtree: true });
+            }
         }
     }
-    
-    // Initial icon creation
+
+    window.refreshLucideIcons = function () {
+        clearTimeout(iconInitTimer);
+        iconInitTimer = setTimeout(initLucideIcons, 40);
+    };
+
     initLucideIcons();
-    
-    // Retry initialization after delays to catch late-loading content
-    setTimeout(initLucideIcons, 100);
-    setTimeout(initLucideIcons, 300);
-    setTimeout(initLucideIcons, 500);
-    setTimeout(initLucideIcons, 1000);
-    
-    // Watch for dynamically added content and re-initialize icons
-    const observer = new MutationObserver(function(mutations) {
+    setTimeout(initLucideIcons, 200);
+
+    iconObserver = new MutationObserver(function (mutations) {
         let shouldReinit = false;
-        mutations.forEach(function(mutation) {
-            if (mutation.addedNodes.length > 0) {
-                mutation.addedNodes.forEach(function(node) {
-                    if (node.nodeType === 1) { // Element node
-                        if (node.hasAttribute && node.hasAttribute('data-lucide')) {
-                            shouldReinit = true;
-                        } else if (node.querySelector && node.querySelector('[data-lucide]')) {
-                            shouldReinit = true;
-                        }
-                        // Also check if new buttons/links with icons were added
-                        if (node.matches && (node.matches('button, a') || node.querySelector('button, a'))) {
-                            shouldReinit = true;
-                        }
-                    }
-                });
+        for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+                if (node.nodeType !== 1) continue;
+                // Ignore already-rendered Lucide SVGs (createIcons output) — that caused submit re-render loops
+                if (node.matches?.('svg.lucide, svg[data-lucide]')) continue;
+                if (node.matches?.('i[data-lucide], span[data-lucide]')) {
+                    shouldReinit = true;
+                    break;
+                }
+                if (node.querySelector?.('i[data-lucide], span[data-lucide], [data-lucide]:not(svg)')) {
+                    shouldReinit = true;
+                    break;
+                }
             }
-        });
+            if (shouldReinit) break;
+        }
         if (shouldReinit) {
-            setTimeout(() => {
-                initLucideIcons();
-                fixIconClicks();
-            }, 50);
+            window.refreshLucideIcons();
         }
     });
-    
-    // Observe the entire document for changes
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
+
+    iconObserver.observe(document.body, { childList: true, subtree: true });
+
+    // Auto-dismiss success flashes after a few seconds (errors stay until closed)
+    document.querySelectorAll('.ui-flash--success[data-ui-flash]').forEach(function (el) {
+        setTimeout(function () {
+            if (el.isConnected) el.remove();
+        }, 8000);
     });
-    
-// 通知数を定期的に更新
+
     function updateNotificationCount() {
         fetch('{{ route("api.notifications.unread_count") }}')
             .then(response => response.json())
@@ -853,7 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const badge = document.getElementById('notification-badge');
                 if (data.count > 0) {
                     if (!badge) {
-                        const bell = document.querySelector('a[title="通知"]');
+                        const bell = document.querySelector('a[data-notify-bell]');
                         if (bell) {
                             const span = document.createElement('span');
                             span.id = 'notification-badge';
@@ -868,23 +554,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (badge) badge.remove();
                 }
             })
-            .catch(error => console.error('通知数取得エラー:', error));
+            .catch(error => console.error(@json(__('pages.notification_count_error')), error));
     }
-    
-    // 初回読み込み時と30秒ごとに更新
+
     updateNotificationCount();
     setInterval(updateNotificationCount, 30000);
-    
-    // Toast Notification System
+
     window.showToast = function(message, type = 'info', duration = 5000) {
-        const toastContainer = document.getElementById('toast-container');
+        let toastContainer = document.getElementById('toast-container');
         if (!toastContainer) {
-            const container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'fixed top-4 right-4 z-[9999] space-y-3';
-            document.body.appendChild(container);
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'fixed top-4 right-4 z-[9999] space-y-3';
+            document.body.appendChild(toastContainer);
         }
-        
+
         const toast = document.createElement('div');
         const bgColors = {
             success: 'bg-emerald-500',
@@ -898,19 +582,20 @@ document.addEventListener('DOMContentLoaded', () => {
             warning: 'alert-triangle',
             info: 'info'
         };
-        
+
         toast.className = `flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg ${bgColors[type] || bgColors.info} text-white min-w-[300px] max-w-[400px] animate-slide-in-right`;
         toast.innerHTML = `
             <i data-lucide="${icons[type] || icons.info}" class="w-5 h-5 flex-shrink-0"></i>
-            <span class="flex-1 text-[14px] font-medium">${message}</span>
-            <button onclick="this.parentElement.remove()" class="flex-shrink-0 hover:opacity-80 transition-opacity">
+            <span class="flex-1 text-[14px] font-medium"></span>
+            <button type="button" class="toast-close flex-shrink-0 hover:opacity-80 transition-opacity">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         `;
-        
-        document.getElementById('toast-container').appendChild(toast);
-        lucide.createIcons();
-        
+        toast.querySelector('span').textContent = message;
+        toast.querySelector('.toast-close').addEventListener('click', () => toast.remove());
+        toastContainer.appendChild(toast);
+        window.refreshLucideIcons();
+
         setTimeout(() => {
             toast.style.animation = 'slide-out-right 0.3s ease-out';
             setTimeout(() => toast.remove(), 300);

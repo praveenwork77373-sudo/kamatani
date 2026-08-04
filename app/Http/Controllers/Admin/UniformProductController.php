@@ -258,7 +258,7 @@ class UniformProductController extends Controller
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'フォームデータの形式が正しくありません。ページを再読み込みして再度お試しください。');
+                ->with('error', __('pages.flash_f5bc3567d7'));
         }
         
         try {
@@ -809,7 +809,7 @@ class UniformProductController extends Controller
 
         return redirect()
             ->route('admin.uniform-products.index')
-            ->with('status', 'ユニフォーム商品を削除しました。');
+            ->with('status', __('pages.flash_9544209312'));
     }
 
     /**

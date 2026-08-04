@@ -18,7 +18,7 @@ class ApplicationCreatedMail extends Mailable implements ShouldQueue
 
     public function build()
     {
-        return $this->subject('【ユニフォーム管理システム】新しい申請が登録されました')
+        return $this->subject(__('pages.mail_subject_app_created'))
             ->view('emails.application-created')
             ->with([
                 'application' => $this->application,

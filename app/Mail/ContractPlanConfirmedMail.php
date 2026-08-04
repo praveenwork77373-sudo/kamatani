@@ -23,7 +23,7 @@ class ContractPlanConfirmedMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '【ユニフォーム管理システム】契約プラン本登録のお知らせ',
+            subject: __('pages.mail_e6eddce099'),
         );
     }
 

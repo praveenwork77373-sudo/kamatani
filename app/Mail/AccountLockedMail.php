@@ -23,7 +23,7 @@ class AccountLockedMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '【ユニフォーム管理システム】アカウントが一時ロックされました',
+            subject: __('pages.mail_ff887e861d'),
         );
     }
 

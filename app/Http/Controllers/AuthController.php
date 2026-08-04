@@ -167,7 +167,7 @@ class AuthController extends Controller
             'must_change_password' => false,
         ])->save();
 
-        return redirect()->route('dashboard')->with('status', 'パスワードを変更しました。');
+        return redirect()->route('dashboard')->with('status', __('pages.flash_df1f262eaf'));
     }
 
     private function assertPortalAllowed(User $user, string $portal): void
@@ -332,7 +332,7 @@ class AuthController extends Controller
         }
 
         return $status === Password::PASSWORD_RESET
-            ? redirect()->route($loginRoute)->with('status', 'パスワードを変更しました。ログインしてください。')
+            ? redirect()->route($loginRoute)->with('status', __('pages.flash_ef8e2f8e02'))
             : back()->withErrors([
                 'email' => match ($status) {
                     Password::INVALID_TOKEN => '再設定リンクが無効、期限切れ、または使用済みです。再度お手続きください。',

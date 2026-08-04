@@ -92,7 +92,7 @@
                         <input type="checkbox" name="receives_app_notifications" value="1"
                                @checked(old('receives_app_notifications', true))
                                class="rounded border-slate-300">
-                        申請関連メール通知を受け取る
+                        {{ __('pages.receive_app_mail') }}
                     </label>
                 </div>
             </div>

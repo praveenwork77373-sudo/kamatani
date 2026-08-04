@@ -580,18 +580,18 @@ class ApplicationController extends Controller
         // 種別ごとの明細必須チェック
         // 異動（部分変更）= exchange と同形（旧品 return_items + 新品 items）
         if ($data['type'] === 'new_loan' && empty($data['items'])) {
-            return redirect()->back()->withInput()->with('error', '少なくとも1つのユニフォームを選択してください。');
+            return redirect()->back()->withInput()->with('error', __('pages.select_at_least_one_uniform'));
         }
         if ($data['type'] === 'return' && empty($data['return_items'])) {
-            return redirect()->back()->withInput()->with('error', '返却する貸与品を選択してください。');
+            return redirect()->back()->withInput()->with('error', __('pages.flash_e248dd7f96'));
         }
         if (in_array($data['type'], ['exchange', 'resize', 'transfer'], true)
             && empty($data['items']) && empty($data['return_items'])) {
-            return redirect()->back()->withInput()->with('error', '変更する旧品または新品のユニフォームを選択してください。');
+            return redirect()->back()->withInput()->with('error', __('pages.flash_8fc8780f3f'));
         }
 
         if ($data['application_mode'] === 'departmental' && $data['type'] === 'transfer') {
-            return redirect()->back()->withInput()->with('error', '異動（部分変更）申請は個別申請のみ対応しています。');
+            return redirect()->back()->withInput()->with('error', __('pages.flash_1f76c65a74'));
         }
 
         // 部署・配送先は自医療機関に属するもののみ
@@ -599,14 +599,14 @@ class ApplicationController extends Controller
             ->where('medical_institution_id', $customer->medical_institution_id)
             ->first();
         if (!$department) {
-            return redirect()->back()->withInput()->with('error', '選択された部署は自医療機関のものではありません。');
+            return redirect()->back()->withInput()->with('error', __('pages.flash_0add709231'));
         }
 
         $deliveryLocation = DeliveryLocation::where('id', $data['delivery_location_id'])
             ->where('medical_institution_id', $customer->medical_institution_id)
             ->first();
         if (!$deliveryLocation) {
-            return redirect()->back()->withInput()->with('error', '選択された配送先は自医療機関のものではありません。');
+            return redirect()->back()->withInput()->with('error', __('pages.flash_8e7dad2ab5'));
         }
 
         if ($data['application_mode'] === 'individual') {
@@ -632,23 +632,23 @@ class ApplicationController extends Controller
 
         // 医療機関・部署の所有権チェック
         if ((int) $employee->medical_institution_id !== (int) $customer->medical_institution_id) {
-            return redirect()->back()->withInput()->with('error', '自医療機関の職員のみ申請できます。');
+            return redirect()->back()->withInput()->with('error', __('pages.flash_a344f2a6e6'));
         }
 
         if ($customer->role === 'department_admin' && $customer->department_id
             && ! $employee->isAffiliatedWithDepartment((int) $customer->department_id)) {
-            return redirect()->back()->with('error', '自部署の職員のみ申請できます。');
+            return redirect()->back()->with('error', __('pages.flash_c744c00190'));
         }
 
         $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
         if (! $eligibility->hasActivePlan($employee)) {
-            return redirect()->back()->withInput()->with('error', 'この職員に有効な契約プランが割り当てられていません。カマタニへプラン割当を依頼してください。');
+            return redirect()->back()->withInput()->with('error', __('pages.flash_3b42393b1f'));
         }
 
         $allowedProductIds = $eligibility->productIdsAllowed($employee);
         foreach ($data['items'] as $item) {
             if (! in_array((int) $item['uniform_product_id'], array_map('intval', $allowedProductIds), true)) {
-                return redirect()->back()->withInput()->with('error', '選択したユニフォームは職員の契約プラン対象外です。');
+                return redirect()->back()->withInput()->with('error', __('pages.flash_7d5b9dface'));
             }
         }
 
@@ -663,7 +663,7 @@ class ApplicationController extends Controller
 
             foreach ($data['return_items'] as $item) {
                 if (! in_array((int) $item['uniform_product_id'], $loanProductIds, true)) {
-                    return redirect()->back()->withInput()->with('error', '選択した貸与品はこの職員の貸与中データと一致しません。');
+                    return redirect()->back()->withInput()->with('error', __('pages.flash_bcd90f582a'));
                 }
             }
         }
@@ -701,7 +701,7 @@ class ApplicationController extends Controller
             if (empty($data['special_approval_reason']) || trim($data['special_approval_reason']) === '') {
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', '契約上限または在庫を超えています。特別承認理由を入力してください。');
+                    ->with('error', __('pages.flash_06242c53fc'));
             }
             $status = 'waiting_special_approval';
         }
@@ -767,7 +767,7 @@ class ApplicationController extends Controller
 
         // 権限チェック（文字列／整数の型差を吸収）
         if ($customer->role === 'department_admin' && $departmentId !== (int) $customer->department_id) {
-            return redirect()->back()->with('error', '自部署のみ申請できます。');
+            return redirect()->back()->with('error', __('pages.flash_384a2940fd'));
         }
 
         // Get all active employees affiliated with the department (primary or concurrent)
@@ -777,7 +777,7 @@ class ApplicationController extends Controller
             ->get();
 
         if ($employees->isEmpty()) {
-            return redirect()->back()->with('error', '該当部署に在籍している職員がありません。');
+            return redirect()->back()->with('error', __('pages.flash_bc7261c9b7'));
         }
 
         $createdCount = 0;
@@ -954,17 +954,17 @@ class ApplicationController extends Controller
         $this->authorize('cancel', $application);
 
         if ($application->status === Application::STATUS_COMPLETED) {
-            return redirect()->back()->with('error', '完了済みの申請はキャンセルできません。');
+            return redirect()->back()->with('error', __('pages.flash_b29832dab3'));
         }
 
         if (! $application->isCancellableByHospital()) {
-            return redirect()->back()->with('error', 'この申請はキャンセル申請できません。');
+            return redirect()->back()->with('error', __('pages.flash_53939f8310'));
         }
 
         $application->update(['status' => Application::STATUS_CANCEL_REQUEST]);
 
         \App\Services\NotificationService::notifyCancelRequested($application);
 
-        return redirect()->back()->with('status', 'キャンセル申請を送信しました。');
+        return redirect()->back()->with('status', __('pages.flash_c4c5892380'));
     }
 }

@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', '推奨／指定ユニフォーム 新規')
-@section('page_title', '推奨／指定ユニフォーム 新規')
+@section('title', __('pages.ui_5495aedc87'))
+@section('page_title', __('pages.ui_5495aedc87'))
 
 @section('content')
 <div class="ui-page-header">
     <div>
-        <h1 class="text-xl font-bold text-slate-900">推奨／指定ユニフォーム 新規登録</h1>
+        <h1 class="text-xl font-bold text-slate-900">{{ __('pages.ui_28d5144559') }}</h1>
     </div>
 </div>
 <div class="ui-card p-6">

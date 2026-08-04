@@ -9,9 +9,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    const departmentPlaceholder = departmentSelect.dataset.placeholder || '（全部署に適用）';
+    const departmentPlaceholder = departmentSelect.dataset.placeholder || @json(__('pages.all_departments_apply'));
     const jobTypePlaceholder = jobTypeSelect
-        ? (jobTypeSelect.dataset.placeholder || '（全職種に適用）')
+        ? (jobTypeSelect.dataset.placeholder || @json(__('pages.all_job_types_apply')))
         : null;
     const lookupUrlBase = @json(url('/api/institution'));
 
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             if (!response.ok) {
-                console.error('部署・職種の取得に失敗しました:', response.status);
+                console.error(@json(__('pages.dept_job_fetch_failed')), response.status);
                 return;
             }
 
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 fillSelect(jobTypeSelect, data.job_types || [], selectedJobTypeId);
             }
         } catch (error) {
-            console.error('部署・職種の取得エラー:', error);
+            console.error(@json(__('pages.dept_job_fetch_error')), error);
         }
     }
 

@@ -1,0 +1,378 @@
+/**
+ * Kamatani / Hospital app shells — public/images/brand
+ * Brand teal #0F6B6B · Slate #5C6B7A · BG #F4F6F7
+ */
+
+body.app-brand {
+  background-color: var(--bg, #F4F6F7) !important;
+  background-image: none !important;
+  color: var(--text, #1A2330);
+  font-family: var(--font-sans, "Noto Sans JP", system-ui, sans-serif);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Kamatani — dark teal sidebar (design reference)                            */
+/* -------------------------------------------------------------------------- */
+
+.shell-kamatani #sidebar {
+  background: #0F6B6B !important;
+  border-right: none !important;
+  box-shadow: 4px 0 24px rgba(15, 107, 107, 0.2);
+  color: #fff;
+  width: 16.5rem;
+}
+
+.shell-kamatani #sidebar .sidebar-brand {
+  background: #fff !important;
+  border-bottom: none !important;
+  padding: 1rem 1rem 0.9rem !important;
+}
+
+.shell-kamatani #sidebar .brand-mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  overflow: hidden;
+}
+
+.shell-kamatani #sidebar .brand-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1A2330;
+  line-height: 1.25;
+}
+
+.shell-kamatani #sidebar .brand-kamatani {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+  color: #5C6B7A;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.shell-kamatani #sidebar .brand-kamatani::before,
+.shell-kamatani #sidebar .brand-kamatani::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #D8DEE3;
+  max-width: 1.75rem;
+}
+
+.shell-kamatani #sidebar nav {
+  padding: 0.75rem 0.65rem 1rem !important;
+}
+
+.shell-kamatani #sidebar .nav-section-label {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.85rem 0.85rem 0.3rem;
+  margin: 0;
+}
+
+.shell-kamatani #sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  margin: 0.1rem 0;
+  border-radius: 0.55rem;
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  border: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  transition: background 0.15s ease;
+}
+
+.shell-kamatani #sidebar .nav-link:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+}
+
+.shell-kamatani #sidebar .nav-link.is-active {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #fff !important;
+}
+
+.shell-kamatani #sidebar .nav-link .nav-ico {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  stroke-width: 1.75;
+  color: inherit;
+  opacity: 0.95;
+}
+
+.shell-kamatani #sidebar .nav-link .nav-badge {
+  margin-left: auto;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #C0352B;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shell-kamatani #sidebar .sidebar-footer {
+  background: #0B5555 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 0.9rem 1rem 1rem !important;
+}
+
+.shell-kamatani #sidebar .sidebar-footer .user-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.45rem;
+  background: #0F6B6B !important;
+  color: #fff !important;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none !important;
+}
+
+.shell-kamatani #sidebar .sidebar-footer .user-name {
+  color: #fff !important;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.shell-kamatani #sidebar .sidebar-footer .user-role {
+  color: rgba(255, 255, 255, 0.65) !important;
+  font-size: 11px;
+}
+
+.shell-kamatani #sidebar .sidebar-footer .nav-link {
+  margin-top: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.shell-kamatani #sidebar .sidebar-copy {
+  display: none;
+}
+
+.shell-kamatani #sidebar .mobile-close-btn {
+  color: #5C6B7A !important;
+}
+
+/* Hide old boxed icon wrappers if any remain */
+.shell-kamatani #sidebar .nav-link .h-8 {
+  display: none !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Hospital — light sidebar                                                   */
+/* -------------------------------------------------------------------------- */
+
+.shell-hospital #sidebar {
+  background: #fff !important;
+  border-right: 1px solid var(--border, #D8DEE3) !important;
+}
+
+.shell-hospital #sidebar .sidebar-brand {
+  background: #fff !important;
+  border-bottom: 1px solid var(--border, #D8DEE3) !important;
+}
+
+.shell-hospital #sidebar .brand-hospital-name {
+  margin-top: 0.2rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5C6B7A;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 9.5rem;
+}
+
+/* Dashboard home tabs (Kamatani) */
+.dash-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid #D8DEE3;
+  margin-bottom: 1.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dash-tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 0.9rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5C6B7A;
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dash-tabs a:hover {
+  color: #0F6B6B;
+}
+
+.dash-tabs a.is-active {
+  color: #0F6B6B;
+  border-bottom-color: #0F6B6B;
+}
+
+.dash-tabs .dash-tab-count {
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #E6F3F3;
+  color: #0F6B6B;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shell-hospital #sidebar .brand-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1A2330;
+  line-height: 1.25;
+}
+
+.shell-hospital #sidebar .sidebar-footer .user-name {
+  color: #1A2330;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.shell-hospital #sidebar .sidebar-footer .user-role {
+  color: #5C6B7A;
+  font-size: 11px;
+}
+
+.shell-hospital #sidebar .sidebar-footer .user-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.45rem;
+  background: #0F6B6B;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.shell-hospital #sidebar .brand-kamatani::before,
+.shell-hospital #sidebar .brand-kamatani::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #D8DEE3;
+  max-width: 1.75rem;
+}
+
+.shell-hospital #sidebar .nav-section-label {
+  color: #5C6B7A;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0.85rem 0.85rem 0.3rem;
+  margin: 0;
+}
+
+.shell-hospital #sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  margin: 0.1rem 0;
+  border-radius: 0.55rem;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.shell-hospital #sidebar .nav-link:hover {
+  background: #F4F6F7;
+  color: #0F6B6B;
+}
+
+.shell-hospital #sidebar .nav-link.is-active {
+  background: #E6F3F3;
+  color: #0F6B6B;
+}
+
+.shell-hospital #sidebar .nav-link .nav-ico {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+}
+
+.shell-hospital #sidebar .nav-link .nav-badge {
+  margin-left: auto;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #C0352B;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #fff;
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.uniform-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-soft, #E6F3F3);
+  color: var(--brand, #0F6B6B);
+}
+
+.uniform-placeholder img {
+  width: 48%;
+  height: 48%;
+  object-fit: contain;
+  opacity: 0.85;
+}

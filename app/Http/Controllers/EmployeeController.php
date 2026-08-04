@@ -29,7 +29,7 @@ class EmployeeController extends Controller
         $customer = $user->customerUser;
 
         if (!$customer) {
-            abort(403, '医療機関ユーザーとしてログインしてください。');
+            abort(403, __('pages.flash_5c50f8ee3f'));
         }
 
         $query = Employee::query()
@@ -113,7 +113,7 @@ class EmployeeController extends Controller
         $customer = $request->user()->customerUser;
 
         if (! $customer || ! in_array($customer->role, ['institution_admin', 'department_admin'], true)) {
-            abort(403, '職員を追加できる権限がありません。');
+            abort(403, __('pages.flash_fd0a7f1a92'));
         }
 
         $institutionId = $customer->medical_institution_id;
@@ -206,7 +206,7 @@ class EmployeeController extends Controller
 
         return redirect()
             ->route('employees.index')
-            ->with('status', '職員を登録しました。');
+            ->with('status', __('pages.flash_a3eda47eaf'));
     }
 
     public function show(Employee $employee): View
@@ -332,7 +332,7 @@ class EmployeeController extends Controller
 
         return redirect()
             ->route('employees.index')
-            ->with('status', '職員情報を更新しました。');
+            ->with('status', __('pages.flash_d54eb6564f'));
     }
 
     /**
@@ -604,7 +604,7 @@ class EmployeeController extends Controller
 
         return redirect()
             ->route('employees.index')
-            ->with('status', '職員を削除しました。');
+            ->with('status', __('pages.flash_21f268905d'));
     }
 
     public function exportCsv(Request $request)

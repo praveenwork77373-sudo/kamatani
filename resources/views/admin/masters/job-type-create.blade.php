@@ -62,7 +62,7 @@
                         <div class="ui-field-icon">
                             <i data-lucide="briefcase"></i>
                             <input type="text" name="name" value="{{ old('name') }}" required class="ui-input"
-                                   placeholder="例: 医師">
+                                   placeholder="{{ __('pages.example_doctor') }}">
                         </div>
                         @error('name')<p class="ui-error">{{ $message }}</p>@enderror
                     </div>

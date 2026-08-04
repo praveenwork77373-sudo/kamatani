@@ -18,7 +18,7 @@ class CancelRequestedMail extends Mailable implements ShouldQueue
 
     public function build()
     {
-        return $this->subject('【ユニフォーム管理システム】キャンセル申請が送信されました')
+        return $this->subject(__('pages.mail_subject_cancel_req'))
             ->view('emails.cancel-requested')
             ->with([
                 'application' => $this->application,

@@ -40,7 +40,7 @@ class MakerController extends Controller
 
         Maker::create($data);
 
-        return redirect()->route('admin.makers.index')->with('status', 'メーカーを登録しました。');
+        return redirect()->route('admin.makers.index')->with('status', __('pages.flash_7545e112b7'));
     }
 
     public function edit(Maker $maker): View
@@ -63,13 +63,13 @@ class MakerController extends Controller
 
         $maker->update($data);
 
-        return redirect()->route('admin.makers.index')->with('status', 'メーカーを更新しました。');
+        return redirect()->route('admin.makers.index')->with('status', __('pages.flash_02b7b706d3'));
     }
 
     public function destroy(Maker $maker): RedirectResponse
     {
         $maker->update(['is_active' => false]);
 
-        return redirect()->route('admin.makers.index')->with('status', 'メーカーを無効化しました。');
+        return redirect()->route('admin.makers.index')->with('status', __('pages.flash_566e5e2e67'));
     }
 }

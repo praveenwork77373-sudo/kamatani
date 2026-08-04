@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'ユニフォームカテゴリ')
-@section('page_title', 'ユニフォームカテゴリ')
+@section('title', __('menu.uniform_categories'))
+@section('page_title', __('menu.uniform_categories'))
 @section('header_category', __('menu.uniform_categories'))
 
 @section('content')
@@ -10,51 +10,56 @@
         <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{{ __('menu.uniform_categories') }}</h1>
         <p class="text-[13px] text-slate-600 mt-1">{{ __('pages.uniform_categories_description') }}</p>
     </div>
-    <a href="{{ route('admin.uniform-categories.create') }}" class="ui-btn ui-btn-primary">新規登録</a>
+    <a href="{{ route('admin.uniform-categories.create') }}" class="ui-btn ui-btn-primary">{{ __('pages.new_registration') }}</a>
 </div>
-
-@if(session('status'))
-    <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">{{ session('status') }}</div>
-@endif
 
 <div class="ui-card overflow-hidden">
     <div class="ui-table-wrap">
-        <table class="min-w-full text-sm">
-            <thead class="bg-slate-50 text-slate-600">
+        <table class="ui-table">
+            <thead>
                 <tr>
-                    <th class="px-4 py-3 text-left whitespace-nowrap">{{ __('pages.code') }}</th>
-                    <th class="px-4 py-3 text-left whitespace-nowrap">{{ __('pages.name') }}</th>
-                    <th class="px-4 py-3 text-left whitespace-nowrap">{{ __('pages.size_scheme') }}</th>
-                    <th class="px-4 py-3 text-right whitespace-nowrap">{{ __('pages.sort_order') }}</th>
-                    <th class="px-4 py-3 text-left whitespace-nowrap">状態</th>
-                    <th class="px-4 py-3 text-right whitespace-nowrap">操作</th>
+                    <th>{{ __('pages.code') }}</th>
+                    <th>{{ __('pages.name') }}</th>
+                    <th class="hidden sm:table-cell">{{ __('pages.size_scheme') }}</th>
+                    <th class="hidden md:table-cell text-right">{{ __('pages.sort_order') }}</th>
+                    <th>{{ __('pages.status') }}</th>
+                    <th class="ui-table__actions">{{ __('common.actions') }}</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($categories as $category)
-                    <tr class="border-t border-slate-100">
-                        <td class="px-4 py-3 font-mono">{{ $category->code }}</td>
-                        <td class="px-4 py-3">{{ $category->name }}</td>
-                        <td class="px-4 py-3">{{ __('pages.size_scheme_'.$category->size_scheme) }}</td>
-                        <td class="px-4 py-3 text-right">{{ $category->sort_order }}</td>
-                        <td class="px-4 py-3">
+                    <tr>
+                        <td class="font-mono">{{ $category->code }}</td>
+                        <td>{{ $category->name }}</td>
+                        <td class="hidden sm:table-cell">{{ __('pages.size_scheme_'.$category->size_scheme) }}</td>
+                        <td class="hidden md:table-cell text-right">{{ $category->sort_order }}</td>
+                        <td>
                             @if($category->is_active)
-                                <span class="text-emerald-700">有効</span>
+                                <span class="ui-status-pill ui-status-pill--success">{{ __('pages.active') }}</span>
                             @else
-                                <span class="text-slate-400">無効</span>
+                                <span class="ui-status-pill ui-status-pill--muted">{{ __('pages.inactive') }}</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-right space-x-3">
-                            <a href="{{ route('admin.uniform-categories.edit', $category) }}" class="text-primary-600 hover:underline font-medium">編集</a>
-                            <form method="POST" action="{{ route('admin.uniform-categories.destroy', $category) }}" class="inline" onsubmit="return confirm('無効化または削除しますか？');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:underline font-medium">削除</button>
-                            </form>
+                        <td class="ui-table__actions">
+                            <div class="ui-table__actions-row">
+                                <x-table-action
+                                    :href="route('admin.uniform-categories.edit', $category)"
+                                    icon="pencil"
+                                    :label="__('common.edit')"
+                                />
+                                <x-table-action
+                                    :href="route('admin.uniform-categories.destroy', $category)"
+                                    method="DELETE"
+                                    icon="trash-2"
+                                    tone="danger"
+                                    :label="__('common.delete')"
+                                    confirm="{{ __('pages.confirm_deactivate_or_delete') }}"
+                                />
+                            </div>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">カテゴリがありません</td></tr>
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">{{ __('pages.no_categories') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

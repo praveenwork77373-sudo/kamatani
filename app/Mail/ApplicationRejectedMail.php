@@ -18,7 +18,7 @@ class ApplicationRejectedMail extends Mailable implements ShouldQueue
 
     public function build()
     {
-        return $this->subject('【ユニフォーム管理システム】申請が却下されました')
+        return $this->subject(__('pages.mail_subject_app_rejected'))
             ->view('emails.application-rejected')
             ->with([
                 'application' => $this->application,

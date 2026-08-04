@@ -102,15 +102,63 @@ class Application extends Model
     public function statusLabel(): string
     {
         return match ($this->status) {
-            self::STATUS_PENDING => '申請',
-            self::STATUS_WAITING_SPECIAL => '特別承認待ち',
-            self::STATUS_IN_PROGRESS => '対応中',
-            self::STATUS_COMPLETED => '完了',
-            self::STATUS_REJECTED => '却下',
-            self::STATUS_CANCEL_REQUEST => 'キャンセル依頼中',
-            self::STATUS_CANCEL_APPROVED => 'キャンセル承認',
-            self::STATUS_CANCEL_REJECTED => 'キャンセル却下',
+            self::STATUS_PENDING => __('pages.application_status_pending'),
+            self::STATUS_WAITING_SPECIAL => __('pages.special_approval_pending'),
+            self::STATUS_IN_PROGRESS => __('pages.in_progress'),
+            self::STATUS_COMPLETED => __('pages.completed'),
+            self::STATUS_REJECTED => __('pages.status_rejected'),
+            'approved' => __('pages.in_progress'),
+            self::STATUS_CANCEL_REQUEST => __('pages.cancel_request_status'),
+            self::STATUS_CANCEL_APPROVED => __('pages.cancel_approved'),
+            self::STATUS_CANCEL_REJECTED => __('pages.cancel_rejected'),
             default => $this->status,
+        };
+    }
+
+    public function typeLabel(): string
+    {
+        return match ($this->type) {
+            'new_loan' => __('pages.new_loan_type'),
+            'resize' => __('pages.resize_type'),
+            'return' => __('pages.return_type'),
+            'exchange' => __('pages.exchange_type'),
+            'transfer' => __('pages.transfer_type'),
+            default => (string) $this->type,
+        };
+    }
+
+    /** Pill tone for `.ui-status-pill--*` */
+    public function statusPillTone(): string
+    {
+        return match ($this->status) {
+            self::STATUS_PENDING, self::STATUS_WAITING_SPECIAL, self::STATUS_CANCEL_REQUEST => 'warning',
+            self::STATUS_IN_PROGRESS, 'approved' => 'brand',
+            self::STATUS_COMPLETED => 'success',
+            self::STATUS_REJECTED, self::STATUS_CANCEL_REJECTED => 'danger',
+            self::STATUS_CANCEL_APPROVED => 'muted',
+            default => 'muted',
+        };
+    }
+
+    /** Tailwind classes for colored status badges on detail pages */
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status) {
+            self::STATUS_WAITING_SPECIAL => 'bg-amber-100 text-amber-700',
+            self::STATUS_IN_PROGRESS, 'approved' => 'bg-blue-100 text-blue-700',
+            self::STATUS_COMPLETED => 'bg-emerald-100 text-emerald-700',
+            self::STATUS_REJECTED, self::STATUS_CANCEL_REJECTED => 'bg-red-100 text-red-700',
+            self::STATUS_CANCEL_REQUEST => 'bg-orange-100 text-orange-700',
+            default => 'bg-slate-100 text-slate-700',
+        };
+    }
+
+    public function typePillTone(): string
+    {
+        return match ($this->type) {
+            'new_loan' => 'brand',
+            'transfer' => 'info',
+            default => 'muted',
         };
     }
 

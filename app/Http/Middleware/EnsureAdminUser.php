@@ -17,13 +17,13 @@ class EnsureAdminUser
         $user = $request->user();
 
         if (!$user) {
-            abort(403, 'ログインが必要です。');
+            abort(403, __('pages.flash_0a0b865063'));
         }
 
         $admin = $user->adminUser()->withTrashed()->first();
 
         if (!$admin || $admin->trashed() || $admin->isBlocked()) {
-            abort(403, '管理者権限がありません。');
+            abort(403, __('pages.flash_716094971b'));
         }
 
         return $next($request);

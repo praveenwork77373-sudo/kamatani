@@ -18,7 +18,7 @@ class CancelApprovedMail extends Mailable implements ShouldQueue
 
     public function build()
     {
-        return $this->subject('【ユニフォーム管理システム】キャンセル申請が承認されました')
+        return $this->subject(__('pages.mail_subject_cancel_ok'))
             ->view('emails.cancel-approved')
             ->with([
                 'application' => $this->application,

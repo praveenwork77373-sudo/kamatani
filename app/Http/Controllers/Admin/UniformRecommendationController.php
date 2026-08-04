@@ -46,7 +46,7 @@ class UniformRecommendationController extends Controller
         UniformRecommendation::create($data);
 
         return redirect()->route('admin.uniform-recommendations.index')
-            ->with('status', '推奨／指定ユニフォームを登録しました。');
+            ->with('status', __('pages.flash_85ec2ff438'));
     }
 
     public function edit(UniformRecommendation $uniformRecommendation): View
@@ -65,7 +65,7 @@ class UniformRecommendationController extends Controller
         $uniformRecommendation->update($this->validated($request));
 
         return redirect()->route('admin.uniform-recommendations.index')
-            ->with('status', '推奨／指定ユニフォームを更新しました。');
+            ->with('status', __('pages.flash_321f42e413'));
     }
 
     public function destroy(UniformRecommendation $uniformRecommendation): RedirectResponse
@@ -73,7 +73,7 @@ class UniformRecommendationController extends Controller
         $uniformRecommendation->delete();
 
         return redirect()->route('admin.uniform-recommendations.index')
-            ->with('status', '推奨／指定ユニフォームを削除しました。');
+            ->with('status', __('pages.flash_72b494b5b3'));
     }
 
     private function validated(Request $request): array

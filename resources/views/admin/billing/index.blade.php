@@ -40,9 +40,9 @@
 
     <x-stat-grid :cols="4">
         <x-stat-card tone="amber" icon="clock" :value="$stats['total_billing_snapshots'] ?? 0" :label="__('pages.billing_snapshots')" :badge="__('pages.total')" />
-        <x-stat-card tone="blue" icon="calendar" :value="$stats['this_month_billing_snapshots'] ?? 0" :label="__('pages.this_month_billing_snapshots')" badge="今月" />
+        <x-stat-card tone="blue" icon="calendar" :value="$stats['this_month_billing_snapshots'] ?? 0" :label="__('pages.this_month_billing_snapshots')" :badge="__('pages.this_month_short')" />
         <x-stat-card tone="purple" icon="japanese-yen" :value="$stats['total_billing_amount'] ?? 0" :label="__('pages.total_billing_amount')" :badge="__('pages.total')" prefix="¥" />
-        <x-stat-card tone="emerald" icon="japanese-yen" :value="$stats['this_month_billing_amount'] ?? 0" :label="__('pages.this_month_billing_amount')" badge="今月" prefix="¥" />
+        <x-stat-card tone="emerald" icon="japanese-yen" :value="$stats['this_month_billing_amount'] ?? 0" :label="__('pages.this_month_billing_amount')" :badge="__('pages.this_month_short')" prefix="¥" />
     </x-stat-grid>
 
     {{-- Month-wise institution status board --}}
@@ -201,7 +201,13 @@
                             <td class="px-4 py-3 text-right">
                                 <div class="inline-flex items-center justify-end gap-2 flex-wrap">
                                     @if($status === 'generated' && $row['snapshot'])
-                                        <a href="{{ route('admin.billing.show', $row['snapshot']) }}" class="text-primary-600 hover:underline font-medium whitespace-nowrap">{{ __('pages.details') }}</a>
+                                        <div class="ui-table__actions-row justify-end">
+                                            <x-table-action
+                                                :href="route('admin.billing.show', $row['snapshot'])"
+                                                icon="eye"
+                                                :label="__('pages.details')"
+                                            />
+                                        </div>
                                     @endif
                                     @if($canManageBilling && $status === 'pending')
                                         <a href="{{ route('admin.billing.create', ['medical_institution_id' => $inst->id, 'target_month' => $billingMonth, 'target_date' => $row['closing_date']]) }}"
@@ -268,7 +274,7 @@
                             </div>
                             <p class="shrink-0 font-semibold text-primary-700">¥{{ number_format($snapshot->data['summary']['billing_amount'] ?? $snapshot->data['summary']['total_amount_ex_tax'] ?? 0) }}</p>
                         </div>
-                        <p class="text-[12px] text-slate-600">{{ $snapshot->target_date->format('Y年n月') }} · {{ $snapshot->created_at->format('Y/m/d H:i') }}</p>
+                        <p class="text-[12px] text-slate-600">{{ $snapshot->target_date->format(app()->getLocale() === 'ja' ? 'Y年n月' : 'M Y') }} · {{ $snapshot->created_at->format('Y/m/d H:i') }}</p>
                         <a href="{{ route('admin.billing.show', $snapshot) }}"
                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 text-slate-700 text-[12px] font-medium">
                             <i data-lucide="eye" class="w-4 h-4"></i>
@@ -305,7 +311,7 @@
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="px-5 py-4 font-semibold text-slate-900 whitespace-nowrap">#BILL-{{ str_pad($snapshot->id, 4, '0', STR_PAD_LEFT) }}</td>
                                 <td class="px-5 py-4 text-slate-800">{{ $snapshot->medicalInstitution?->name ?? '-' }}</td>
-                                <td class="px-5 py-4 text-slate-700 whitespace-nowrap">{{ $snapshot->target_date->format('Y年n月') }}</td>
+                                <td class="px-5 py-4 text-slate-700 whitespace-nowrap">{{ $snapshot->target_date->format(app()->getLocale() === 'ja' ? 'Y年n月' : 'M Y') }}</td>
                                 <td class="px-5 py-4 text-slate-700">{{ $snapshot->data['invoice']['invoice_number'] ?? '-' }}</td>
                                 <td class="px-5 py-4 text-right text-primary-700 font-semibold whitespace-nowrap">¥{{ number_format($snapshot->data['summary']['billing_amount'] ?? $snapshot->data['summary']['total_amount_ex_tax'] ?? 0) }}</td>
                                 <td class="px-5 py-4 text-slate-600 whitespace-nowrap">{{ $snapshot->created_at->format('Y/m/d H:i') }}</td>

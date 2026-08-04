@@ -1,15 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'メーカー編集')
-@section('page_title', 'メーカー編集')
+@section('title', __('pages.maker_edit'))
+@section('page_title', __('pages.maker_edit'))
 @section('header_category', __('menu.makers'))
 
 @section('content')
 <div class="max-w-xl mx-auto sm:mx-0">
     <div class="ui-page-header">
         <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.maker_master') }} — 編集</h1>
-            <p class="text-[13px] text-slate-500 mt-1">仕入先／メーカー情報を更新します</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.maker_master') }} {{ __('pages.suffix_edit') }}</h1>
+            <p class="text-[13px] text-slate-500 mt-1">{{ __('pages.maker_edit_desc') }}</p>
         </div>
     </div>
 
@@ -18,7 +18,7 @@
         @method('PUT')
         <x-master-code-field type="maker" name="code" :value="old('code', $maker->code)" :exclude-id="$maker->id" :label="__('pages.code')" />
         <div>
-            <label class="ui-label" for="name">メーカー名 <span class="text-red-500">*</span></label>
+            <label class="ui-label" for="name">{{ __('pages.ui_aeef0fe5d6') }} <span class="text-red-500">*</span></label>
             <input id="name" type="text" name="name" value="{{ old('name', $maker->name) }}" required class="ui-input">
             @error('name')<p class="ui-error">{{ $message }}</p>@enderror
         </div>
@@ -41,8 +41,8 @@
             有効
         </label>
         <div class="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-            <a href="{{ route('admin.makers.index') }}" class="ui-btn ui-btn-secondary">戻る</a>
-            <button type="submit" class="ui-btn ui-btn-primary">更新</button>
+            <a href="{{ route('admin.makers.index') }}" class="ui-btn ui-btn-secondary">{{ __('common.back') }}</a>
+            <button type="submit" class="ui-btn ui-btn-primary">{{ __('pages.update') }}</button>
         </div>
     </form>
 </div>

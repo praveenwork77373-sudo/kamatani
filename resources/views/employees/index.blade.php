@@ -38,15 +38,6 @@
         </div>
     </div>
 
-    @if(session('status'))
-        <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                <span class="text-[14px] text-emerald-800 font-medium">{{ session('status') }}</span>
-            </div>
-        </div>
-    @endif
-
     {{-- Statistics Cards --}}
     <x-stat-grid :cols="5">
         <x-stat-card tone="blue" icon="users" :value="$stats['total_employees'] ?? 0" :label="__('pages.total_employees')" :badge="__('pages.total')" />
@@ -139,16 +130,11 @@
                                         </span>
                                     </td>
                                     <td class="px-5 py-4 text-slate-900 font-medium">
-                                        <div class="flex items-center gap-2">
-                                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-[12px] font-semibold">
-                                                {{ mb_substr($employee->name, 0, 1) }}
-                                            </div>
-                                            <span>{{ $employee->name }}</span>
-                                        </div>
+                                        <span class="truncate">{{ $employee->name }}</span>
                                     </td>
                                     <td class="px-5 py-4 text-slate-700">
                                         <div class="flex items-start gap-2">
-                                            <i data-lucide="briefcase" class="w-4 h-4 text-slate-400 mt-0.5 shrink-0"></i>
+                                            <i data-lucide="building-2" class="w-4 h-4 text-slate-400 mt-0.5 shrink-0"></i>
                                             <span class="text-[13px]">
                                                 @php
                                                     $primary = $employee->primaryDepartment?->name;
@@ -157,9 +143,9 @@
                                                         ->values();
                                                 @endphp
                                                 @if($primary)
-                                                    <span class="font-medium">主: {{ $primary }}</span>
+                                                    <span class="font-medium">{{ __('pages.primary_department') }}: {{ $primary }}</span>
                                                     @if($others->isNotEmpty())
-                                                        <span class="text-slate-500"> · 兼務: {{ $others->implode('、') }}</span>
+                                                        <span class="text-slate-500"> · {{ __('pages.concurrent_affiliation') }}: {{ $others->implode(app()->getLocale() === 'ja' ? '、' : ', ') }}</span>
                                                     @endif
                                                 @else
                                                     {{ $others->isNotEmpty() ? $others->implode(' / ') : '-' }}

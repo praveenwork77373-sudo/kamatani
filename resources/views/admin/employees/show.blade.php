@@ -17,15 +17,6 @@
         </div>
     </div>
 
-    @if(session('status'))
-        <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                <span class="text-[14px] text-emerald-800 font-medium">{{ session('status') }}</span>
-            </div>
-        </div>
-    @endif
-
     <div class="max-w-4xl mx-auto">
         {{-- Employee Header Card --}}
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">

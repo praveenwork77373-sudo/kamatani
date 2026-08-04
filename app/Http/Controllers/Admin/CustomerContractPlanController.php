@@ -67,7 +67,7 @@ class CustomerContractPlanController extends Controller
         }
 
         return redirect()->route('admin.customer-contract-plans.index')
-            ->with('status', '顧客契約プランを登録しました。');
+            ->with('status', __('pages.flash_3a148be24a'));
     }
 
     public function edit(CustomerContractPlan $customerContractPlan): View
@@ -108,7 +108,7 @@ class CustomerContractPlanController extends Controller
         }
 
         return redirect()->route('admin.customer-contract-plans.index')
-            ->with('status', '顧客契約プランを更新しました。');
+            ->with('status', __('pages.flash_09a17ec925'));
     }
 
     public function confirm(Request $request, CustomerContractPlan $customerContractPlan): RedirectResponse
@@ -121,7 +121,7 @@ class CustomerContractPlanController extends Controller
 
         $this->sendConfirmedMail($customerContractPlan->fresh(['contractPlan', 'medicalInstitution']));
 
-        return back()->with('status', '本登録に切り替えました。');
+        return back()->with('status', __('pages.flash_6a1fab4274'));
     }
 
     private function sendConfirmedMail(CustomerContractPlan $customerContractPlan): void
@@ -148,6 +148,6 @@ class CustomerContractPlanController extends Controller
         $customerContractPlan->delete();
 
         return redirect()->route('admin.customer-contract-plans.index')
-            ->with('status', '顧客契約プランを削除しました。');
+            ->with('status', __('pages.flash_95a4097d9e'));
     }
 }

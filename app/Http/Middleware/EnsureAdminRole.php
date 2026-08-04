@@ -17,11 +17,11 @@ class EnsureAdminRole
         $admin = $request->user()?->adminUser()->withTrashed()->first();
 
         if (!$admin || $admin->trashed() || $admin->isBlocked()) {
-            abort(403, '管理者権限がありません。');
+            abort(403, __('pages.flash_716094971b'));
         }
 
         if (!empty($roles) && !in_array($admin->role, $roles, true)) {
-            abort(403, 'この操作を行う権限がありません。');
+            abort(403, __('pages.flash_d58df33ab9'));
         }
 
         return $next($request);

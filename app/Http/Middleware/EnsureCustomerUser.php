@@ -16,7 +16,7 @@ class EnsureCustomerUser
         $user = $request->user();
 
         if (!$user || !$user->customerUser) {
-            abort(403, '医療機関ユーザーとしてログインしてください。');
+            abort(403, __('pages.flash_5c50f8ee3f'));
         }
 
         return $next($request);

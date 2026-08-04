@@ -70,8 +70,8 @@
                             <option value="">{{ __('pages.all_statuses') }}</option>
                             <option value="pending" @selected(request('status')==='pending')>{{ __('pages.unprocessed') }}</option>
                             <option value="waiting_special_approval" @selected(request('status')==='waiting_special_approval')>{{ __('pages.special_approval_pending') }}</option>
-                            <option value="in_progress" @selected(request('status')==='in_progress')>対応中</option>
-                            <option value="completed" @selected(request('status')==='completed')>完了</option>
+                            <option value="in_progress" @selected(request('status')==='in_progress')>{{ __('pages.in_progress') }}</option>
+                            <option value="completed" @selected(request('status')==='completed')>{{ __('pages.completed') }}</option>
                             <option value="rejected" @selected(request('status')==='rejected')>{{ __('pages.reject') }}</option>
                             <option value="cancel_request" @selected(request('status')==='cancel_request')>{{ __('pages.cancel_request_status') }}</option>
                         </select>
@@ -136,10 +136,10 @@
                 <div class="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center gap-3">
                     <button type="submit" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-600 text-white text-[13px] font-semibold hover:bg-primary-700">
                         <i data-lucide="file-stack" class="w-4 h-4"></i>
-                        一括帳票発行
+                        {{ __('pages.bulk_issue_documents') }}
                     </button>
-                    <span class="text-[12px] text-slate-500">対応中／完了の申請を選択してPDF（5種）を発行</span>
-                    <a href="{{ route('admin.orders.index') }}" class="ml-auto text-[13px] text-primary-600 hover:underline font-medium">受注一覧へ</a>
+                    <span class="text-[12px] text-slate-500">{{ __('pages.bulk_issue_hint') }}</span>
+                    <a href="{{ route('admin.orders.index') }}" class="ml-auto text-[13px] text-primary-600 hover:underline font-medium">{{ __('pages.to_orders_list') }}</a>
                 </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-[13px]">
@@ -224,31 +224,31 @@
                                 </td>
                                 <td class="px-5 py-4">
                                     @php
-                                        $statusConfig = [
-                                            'pending' => ['label' => '申請', 'class' => 'bg-slate-100 text-slate-700', 'icon' => 'clock'],
-                                            'waiting_special_approval' => ['label' => __('pages.special_approval_pending'), 'class' => 'bg-slate-900 text-white', 'icon' => 'alert-triangle'],
-                                            'in_progress' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700', 'icon' => 'loader'],
-                                            'completed' => ['label' => '完了', 'class' => 'bg-emerald-100 text-emerald-700', 'icon' => 'check-circle'],
-                                            'approved' => ['label' => '対応中', 'class' => 'bg-blue-100 text-blue-700', 'icon' => 'loader'],
-                                            'rejected' => ['label' => __('pages.reject'), 'class' => 'bg-red-50 text-red-700', 'icon' => 'x-circle'],
-                                            'cancel_request' => ['label' => __('pages.cancel_request_status'), 'class' => 'bg-slate-900 text-white', 'icon' => 'alert-circle'],
-                                            'cancel_approved' => ['label' => __('pages.cancel_approved'), 'class' => 'bg-slate-100 text-slate-700', 'icon' => 'check'],
-                                            'cancel_rejected' => ['label' => __('pages.cancel_rejected'), 'class' => 'bg-slate-100 text-slate-700', 'icon' => 'x'],
-                                        ];
-                                        $statusInfo = $statusConfig[$app->status] ?? ['label' => $app->status, 'class' => 'bg-slate-100 text-slate-700', 'icon' => 'circle'];
+                                        $statusIcon = match($app->status) {
+                                            'pending' => 'clock',
+                                            'waiting_special_approval' => 'alert-triangle',
+                                            'in_progress', 'approved' => 'loader',
+                                            'completed' => 'check-circle',
+                                            'rejected' => 'x-circle',
+                                            'cancel_request' => 'alert-circle',
+                                            'cancel_approved' => 'check',
+                                            'cancel_rejected' => 'x',
+                                            default => 'circle',
+                                        };
                                     @endphp
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full {{ $statusInfo['class'] }} text-[12px] font-medium">
-                                        <i data-lucide="{{ $statusInfo['icon'] ?? 'circle' }}" class="w-3.5 h-3.5"></i>
-                                        {{ $statusInfo['label'] }}
+                                    <span class="ui-status-pill ui-status-pill--{{ $app->statusPillTone() }}">
+                                        <i data-lucide="{{ $statusIcon }}" class="w-3.5 h-3.5"></i>
+                                        {{ $app->statusLabel() }}
                                     </span>
                                 </td>
-                                <td class="px-5 py-4 text-right">
-                                    <a href="{{ route('admin.applications.show', $app) }}"
-                                       class="inline-flex items-center justify-center w-8 h-8 rounded-full border border-slate-300 hover:bg-slate-100 text-slate-500 transition-all"
-                                       title="{{ __('pages.view_details') }}">
-                                       <i data-lucide="eye" class="w-4 h-4"></i>
-                                       {{ __('common.view') }}
-                                    </a>
+                                <td class="px-5 py-4 text-right ui-table__actions">
+                                    <div class="ui-table__actions-row">
+                                        <x-table-action
+                                            :href="route('admin.applications.show', $app)"
+                                            icon="eye"
+                                            :label="__('pages.view_details')"
+                                        />
+                                    </div>
                                 </td>
                             </tr>
                         @empty

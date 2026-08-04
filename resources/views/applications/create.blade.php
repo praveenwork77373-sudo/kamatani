@@ -4,23 +4,6 @@
 @section('page_title', __('pages.new_application'))
 
 @section('content')
-    @if(session('error'))
-        <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
-            <div class="flex items-center gap-2">
-                <i data-lucide="alert-circle" class="w-5 h-5 text-red-600"></i>
-                <span class="text-[14px] text-red-800 font-medium">{{ session('error') }}</span>
-            </div>
-        </div>
-    @endif
-
-    @if(session('status'))
-        <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-lg shadow-sm">
-            <div class="flex items-center gap-2">
-                <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
-                <span class="text-[14px] text-green-800 font-medium">{{ session('status') }}</span>
-            </div>
-        </div>
-    @endif
 
     <form method="POST" action="{{ route('applications.store') }}" id="application-form">
         @csrf
@@ -116,7 +99,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <p class="text-[12px] text-slate-500 mt-1">個別申請では職員の主部署／兼務の絞り込みに使います。部署一括では必須です。</p>
+                        <p class="text-[12px] text-slate-500 mt-1">{{ __('pages.ui_6ffe42def8') }}</p>
                         
                         {{-- Department Employees List (for departmental mode) --}}
                         <div id="department-employees-list" class="mt-4 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg border border-slate-200 hidden">
@@ -195,16 +178,16 @@
                                             <span id="employee-shoe-size" class="text-slate-900"></span>
                                         </span>
                                         <span class="text-slate-600">
-                                            <span class="font-medium">股下:</span>
+                                            <span class="font-medium">{{ __('pages.ui_84515961aa') }}</span>
                                             <span id="employee-inseam" class="text-slate-900"></span>
                                         </span>
                                         <span class="text-slate-600">
-                                            <span class="font-medium">体型:</span>
+                                            <span class="font-medium">{{ __('pages.ui_a0f82143d9') }}</span>
                                             <span id="employee-body-type" class="text-slate-900"></span>
                                         </span>
                                     </div>
                                     <p class="text-[12px] text-slate-600 mt-2">
-                                        <span class="font-medium">契約プラン:</span>
+                                        <span class="font-medium">{{ __('pages.contract_plan_colon') }}</span>
                                         <span id="employee-plans" class="text-slate-900"></span>
                                     </p>
                                 </div>
@@ -218,15 +201,14 @@
                         @enderror
                     </div>
 
-
                     {{-- 現在の貸与（返却・交換・異動用） --}}
                     <div id="current-loans-panel" class="hidden">
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
                             <i data-lucide="package-minus" class="w-4 h-4 text-amber-600"></i>
-                            <span id="current-loans-title">返却・交換する貸与品</span>
+                            <span id="current-loans-title">{{ __('pages.return_exchange_loans') }}</span>
                         </label>
                         <div id="current-loans-list" class="space-y-2 max-h-56 overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
-                            <p class="text-[13px] text-slate-500">職員を選択すると貸与中の品が表示されます。</p>
+                            <p class="text-[13px] text-slate-500">{{ __('pages.ui_4380cbc2ab') }}</p>
                         </div>
                         <div id="return-items-hidden"></div>
                     </div>
@@ -252,7 +234,7 @@
                         </label>
                         <input type="date" name="end_date" id="end-date-input" value="{{ old('end_date') }}"
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm">
-                        <p class="text-[12px] text-slate-500 mt-1">返却では任意（未入力時は開始日と同じ）。新規貸与・交換・サイズ変更・異動では必須です。</p>
+                        <p class="text-[12px] text-slate-500 mt-1">{{ __('pages.end_date_hint_return') }}</p>
                         @error('end_date')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror
@@ -283,12 +265,12 @@
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-[14px] font-semibold text-slate-700 flex items-center gap-2">
                                 <i data-lucide="shield-check" class="w-4 h-4 text-primary-600"></i>
-                                プラン貸与ポイント上限
+                                {{ __('pages.plan_loan_point_limit') }}
                             </span>
                             <span class="text-[14px] text-slate-600">
                                 <span id="selected-items-count">0</span>{{ __('pages.items') }} / 
                                 <span id="contract-limit">—</span>{{ __('pages.items') }}
-                                <span class="text-[12px] text-slate-500">（職員選択で更新・契約口数とは別）</span>
+                                <span class="text-[12px] text-slate-500">{{ __('pages.ui_059f32bb47') }}</span>
                             </span>
                         </div>
                         <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden shadow-inner">
@@ -300,19 +282,19 @@
                     {{-- Application memos (SPEC / PDF) --}}
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-slate-700 text-[14px] font-semibold mb-2">メモ1</label>
+                            <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.memo1') }}</label>
                             <input type="text" name="memo1" value="{{ old('memo1') }}" maxlength="500"
                                    class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px]"
-                                   placeholder="帳票に印字されるメモ1">
+                                   placeholder="{{ __('pages.memo1_placeholder') }}">
                             @error('memo1')
                                 <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                             @enderror
                         </div>
                         <div>
-                            <label class="block text-slate-700 text-[14px] font-semibold mb-2">メモ2</label>
+                            <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.memo2') }}</label>
                             <input type="text" name="memo2" value="{{ old('memo2') }}" maxlength="500"
                                    class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px]"
-                                   placeholder="帳票に印字されるメモ2">
+                                   placeholder="{{ __('pages.memo2_placeholder') }}">
                             @error('memo2')
                                 <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                             @enderror
@@ -376,7 +358,7 @@
                         <i data-lucide="shopping-cart" class="w-5 h-5 text-primary-600"></i>
                         {{ __('pages.product_selection') }}
                     </h2>
-                    <p class="text-[13px] text-slate-600 mt-1">申請情報の入力後、契約プラン対象のユニフォームを選択してください。</p>
+                    <p class="text-[13px] text-slate-600 mt-1">{{ __('pages.ui_913298c989') }}</p>
                 </div>
 
                 <div class="p-6">
@@ -398,7 +380,9 @@
                     <div id="products-container" class="space-y-4 py-2 overflow-y-auto">
                         {{-- Products will be loaded here via JavaScript --}}
                         <div class="text-center py-12 text-slate-500">
-                            <i data-lucide="shopping-bag" class="w-12 h-12 mx-auto mb-3 text-slate-300"></i>
+                            <div class="uniform-placeholder mx-auto mb-3 w-16 h-16 rounded-xl">
+                                <img src="{{ asset('images/brand/logo-mark-64.png') }}" alt="">
+                            </div>
                             <p class="text-[14px]">{{ __('pages.no_products_available') }}</p>
                         </div>
                     </div>
@@ -412,8 +396,25 @@
 @endsection
 
 @push('scripts')
+
+    <script>
+        window.__i18nAppCreate = {
+            stock: @json(__('pages.stock')),
+            onLoan: @json(__('pages.on_loan')),
+        };
+    </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const BRAND_UNIFORM_MARK = @json(asset('images/brand/logo-mark-64.png'));
+    const uniformPlaceholderHtml = (extraMsg = '') => `
+        <div class="text-center py-12 text-slate-500">
+            <div class="uniform-placeholder mx-auto mb-3 w-16 h-16 rounded-xl">
+                <img src="${BRAND_UNIFORM_MARK}" alt="">
+            </div>
+            ${extraMsg}
+        </div>
+    `;
+
     // Initialize Lucide icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -572,7 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         data-employee-shoe-size="${emp.shoe_size || '-'}"
                         data-employee-inseam="${emp.inseam_cm || '-'}"
                         data-employee-body-type="${emp.body_type || '-'}"
-                        data-employee-plans="${planLabel || '未割当'}"
+                        data-employee-plans="${planLabel || @json(__('pages.unassigned'))}"
                         data-employee-rentable-limit="${emp.rentable_limit ?? ''}"
                         data-employee-dept="${emp.department_id}"
                         data-employee-job="${emp.job_type_id}"
@@ -725,7 +726,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modeRadio) modeRadio.checked = true;
         modeOpt.click();
     })();
-
 
     // Department selection handler
     departmentSelect?.addEventListener('change', async function() {
@@ -1086,7 +1086,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const plansEl = document.getElementById('employee-plans');
         if (inseamEl) inseamEl.textContent = data.employeeInseam || '-';
         if (bodyTypeEl) bodyTypeEl.textContent = data.employeeBodyType || '-';
-        if (plansEl) plansEl.textContent = data.employeePlans || '未割当';
+        if (plansEl) plansEl.textContent = data.employeePlans || @json(__('pages.unassigned'));
         selectedEmployeeCard.classList.remove('hidden');
 
         // Update plan-based rentable limit for progress bar
@@ -1178,19 +1178,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const plansEl = document.getElementById('employee-plans');
                     const planText = plansEl ? plansEl.textContent : '';
                     let emptyMsg = '{{ __('pages.no_products_available') }}';
-                    if (planText && planText.includes('開始前')) {
-                        emptyMsg = '契約プランは割当済みですが、顧客契約プランの開始日が未来のため、本日は申請対象商品がありません。開始日を確認してください。';
-                    } else if (!planText || planText === '未割当' || planText === '-') {
-                        emptyMsg = '契約プラン未割当のため申請できる商品がありません。職員にプランを割り当ててください。';
+                    if (planText && planText.includes(@json(__('pages.before_start')))) {
+                        emptyMsg = @json(__('pages.js_plan_future_start'));
+                    } else if (!planText || planText === @json(__('pages.unassigned')) || planText === '-') {
+                        emptyMsg = @json(__('pages.js_no_plan_assigned'));
                     }
-                    productsContainer.innerHTML = `
-                        <div class="text-center py-12 text-slate-500">
-                            <i data-lucide="shopping-bag" class="w-12 h-12 mx-auto mb-3 text-slate-300"></i>
+                    productsContainer.innerHTML = uniformPlaceholderHtml(`
                             <p class="text-[14px]">${emptyMsg}</p>
-                            <p class="text-[12px] text-slate-400 mt-2">※ 商品カテゴリ（上衣/下衣/靴）タブも切り替えて確認してください。</p>
-                        </div>
-                    `;
-                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                            <p class="text-[12px] text-slate-400 mt-2">{{ __('pages.check_category_tabs') }}</p>
+                    `);
                     return;
                 }
 
@@ -1553,13 +1549,9 @@ document.addEventListener('DOMContentLoaded', () => {
         productsToShow = productsToShow.filter(u => u.category === currentCategory);
 
         if (productsToShow.length === 0) {
-            productsContainer.innerHTML = `
-                <div class="text-center py-12 text-slate-500">
-                    <i data-lucide="shopping-bag" class="w-12 h-12 mx-auto mb-3 text-slate-300"></i>
+            productsContainer.innerHTML = uniformPlaceholderHtml(`
                     <p class="text-[14px]">{{ __('pages.no_products_available') }}</p>
-                </div>
-            `;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            `);
             return;
         }
 
@@ -1681,8 +1673,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="relative h-48 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
                         ${product.image_path ? 
                             `<img src="${product.image_path}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">` :
-                            `<div class="w-full h-full flex items-center justify-center">
-                                <i data-lucide="shirt" class="w-16 h-16 text-slate-300"></i>
+                            `<div class="w-full h-full uniform-placeholder">
+                                <img src="${BRAND_UNIFORM_MARK}" alt="">
                             </div>`
                         }
                         ${isSelected ? `
@@ -1767,9 +1759,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                                     <span>
                                                         ${sizeData.size}
                                                         ${sizeData.disabled ? ' ({{ __('pages.size_not_match') }})' : ''}
-                                                        ${isDepartmentalMode && sizeData.employeeCount > 0 ? ` <span class="text-[11px] text-primary-600 font-semibold">(${sizeData.employeeCount}人)</span>` : ''}
+                                                        ${isDepartmentalMode && sizeData.employeeCount > 0 ? ` <span class="text-[11px] text-primary-600 font-semibold">(${sizeData.employeeCount})</span>` : ''}
                                                     </span>
-                                                    ${sizeData.product_id ? `<span class="text-[11px] text-slate-500 ml-2">在庫: ${sizeData.stock_quantity || 0}件</span>` : ''}
+                                                    ${sizeData.product_id ? `<span class="text-[11px] text-slate-500 ml-2">${window.__i18nAppCreate.stock}: ${sizeData.stock_quantity || 0}</span>` : ''}
                                                 </label>
                                                 <div class="flex items-center gap-1">
                                                     <button type="button" class="size-quantity-btn minus w-8 h-8 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all" 
@@ -1897,9 +1889,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                                     <span>
                                                         ${sizeData.size}
                                                         ${!sizeData.available ? ' ({{ __('pages.out_of_stock') }})' : sizeData.disabled ? ' ({{ __('pages.size_not_match') }})' : ''}
-                                                        ${isDepartmentalMode && sizeData.employeeCount > 0 ? ` <span class="text-[11px] text-primary-600 font-semibold">(${sizeData.employeeCount}人)</span>` : ''}
+                                                        ${isDepartmentalMode && sizeData.employeeCount > 0 ? ` <span class="text-[11px] text-primary-600 font-semibold">(${sizeData.employeeCount})</span>` : ''}
                                                     </span>
-                                                    ${sizeData.product_id ? `<span class="text-[11px] text-slate-500 ml-2">在庫: ${sizeData.stock_quantity || 0}件</span>` : ''}
+                                                    ${sizeData.product_id ? `<span class="text-[11px] text-slate-500 ml-2">${window.__i18nAppCreate.stock}: ${sizeData.stock_quantity || 0}</span>` : ''}
                                                 </label>
                                                 <div class="flex items-center gap-1 ${selectedItem.quantity > 0 || shouldAutoCheck ? '' : 'hidden'} size-quantity-control">
                                                     <button type="button" class="size-quantity-btn minus w-8 h-8 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all" 
@@ -2370,7 +2362,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadEmployeeLoans(employeeId) {
         if (!currentLoansList || !employeeId) return;
-        currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">読み込み中...</p>';
+        currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">{{ __('common.loading') }}</p>';
         try {
             const res = await fetch(`{{ url('/api/employees') }}/${employeeId}/loans`, {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
@@ -2378,7 +2370,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) throw new Error('load failed');
             const loans = await res.json();
             if (!Array.isArray(loans) || loans.length === 0) {
-                currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">貸与中の品がありません。</p>';
+                currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">{{ __('pages.no_active_loans') }}</p>';
                 returnItems.clear();
                 updateFormFields();
                 return;
@@ -2392,7 +2384,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                data-max="${loan.quantity}" data-name="${loan.product_name || ''}" data-size="${loan.size || ''}" ${checked}>
                         <div class="flex-1 min-w-0">
                             <div class="text-[13px] font-medium text-slate-900 truncate">${loan.product_name || ''} (${loan.size || '-'})</div>
-                            <div class="text-[11px] text-slate-500">${loan.product_code || ''} · 貸与中 ${loan.quantity}</div>
+                            <div class="text-[11px] text-slate-500">${loan.product_code || ''} · ${window.__i18nAppCreate.onLoan} ${loan.quantity}</div>
                         </div>
                         <input type="number" min="1" max="${loan.quantity}" value="${Math.min(qty, loan.quantity)}"
                                class="return-loan-qty w-16 px-2 py-1 border border-slate-300 rounded text-[13px]"
@@ -2411,7 +2403,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof lucide !== 'undefined') lucide.createIcons();
         } catch (e) {
             console.error(e);
-            currentLoansList.innerHTML = '<p class="text-[13px] text-red-600">貸与情報の取得に失敗しました。</p>';
+            currentLoansList.innerHTML = '<p class="text-[13px] text-red-600">{{ __('pages.ui_7cffc9ba1a') }}</p>';
         }
     }
 
@@ -2666,7 +2658,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             if (window.showToast) {
                 const msg = (appType === 'return' || appType === 'transfer')
-                    ? (appType === 'return' ? '返却する貸与品を選択してください。' : '変更する旧品または新品を選択してください。')
+                    ? (appType === 'return' ? @json(__('pages.select_return_items')) : @json(__('pages.select_change_items')))
                     : '{{ __('pages.select_uniform') }}';
                 window.showToast(msg, 'error');
             }
@@ -2680,7 +2672,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (needsEndDate && endDateInput && !endDateInput.value) {
             e.preventDefault();
             if (window.showToast) {
-                window.showToast('貸出終了日を入力してください。', 'error');
+                window.showToast(@json(__('pages.enter_loan_end_date')), 'error');
             }
             endDateInput.focus();
             return false;
@@ -2692,7 +2684,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 if (window.showToast) {
                     @if(app()->getLocale() === 'ja')
-                        window.showToast('{{ __('pages.loan_end_date') }}は{{ __('pages.loan_start_date') }}より後の日付を入力してください。', 'error');
+                        window.showToast(@json(__('pages.loan_end_after_start', ['end' => __('pages.loan_end_date'), 'start' => __('pages.loan_start_date')])), 'error');
                     @else
                         window.showToast('{{ __('pages.loan_end_date') }} must be after {{ __('pages.loan_start_date') }}.', 'error');
                     @endif
@@ -2739,7 +2731,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (window.showToast) {
                 @if(app()->getLocale() === 'ja')
-                    window.showToast('特別承認理由を入力してください。', 'warning');
+                    window.showToast(@json(__('pages.enter_special_approval_reason')), 'warning');
                 @else
                     window.showToast('Please enter special approval reason.', 'warning');
                 @endif

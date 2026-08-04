@@ -23,7 +23,7 @@ class DepartmentAdminController extends Controller
         $customer = $user->customerUser;
         
         if (!$customer || $customer->role !== 'institution_admin') {
-            abort(403, '医療機関全体管理者のみアクセス可能です。');
+            abort(403, __('pages.flash_6720a4d2e2'));
         }
     }
 
@@ -113,7 +113,7 @@ class DepartmentAdminController extends Controller
         ]);
         
         return redirect()->route('customer.masters.department-admins')
-            ->with('status', '部署管理者を登録しました。');
+            ->with('status', __('pages.flash_df21f25a02'));
     }
 
     public function edit(CustomerUser $customerUser): View
@@ -125,7 +125,7 @@ class DepartmentAdminController extends Controller
         
         // Verify the customer user belongs to the same institution
         if ($customerUser->medical_institution_id !== $customer->medical_institution_id || $customerUser->role !== 'department_admin') {
-            abort(403, 'アクセス権限がありません。');
+            abort(403, __('pages.flash_3a3f03255c'));
         }
         
         $departments = Department::where('medical_institution_id', $customer->medical_institution_id)
@@ -147,7 +147,7 @@ class DepartmentAdminController extends Controller
         
         // Verify the customer user belongs to the same institution
         if ($customerUser->medical_institution_id !== $customer->medical_institution_id || $customerUser->role !== 'department_admin') {
-            abort(403, 'アクセス権限がありません。');
+            abort(403, __('pages.flash_3a3f03255c'));
         }
         
         $data = $request->validate([
@@ -179,7 +179,7 @@ class DepartmentAdminController extends Controller
         ]);
         
         return redirect()->route('customer.masters.department-admins')
-            ->with('status', '部署管理者情報を更新しました。');
+            ->with('status', __('pages.flash_8a6e0a0697'));
     }
 
     public function destroy(CustomerUser $customerUser): RedirectResponse
@@ -191,7 +191,7 @@ class DepartmentAdminController extends Controller
         
         // Verify the customer user belongs to the same institution
         if ($customerUser->medical_institution_id !== $customer->medical_institution_id || $customerUser->role !== 'department_admin') {
-            abort(403, 'アクセス権限がありません。');
+            abort(403, __('pages.flash_3a3f03255c'));
         }
         
         // Don't allow deleting yourself
@@ -202,7 +202,7 @@ class DepartmentAdminController extends Controller
         $customerUser->user->delete(); // This will cascade delete the customer_user
         
         return redirect()->route('customer.masters.department-admins')
-            ->with('status', '部署管理者を削除しました。');
+            ->with('status', __('pages.flash_6e98d32d47'));
     }
 }
 

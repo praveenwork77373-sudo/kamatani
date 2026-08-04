@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'メーカーマスタ')
-@section('page_title', 'メーカーマスタ')
+@section('title', __('pages.maker_master_title'))
+@section('page_title', __('pages.maker_master_title'))
 
 @section('content')
 @php
@@ -10,49 +10,55 @@
 @endphp
 <div class="ui-page-header">
     <div>
-        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">メーカーマスタ</h1>
-        <p class="text-[13px] text-slate-600 mt-1">商品に紐づけるメーカーを管理します</p>
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.maker_master_title') }}</h1>
+        <p class="text-[13px] text-slate-600 mt-1">{{ __('pages.maker_master_desc') }}</p>
     </div>
     @if($canWriteMasters)
-    <a href="{{ route('admin.makers.create') }}" class="ui-btn ui-btn-primary">新規登録</a>
+    <a href="{{ route('admin.makers.create') }}" class="ui-btn ui-btn-primary">{{ __('pages.new_registration') }}</a>
 @endif
 </div>
 
 <div class="ui-card overflow-hidden">
     <div class="ui-table-wrap">
-        <table class="min-w-full text-sm">
-            <thead class="bg-slate-50 text-slate-600">
+        <table class="ui-table">
+            <thead>
                 <tr>
-                    <th class="px-4 py-3 text-left whitespace-nowrap">コード</th>
-                    <th class="px-4 py-3 text-left whitespace-nowrap">名称</th>
-                    <th class="px-4 py-3 text-left whitespace-nowrap">TEL</th>
-                    <th class="px-4 py-3 text-left whitespace-nowrap">状態</th>
-                    <th class="px-4 py-3 text-right whitespace-nowrap">操作</th>
+                    <th>{{ __('pages.plan_code') }}</th>
+                    <th>{{ __('pages.name_label') }}</th>
+                    <th class="hidden sm:table-cell">TEL</th>
+                    <th>{{ __('pages.status') }}</th>
+                    <th class="ui-table__actions">{{ __('common.actions') }}</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($makers as $maker)
-                    <tr class="border-t border-slate-100">
-                        <td class="px-4 py-3 font-mono">{{ $maker->code }}</td>
-                        <td class="px-4 py-3">{{ $maker->name }}</td>
-                        <td class="px-4 py-3">{{ $maker->tel ?: '—' }}</td>
-                        <td class="px-4 py-3">
+                    <tr>
+                        <td class="font-mono">{{ $maker->code }}</td>
+                        <td>{{ $maker->name }}</td>
+                        <td class="hidden sm:table-cell">{{ $maker->tel ?: '—' }}</td>
+                        <td>
                             @if($maker->is_active)
-                                <span class="text-emerald-700">有効</span>
+                                <span class="ui-status-pill ui-status-pill--success">{{ __('pages.active') }}</span>
                             @else
-                                <span class="text-slate-400">無効</span>
+                                <span class="ui-status-pill ui-status-pill--muted">{{ __('pages.inactive') }}</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-right">
+                        <td class="ui-table__actions">
                             @if($canWriteMasters)
-                            <a href="{{ route('admin.makers.edit', $maker) }}" class="text-primary-600 hover:underline font-medium">編集</a>
+                            <div class="ui-table__actions-row justify-end">
+                                <x-table-action
+                                    :href="route('admin.makers.edit', $maker)"
+                                    icon="pencil"
+                                    :label="__('common.edit')"
+                                />
+                            </div>
                         @else
-                            <span class="text-slate-400 text-xs">閲覧のみ</span>
+                            <span class="text-slate-400 text-xs">{{ __('pages.view_only') }}</span>
                         @endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">メーカーがありません</td></tr>
+                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">{{ __('pages.no_makers') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

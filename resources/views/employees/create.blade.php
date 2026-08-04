@@ -1,19 +1,19 @@
 @extends('layouts.app')
 
-@section('title', '職員追加 | ユニフォーム管理システム')
+@section('title', __('pages.ui_e4ad48f7cd'))
 @section('header_category', __('menu.employees'))
-@section('page_title', '職員追加')
+@section('page_title', __('pages.add_employee'))
 
 @section('content')
     <div class="mb-6">
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">職員追加</h1>
-                <p class="text-[14px] text-slate-600 mt-1.5">新しい職員を登録します。</p>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.add_employee') }}</h1>
+                <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.register_employee_desc') }}</p>
             </div>
             <a href="{{ route('employees.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
                 <i class="ph ph-arrow-left text-base"></i>
-                一覧に戻る
+                {{ __('pages.back_to_list') }}
             </a>
         </div>
     </div>
@@ -22,11 +22,11 @@
         @csrf
 
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            {{-- 基本情報セクション --}}
+            {{-- {{ __('pages.basic_info') }}セクション --}}
             <div class="p-6 border-b border-slate-200">
                 <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
                     <i class="ph ph-info text-primary-600"></i>
-                    基本情報
+                    {{ __('pages.basic_info') }}
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {{-- Institution (always from logged-in hospital user) --}}
@@ -54,11 +54,11 @@
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
                             <i class="ph ph-user text-slate-500"></i>
-                            氏名 <span class="text-red-500">*</span>
+                            {{ __('pages.full_name') }} <span class="text-red-500">*</span>
                         </label>
                         <input type="text" name="name" value="{{ old('name') }}" required
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all"
-                               placeholder="例: 山田 太郎">
+                               placeholder="{{ __('pages.employee_name_placeholder') }}">
                         @error('name')
                             <p class="text-[13px] text-red-600 mt-1.5 flex items-center gap-1">
                                 <i class="ph ph-warning text-xs"></i>
@@ -90,7 +90,7 @@
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
                             <i class="ph ph-buildings text-slate-500"></i>
-                            主部署 <span class="text-red-500">*</span>
+                            {{ __('pages.primary_department') }} <span class="text-red-500">*</span>
                         </label>
                         @if(isset($customer) && $customer->role === 'department_admin')
                             {{-- 部署管理者は自部署に固定 --}}
@@ -98,7 +98,7 @@
                                 $dept = $departments->first();
                             @endphp
                             <div class="px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[14px] text-slate-700">
-                                {{ $dept?->name ?? '部署未設定' }}
+                                {{ $dept?->name ?? @json(__('pages.dept_unset')) }}
                             </div>
                             <input type="hidden" name="primary_department_id" value="{{ $dept?->id }}">
                         @else
@@ -124,9 +124,9 @@
 
             {{-- 職種・兼務セクション --}}
             <div class="p-6 border-b border-slate-200">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">職種・兼務設定</h2>
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('pages.position_settings') }}</h2>
                 <p class="text-[13px] text-slate-600 mb-3">
-                    職員が所属する部署と職種を設定します。複数の部署・職種を追加することで、兼務（複数ポジション）に対応できます。
+                    {{ __('pages.positions_help') }}
                 </p>
                 <div id="positions-area" class="space-y-3">
                     <div class="position-row bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3">
@@ -135,7 +135,7 @@
                                 <label class="block text-slate-700 text-[13px] font-semibold mb-1">
                                     <span class="inline-flex items-center gap-1.5">
                                         <i class="ph ph-buildings text-sm text-slate-500"></i>
-                                        <span>部署</span>
+                                        <span>{{ __('pages.department') }}</span>
                                     </span>
                                 </label>
                                 <select name="positions[0][department_id]" class="position-department-select w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
@@ -149,7 +149,7 @@
                                 <label class="block text-slate-700 text-[13px] font-semibold mb-1">
                                     <span class="inline-flex items-center gap-1.5">
                                         <i class="ph ph-briefcase text-sm text-slate-500"></i>
-                                        <span>職種</span>
+                                        <span>{{ __('pages.job_type') }}</span>
                                     </span>
                                 </label>
                                 <div class="flex items-center gap-2">
@@ -166,7 +166,7 @@
                             </div>
                         </div>
                         <div class="position-plans border-t border-slate-200 pt-3">
-                            <p class="text-[12px] font-semibold text-slate-600 mb-2">この所属の契約プラン</p>
+                            <p class="text-[12px] font-semibold text-slate-600 mb-2">{{ __('pages.affiliation_contract_plans') }}</p>
                             <div class="space-y-1.5 max-h-36 overflow-y-auto">
                                 @forelse(($availablePlans ?? []) as $ccp)
                                     <label class="flex items-center gap-2 text-sm">
@@ -175,7 +175,7 @@
                                         <span>{{ $ccp->contractPlan->name ?? '' }}</span>
                                     </label>
                                 @empty
-                                    <p class="text-slate-500 text-xs">本登録の契約プランがありません</p>
+                                    <p class="text-slate-500 text-xs">{{ __('pages.no_confirmed_plans') }}</p>
                                 @endforelse
                             </div>
                         </div>
@@ -184,27 +184,27 @@
                 <button type="button" id="add-position-btn"
                         class="mt-3 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-dashed border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] font-medium transition-all">
                     <i class="ph ph-plus text-sm"></i>
-                    兼務ポジションを追加
+                    {{ __('pages.add_concurrent_position') }}
                 </button>
                 <p class="mt-2 text-[11px] text-slate-500">
-                    ※ 最初の行が主たる所属として扱われます。兼務ごとに異なる契約プランを割当できます。
+                    {{ __('pages.primary_affiliation_note') }}
                 </p>
             </div>
 
             {{-- サイズ情報セクション --}}
             <div class="p-6 border-b border-slate-200">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">サイズ情報</h2>
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('pages.size_info') }}</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2">
                             <span class="inline-flex items-center gap-2">
                                 <i class="ph ph-t-shirt text-base text-slate-500"></i>
-                                <span>上衣サイズ</span>
+                                <span>{{ __('pages.top_size') }}</span>
                             </span>
                         </label>
                         <select name="top_size"
                                 class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
-                            <option value="">選択してください</option>
+                            <option value="">{{ __('pages.select_please') }}</option>
                             @foreach(['XS','S','M','L','XL','XXL'] as $size)
                                 <option value="{{ $size }}" @selected(old('top_size')===$size)>{{ $size }}</option>
                             @endforeach
@@ -221,12 +221,12 @@
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2">
                             <span class="inline-flex items-center gap-2">
                                 <i class="ph ph-trousers text-base text-slate-500"></i>
-                                <span>ズボンサイズ</span>
+                                <span>{{ __('pages.bottom_size') }}</span>
                             </span>
                         </label>
                         <select name="bottom_size"
                                 class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
-                            <option value="">選択してください</option>
+                            <option value="">{{ __('pages.select_please') }}</option>
                             @foreach(['XS','S','M','L','XL','XXL'] as $size)
                                 <option value="{{ $size }}" @selected(old('bottom_size')===$size)>{{ $size }}</option>
                             @endforeach
@@ -243,12 +243,12 @@
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2">
                             <span class="inline-flex items-center gap-2">
                                 <i class="ph ph-sneaker text-base text-slate-500"></i>
-                                <span>靴サイズ</span>
+                                <span>{{ __('pages.shoe_size') }}</span>
                             </span>
                         </label>
                         <select name="shoe_size"
                                 class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
-                            <option value="">選択してください</option>
+                            <option value="">{{ __('pages.select_please') }}</option>
                             @foreach(['22.0','22.5','23.0','23.5','24.0','24.5','25.0','25.5','26.0','26.5','27.0','27.5','28.0'] as $size)
                                 <option value="{{ $size }}" @selected(old('shoe_size')===$size)>{{ $size }}</option>
                             @endforeach
@@ -262,10 +262,10 @@
                     </div>
 
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">股下 (cm)</label>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.inseam_cm') }}</label>
                         <select name="inseam_cm"
                                 class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
-                            <option value="">未設定</option>
+                            <option value="">{{ __('pages.not_set') }}</option>
                             @for($cm = 60; $cm <= 90; $cm++)
                                 <option value="{{ $cm }}" @selected(old('inseam_cm')==$cm)>{{ $cm }}</option>
                             @endfor
@@ -276,17 +276,17 @@
                     </div>
 
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">体型</label>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.body_type') }}</label>
                         <input type="text" name="body_type" value="{{ old('body_type') }}"
                                class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all"
-                               placeholder="例: 7号, 11号">
+                               placeholder="{{ __('pages.example_sizes') }}">
                         @error('body_type')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">入職日</label>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.hire_date') }}</label>
                         <input type="date" name="join_date" value="{{ old('join_date') }}"
                                class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
                         @error('join_date')
@@ -295,7 +295,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">退職日</label>
+                        <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.retire_date') }}</label>
                         <input type="date" name="retire_date" value="{{ old('retire_date') }}"
                                class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
                         @error('retire_date')
@@ -307,8 +307,8 @@
 
             {{-- 契約プラン割当（所属指定なし・任意） --}}
             <div class="p-6 border-b border-slate-200">
-                <h2 class="text-lg font-semibold text-slate-900 mb-2">共通契約プラン（所属指定なし）</h2>
-                <p class="text-[13px] text-slate-500 mb-3">兼務に紐づけないプランはこちら。所属ごとのプランは上の兼務行で設定できます。登録時は任意です。</p>
+                <h2 class="text-lg font-semibold text-slate-900 mb-2">{{ __('pages.shared_contract_plans') }}</h2>
+                <p class="text-[13px] text-slate-500 mb-3">{{ __('pages.ui_6d6a0d02ec') }}</p>
                 <div class="space-y-2 border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto bg-slate-50">
                     @php
                         $selectedPlanIds = old('customer_contract_plan_ids', []);
@@ -319,10 +319,10 @@
                                 {{ in_array($ccp->id, (array) $selectedPlanIds) ? 'checked' : '' }}>
                             <span class="font-mono text-xs text-slate-500">{{ $ccp->contractPlan->code ?? '' }}</span>
                             <span>{{ $ccp->contractPlan->name ?? '' }}</span>
-                            <span class="text-slate-400 text-xs">（口数 {{ $ccp->contract_count }}）</span>
+                            <span class="text-slate-400 text-xs">{{ __('pages.contract_slots_paren', ['count' => $ccp->contract_count]) }}</span>
                         </label>
                     @empty
-                        <p class="text-slate-500 text-sm">本登録の契約プランがありません。カマタニ側で顧客契約プランを本登録してください。</p>
+                        <p class="text-slate-500 text-sm">{{ __('pages.ui_8635ec415c') }}</p>
                     @endforelse
                 </div>
                 @error('customer_contract_plan_ids')
@@ -335,7 +335,7 @@
                 <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('pages.status') }}</h2>
                 <div class="max-w-md">
                     <label class="block text-slate-700 text-[14px] font-semibold mb-2">
-                        状態 <span class="text-red-500">*</span>
+                        {{ __('pages.status') }} <span class="text-red-500">*</span>
                     </label>
                     <select name="status" required
                             class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-[14px] bg-white shadow-sm transition-all">
@@ -355,11 +355,11 @@
             {{-- アクションボタン --}}
             <div class="p-6 bg-slate-50 flex items-center justify-end gap-3">
                 <a href="{{ route('employees.index') }}" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-white text-[14px] font-medium transition-all">
-                    キャンセル
+                    {{ __('pages.cancel') }}
                 </a>
                 <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center gap-2">
                     <i class="ph ph-check text-base"></i>
-                    登録する
+                    {{ __('pages.register_submit') }}
                 </button>
             </div>
         </div>

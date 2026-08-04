@@ -9,7 +9,7 @@
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.new_uniform_product') }}</h1>
                 <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.new_uniform_product_description') }}</p>
-                <p class="text-[13px] text-slate-500 mt-2">商品はカタログです。適用は「契約プラン」画面で商品をチェックして紐付けます。医療機関・部署は不要です。</p>
+                <p class="text-[13px] text-slate-500 mt-2">{{ __('pages.ui_179a51c73a') }}</p>
             </div>
             <a href="{{ route('admin.uniform-products.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
@@ -39,24 +39,24 @@
 
         {{-- Maker (SPEC) --}}
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
-            <h2 class="text-lg font-semibold text-slate-900 mb-4">メーカー情報</h2>
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('pages.maker_info') }}</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">メーカー</label>
+                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">{{ __('menu.makers') }}</label>
                     <select name="maker_id" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
-                        <option value="">未設定</option>
+                        <option value="">{{ __('pages.not_set') }}</option>
                         @foreach(($makers ?? []) as $maker)
                             <option value="{{ $maker->id }}" @selected(old('maker_id')==$maker->id)>{{ $maker->name }}（{{ $maker->code }}）</option>
                         @endforeach
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">メーカー品番</label>
+                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">{{ __('pages.maker_product_code') }}</label>
                     <input type="text" name="maker_product_code" value="{{ old('maker_product_code') }}"
-                           class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px]" placeholder="メーカー側コード">
+                           class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px]" placeholder="{{ __('pages.maker_side_code') }}">
                 </div>
                 <div>
-                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">色名</label>
+                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">{{ __('pages.color_name') }}</label>
                     <input type="text" name="color_name" value="{{ old('color_name') }}"
                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px]" placeholder="例: ネイビー">
                 </div>
@@ -79,11 +79,13 @@
             </div>
 
             <div class="p-6">
-                {{-- Products Grid --}}
-                <div id="products-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {{-- Products Grid — wider cards so size/stock fit without horizontal scroll --}}
+                <div id="products-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {{-- Products will be added here dynamically --}}
                     <div class="col-span-full text-center py-12 text-slate-500">
-                        <i data-lucide="shopping-bag" class="w-12 h-12 mx-auto mb-3 text-slate-300"></i>
+                        <div class="uniform-placeholder mx-auto mb-3 w-16 h-16 rounded-xl">
+                            <img src="{{ asset('images/brand/logo-mark-64.png') }}" alt="">
+                        </div>
                         <p class="text-[14px]">{{ __('pages.click_add_product_to_start') }}</p>
                     </div>
                 </div>
@@ -104,14 +106,14 @@
 
     {{-- Product Template (Hidden) --}}
     <template id="product-card-template">
-        <div class="product-card group border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300" data-category="">
-            <div class="relative h-48 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
-                <div class="w-full h-full flex items-center justify-center product-image-placeholder">
-                    <i data-lucide="shirt" class="w-16 h-16 text-slate-300"></i>
+        <div class="product-card group border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 min-w-0" data-category="">
+            <div class="relative h-40 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
+                <div class="w-full h-full flex items-center justify-center product-image-placeholder uniform-placeholder">
+                    <img src="{{ asset('images/brand/logo-mark-64.png') }}" alt="" class="w-14 h-14 object-contain opacity-80">
                 </div>
                 <input type="file" name="products[INDEX][image]" accept="image/*" class="product-image-input hidden">
                 <label class="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/10 transition-all product-image-label">
-                    <div class="opacity-0 hover:opacity-100 transition-opacity bg-white/90 rounded-lg px-4 py-2 text-[13px] font-medium text-slate-700">
+                    <div class="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-lg px-4 py-2 text-[13px] font-medium text-slate-700">
                         <i data-lucide="image" class="w-4 h-4 inline-block mr-1"></i>
                         {{ __('pages.select_image_file') }}
                     </div>
@@ -121,43 +123,39 @@
                 </button>
             </div>
             
-            <div class="p-5 space-y-4">
+            <div class="p-4 space-y-3 min-w-0">
                 <div>
-                    {{-- product_code auto-assigned on save; no create UI --}}
                     <input type="hidden" name="products[INDEX][product_code]" class="product-code-input" value="">
                 </div>
                 
                 <div>
-                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">
+                    <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">
                         {{ __('pages.product_name') }} <span class="text-red-500">*</span>
                     </label>
                     <input type="text" name="products[INDEX][name]" required
-                           class="product-name-input w-full px-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white"
+                           class="product-name-input w-full min-w-0 px-3 py-2.5 text-[14px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white"
                            placeholder="{{ __('pages.example_product_name') }}">
                 </div>
                 
-                <div>
-                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                        {{ __('pages.category') }} <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-<select name="products[INDEX][category]" required
-                                class="product-category-select w-full px-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="min-w-0">
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">
+                            {{ __('pages.category') }} <span class="text-red-500">*</span>
+                        </label>
+                        <select name="products[INDEX][category]" required
+                                class="product-category-select w-full min-w-0 px-3 py-2.5 text-[14px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white">
                             <option value="">{{ __('pages.select_please') }}</option>
                             @foreach(($categories ?? []) as $cat)
                                 <option value="{{ $cat->code }}" data-size-scheme="{{ $cat->size_scheme }}">{{ $cat->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                </div>
-                
-                <div>
-                    <label class="block text-[13px] font-semibold text-slate-700 mb-2">
-                        {{ __('pages.gender') }} <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-<select name="products[INDEX][gender]" required
-                                class="w-full px-4 py-2.5 text-[14px] border-2 border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white font-medium">
+                    <div class="min-w-0">
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-1.5">
+                            {{ __('pages.gender') }} <span class="text-red-500">*</span>
+                        </label>
+                        <select name="products[INDEX][gender]" required
+                                class="w-full min-w-0 px-3 py-2.5 text-[14px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all bg-white">
                             <option value="">{{ __('pages.select_please') }}</option>
                             <option value="male">{{ __('pages.male') }}</option>
                             <option value="female">{{ __('pages.female') }}</option>
@@ -166,14 +164,13 @@
                     </div>
                 </div>
                 
-                {{-- Sizes Section --}}
-                <div>
-                    <label class="block text-[13px] font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                {{-- Sizes: stacked rows, grow with content (no horizontal scroll) --}}
+                <div class="min-w-0">
+                    <label class="block text-[13px] font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
                         <i data-lucide="ruler" class="w-4 h-4 text-primary-600"></i>
                         {{ __('pages.sizes') }} <span class="text-red-500">*</span>
                     </label>
-                    <div class="product-sizes-container space-y-2 max-h-48 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
-                        {{-- Sizes will be added here dynamically --}}
+                    <div class="product-sizes-container space-y-2 p-2 border border-slate-200 rounded-lg bg-slate-50 min-h-[3rem] max-h-72 overflow-y-auto overflow-x-hidden">
                     </div>
                     <button type="button" class="add-size-btn mt-2 w-full px-3 py-2 rounded-lg border border-dashed border-slate-300 hover:border-primary-400 hover:bg-primary-50 text-[13px] font-medium text-slate-600 hover:text-primary-700 transition-all">
                         <i data-lucide="plus" class="w-4 h-4 inline-block mr-1"></i>
@@ -184,21 +181,22 @@
         </div>
     </template>
 
-    {{-- Size Template (Hidden) --}}
     <template id="size-row-template">
-        <div class="size-row flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
-            <div class="flex-1 relative">
-<select name="products[INDEX][sizes][SIZE_INDEX][size]" required
-                        class="size-select w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+        <div class="size-row grid grid-cols-[1fr_5.5rem_auto] gap-2 items-end p-2 bg-white rounded-lg border border-slate-200 min-w-0">
+            <div class="min-w-0">
+                <label class="block text-[11px] font-medium text-slate-500 mb-1">{{ __('pages.size') }}</label>
+                <select name="products[INDEX][sizes][SIZE_INDEX][size]" required
+                        class="size-select w-full min-w-0 px-2.5 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
                     <option value="">{{ __('pages.select_size') }}</option>
                 </select>
             </div>
-            <div class="w-24 relative">
-<input type="number" name="products[INDEX][sizes][SIZE_INDEX][stock_quantity]" required min="0" value="0"
-                       class="stock-quantity-input w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
-                       placeholder="{{ __('pages.stock') }}">
+            <div class="min-w-0">
+                <label class="block text-[11px] font-medium text-slate-500 mb-1">{{ __('pages.stock') }}</label>
+                <input type="number" name="products[INDEX][sizes][SIZE_INDEX][stock_quantity]" required min="0" value="0"
+                       class="stock-quantity-input w-full min-w-0 px-2 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white text-center"
+                       placeholder="0">
             </div>
-            <button type="button" class="remove-size-btn text-red-500 hover:text-red-700 p-1 flex items-center justify-center">
+            <button type="button" class="remove-size-btn text-red-500 hover:text-red-700 p-2 mb-0.5 flex items-center justify-center rounded-lg hover:bg-red-50" title="{{ __('common.delete') }}">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
         </div>
@@ -465,7 +463,7 @@
                     // Update sizes with bracket notation
                     $card.find('.size-row').each(function(sizeIndex) {
                         const $sizeRow = $(this);
-                        $sizeRow.find('.size-select, input[type="number"]').attr('name', `products[${productIndex}][sizes][${sizeIndex}][size]`).prop('disabled', false);
+                        $sizeRow.find('.size-select').attr('name', `products[${productIndex}][sizes][${sizeIndex}][size]`).prop('disabled', false);
                         $sizeRow.find('.stock-quantity-input').attr('name', `products[${productIndex}][sizes][${sizeIndex}][stock_quantity]`).prop('disabled', false);
                     });
                 });
@@ -516,7 +514,7 @@
                     // Update size fields with bracket notation
                     $card.find('.size-row').each(function(sizeIdx) {
                         const $sizeRow = $(this);
-                        const $sizeInput = $sizeRow.find('.size-select, input[type="number"]');
+                        const $sizeInput = $sizeRow.find('.size-select');
                         const $stockInput = $sizeRow.find('.stock-quantity-input');
                         
                         if ($sizeInput.length) {

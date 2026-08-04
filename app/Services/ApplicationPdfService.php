@@ -120,14 +120,6 @@ class ApplicationPdfService
         $planNames = $plans->pluck('name')->filter()->implode(' / ') ?: '-';
         $planCodes = $plans->pluck('code')->filter()->implode(' / ') ?: '-';
 
-        $typeLabels = [
-            'new_loan' => '新規貸与',
-            'resize' => 'サイズ変更',
-            'return' => '返却',
-            'exchange' => '交換',
-            'transfer' => '異動（部分変更）',
-        ];
-
         return [
             'formType' => $formType,
             'formTitle' => $this->formLabel($formType),
@@ -143,17 +135,17 @@ class ApplicationPdfService
             'salesPerson' => $application->medicalInstitution?->sales_person_name ?: '-',
             'planNames' => $planNames,
             'planCodes' => $planCodes,
-            'applicationTypeLabel' => $typeLabels[$application->type] ?? $application->type,
+            'applicationTypeLabel' => $application->typeLabel(),
             'memo1' => $application->memo1
-                ?: ($application->special_approval_reason ? '特別承認: '.$application->special_approval_reason : ''),
+                ?: ($application->special_approval_reason ? __('pages.special_approval_prefix').$application->special_approval_reason : ''),
             'memo2' => $application->memo2 ?: '',
             'items' => $application->items,
             'issuedAt' => now()->format('Y-m-d H:i'),
             'audienceNote' => match ($formType) {
-                ApplicationDocument::TYPE_SHIPPING_SALES => '※営業所控',
-                ApplicationDocument::TYPE_SHIPPING_WAREHOUSE => '※倉庫控',
-                ApplicationDocument::TYPE_DELIVERY_NOTICE => '※納入予定のご連絡',
-                ApplicationDocument::TYPE_WORK_SLIP => '※作業用（社内）',
+                ApplicationDocument::TYPE_SHIPPING_SALES => __('pages.pdf_note_sales'),
+                ApplicationDocument::TYPE_SHIPPING_WAREHOUSE => __('pages.pdf_note_warehouse'),
+                ApplicationDocument::TYPE_DELIVERY_NOTICE => __('pages.pdf_note_delivery'),
+                ApplicationDocument::TYPE_WORK_SLIP => __('pages.pdf_note_work'),
                 default => '※受注（準備）用',
             },
         ];

@@ -17,15 +17,6 @@
         </div>
     </div>
 
-    @if(session('status'))
-        <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-check-circle text-lg text-emerald-600"></i>
-                <span class="text-[14px] text-emerald-800 font-medium">{{ session('status') }}</span>
-            </div>
-        </div>
-    @endif
-
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full text-[14px]">
@@ -33,7 +24,7 @@
                     <tr>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.institution_code') }}</th>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.institution_name') }}</th>
-                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">締め日</th>
+                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.closing_day') }}</th>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.notification_email') }}</th>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.overall_manager') }}</th>
                         <th class="px-5 py-3.5 text-right font-semibold text-slate-700">{{ __('pages.actions') }}</th>
@@ -44,7 +35,7 @@
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-5 py-4 font-semibold text-slate-900">{{ $institution->code }}</td>
                             <td class="px-5 py-4 text-slate-800">{{ $institution->name }}</td>
-                            <td class="px-5 py-4 text-slate-600">{{ $institution->billing_closing_day ?? 1 }}日</td>
+                            <td class="px-5 py-4 text-slate-600">{{ __('pages.closing_day_unit', ['day' => $institution->billing_closing_day ?? 1]) }}</td>
                             <td class="px-5 py-4 text-slate-600">
                                 <div class="flex items-center gap-2">
                                     <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
@@ -67,40 +58,42 @@
                                     <span class="text-[13px] text-slate-400 italic">{{ __('pages.no_manager_registered') }}</span>
                                 @endif
                             </td>
-                            <td class="px-5 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2 flex-wrap">
+                            <td class="px-5 py-4 text-right ui-table__actions">
+                                <div class="ui-table__actions-row">
                                     @if($institution->institutionAdmin && $institution->institutionAdmin->user)
-                                        <form method="POST" action="{{ route('admin.masters.institutions.welcome_email', $institution) }}" class="inline" onsubmit="return confirm('利用開始メールを送信しますか？仮パスワードが再発行されます。');">
-                                            @csrf
-                                            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-[13px] font-medium transition-all">
-                                                <i data-lucide="send" class="w-4 h-4"></i>
-                                                利用開始メール
-                                            </button>
-                                        </form>
-                                        <a href="{{ route('admin.masters.institutions.welcome_email_history', $institution) }}"
-                                           class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] font-medium transition-all">
-                                            <i data-lucide="history" class="w-4 h-4"></i>
-                                            送信履歴
-                                        </a>
+                                        <x-table-action
+                                            :href="route('admin.masters.institutions.welcome_email', $institution)"
+                                            method="POST"
+                                            icon="send"
+                                            tone="success"
+                                            :label="__('pages.send_welcome_email')"
+                                            :confirm="__('pages.welcome_email_confirm')"
+                                        />
+                                        <x-table-action
+                                            :href="route('admin.masters.institutions.welcome_email_history', $institution)"
+                                            icon="history"
+                                            tone="muted"
+                                            :label="__('pages.welcome_email_history')"
+                                        />
                                     @endif
-                                    <a href="{{ route('admin.customer-contract-plans.index', ['medical_institution_id' => $institution->id]) }}"
-                                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 text-[13px] font-medium transition-all">
-                                        <i data-lucide="file-signature" class="w-4 h-4"></i>
-                                        契約プラン
-                                    </a>
-                                    <a href="{{ route('admin.masters.institutions.edit', $institution) }}"
-                                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 text-[13px] font-medium transition-all">
-                                        <i data-lucide="edit" class="w-4 h-4"></i>
-                                        {{ __('common.edit') }}
-                                    </a>
-                                    <form method="POST" action="{{ route('admin.masters.institutions.destroy', $institution) }}" class="inline" onsubmit="return confirm('{{ __('pages.confirm_delete_institution') }}');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 text-[13px] font-medium transition-all">
-                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                            {{ __('common.delete') }}
-                                        </button>
-                                    </form>
+                                    <x-table-action
+                                        :href="route('admin.customer-contract-plans.index', ['medical_institution_id' => $institution->id])"
+                                        icon="file-signature"
+                                        :label="__('pages.contract_plans_short')"
+                                    />
+                                    <x-table-action
+                                        :href="route('admin.masters.institutions.edit', $institution)"
+                                        icon="pencil"
+                                        :label="__('common.edit')"
+                                    />
+                                    <x-table-action
+                                        :href="route('admin.masters.institutions.destroy', $institution)"
+                                        method="DELETE"
+                                        icon="trash-2"
+                                        tone="danger"
+                                        :label="__('common.delete')"
+                                        :confirm="__('pages.confirm_delete_institution')"
+                                    />
                                 </div>
                             </td>
                         </tr>
@@ -120,8 +113,6 @@
 
             <x-table-pagination :paginator="$institutions" />
 
-
-
     </div>
 
 @push('scripts')
@@ -136,6 +127,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 @endpush
 @endsection
-
-
 

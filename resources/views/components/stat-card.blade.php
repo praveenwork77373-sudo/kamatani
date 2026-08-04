@@ -2,7 +2,7 @@
     'label',
     'value' => 0,
     'icon' => 'activity',
-    'tone' => 'blue', // blue|emerald|amber|orange|red|slate|purple|indigo|green
+    'tone' => 'brand', // brand|emerald|amber|orange|red|slate|blue|indigo|green|purple
     'badge' => null,
     'hint' => null,
     'prefix' => '',
@@ -22,18 +22,20 @@
     @if($href) href="{{ $href }}" @endif
     {{ $attributes->class(['ui-stat-card', 'ui-stat-card--'.$tone, $href ? 'ui-stat-card--link' : '']) }}
 >
-    <div class="ui-stat-card__top">
+    <div class="ui-stat-card__body">
+        <div class="ui-stat-card__copy min-w-0">
+            <p class="ui-stat-card__label">{{ $label }}</p>
+            <p class="ui-stat-card__value">{{ $display }}</p>
+            @if($hint || $badge)
+                <p class="ui-stat-card__hint">
+                    @if($badge)<span class="ui-stat-card__badge">{{ $badge }}</span>@endif
+                    @if($hint)<span>{{ $hint }}</span>@endif
+                </p>
+            @endif
+        </div>
         <span class="ui-stat-card__icon" aria-hidden="true">
             <i data-lucide="{{ $icon }}"></i>
         </span>
-        @if($badge)
-            <span class="ui-stat-card__badge">{{ $badge }}</span>
-        @endif
     </div>
-    <p class="ui-stat-card__value">{{ $display }}</p>
-    <p class="ui-stat-card__label">{{ $label }}</p>
-    @if($hint)
-        <p class="ui-stat-card__hint">{{ $hint }}</p>
-    @endif
     {{ $slot }}
 </{{ $tag }}>

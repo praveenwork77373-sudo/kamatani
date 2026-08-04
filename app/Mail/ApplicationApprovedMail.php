@@ -18,7 +18,7 @@ class ApplicationApprovedMail extends Mailable implements ShouldQueue
 
     public function build()
     {
-        return $this->subject('【ユニフォーム管理システム】申請が承認されました')
+        return $this->subject(__('pages.mail_subject_app_approved'))
             ->view('emails.application-approved')
             ->with([
                 'application' => $this->application,

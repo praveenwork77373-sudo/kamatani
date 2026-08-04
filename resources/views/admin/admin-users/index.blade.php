@@ -17,24 +17,6 @@
         </div>
     </div>
 
-    @if(session('status'))
-        <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                <span class="text-[14px] text-emerald-800 font-medium">{{ session('status') }}</span>
-            </div>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i data-lucide="alert-circle" class="w-5 h-5 text-red-600"></i>
-                <span class="text-[14px] text-red-800 font-medium">{{ session('error') }}</span>
-            </div>
-        </div>
-    @endif
-
     {{-- Statistics Cards --}}
     <x-stat-grid :cols="4">
         <x-stat-card tone="blue" icon="users" :value="$stats['total_admins'] ?? 0" :label="__('pages.total_admins')" :badge="__('pages.total')" />
@@ -222,8 +204,6 @@
 
             <x-table-pagination :paginator="$adminUsers" />
 
-
-
         </div>
     </div>
 
@@ -360,5 +340,4 @@
         }
     </script>
 @endsection
-
 

@@ -19,7 +19,7 @@ class BillingController extends Controller
     {
         $admin = request()->user()->adminUser ?? null;
         if (! $admin || ! in_array($admin->role, ['system_admin', 'accounting'], true)) {
-            abort(403, '請求データの管理権限がありません。');
+            abort(403, __('pages.flash_63e10f27d6'));
         }
     }
 
@@ -27,7 +27,7 @@ class BillingController extends Controller
     {
         $admin = request()->user()->adminUser ?? null;
         if (! $admin || ! in_array($admin->role, ['system_admin', 'operation', 'accounting', 'sales'], true)) {
-            abort(403, '請求データの閲覧権限がありません。');
+            abort(403, __('pages.flash_aba9d2be71'));
         }
     }
 

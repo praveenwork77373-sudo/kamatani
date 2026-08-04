@@ -41,10 +41,24 @@ class DashboardController extends Controller
                 'inventory_alerts' => \App\Models\UniformProduct::where('stock_quantity', '<=', 0)->count(),
             ];
             
-            $recentApplications = Application::with(['employee', 'department', 'items.uniformProduct'])
+            $recentApplications = Application::with(['employee', 'department', 'items.uniformProduct', 'medicalInstitution'])
                 ->orderByDesc('created_at')
-                ->limit(5)
+                ->limit(10)
                 ->get();
+
+            $queueApplications = Application::with(['employee', 'department', 'medicalInstitution'])
+                ->whereIn('status', ['pending', 'waiting_special_approval', 'cancel_request'])
+                ->orderByRaw("CASE status WHEN 'waiting_special_approval' THEN 0 WHEN 'cancel_request' THEN 1 ELSE 2 END")
+                ->orderBy('created_at')
+                ->limit(20)
+                ->get();
+
+            $queueCounts = [
+                'pending' => Application::where('status', 'pending')->count(),
+                'special' => Application::where('status', 'waiting_special_approval')->count(),
+                'cancel' => Application::where('status', 'cancel_request')->count(),
+            ];
+            $queueCounts['total'] = $queueCounts['pending'] + $queueCounts['special'] + $queueCounts['cancel'];
                 
             // Application trend data (last 6 months) - Real data from database
             $trendData = [];
@@ -218,6 +232,9 @@ class DashboardController extends Controller
             'admin' => $admin,
             'stats' => $stats,
             'recentApplications' => $recentApplications,
+            'queueApplications' => $queueApplications ?? collect(),
+            'queueCounts' => $queueCounts ?? ['pending' => 0, 'special' => 0, 'cancel' => 0, 'total' => 0],
+            'dashTab' => $admin ? $request->string('tab')->toString() ?: 'queue' : 'overview',
             'departmentStats' => $departmentStats,
             'medicalInstitution' => $medicalInstitution,
             'closingDay' => $closingDay,

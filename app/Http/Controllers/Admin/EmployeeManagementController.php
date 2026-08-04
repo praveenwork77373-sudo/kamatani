@@ -25,7 +25,7 @@ class EmployeeManagementController extends Controller
         $admin = $user->adminUser;
 
         if (! $admin || $admin->role !== 'system_admin') {
-            abort(403, 'システム管理者のみアクセス可能です。');
+            abort(403, __('pages.flash_2fb39bebc0'));
         }
     }
 

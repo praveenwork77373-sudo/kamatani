@@ -25,7 +25,7 @@ class WelcomeStartUseMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '【ユニフォーム管理システム】ご利用開始のご案内',
+            subject: __('pages.mail_102a879fa5'),
         );
     }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'ユニフォーム管理システム')</title>
+    <title>@yield('title', __('auth.system_title'))</title>
 
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
     <link rel="icon" type="image/png" href="{{ asset('images/brand/favicon-32.png') }}">
@@ -103,6 +103,16 @@
 </head>
 <body class="min-h-screen flex items-center justify-center px-4 py-10">
     <div class="w-full max-w-md">
+        <div class="mb-4 flex justify-end gap-2">
+            <a href="{{ route('language.switch', 'ja') }}"
+               class="text-[12px] px-2.5 py-1 rounded-md {{ app()->getLocale() === 'ja' ? 'bg-white text-brand font-semibold' : 'text-white/85 hover:bg-white/10' }}">
+                {{ __('common.japanese') }}
+            </a>
+            <a href="{{ route('language.switch', 'en') }}"
+               class="text-[12px] px-2.5 py-1 rounded-md {{ app()->getLocale() === 'en' ? 'bg-white text-brand font-semibold' : 'text-white/85 hover:bg-white/10' }}">
+                {{ __('common.english') }}
+            </a>
+        </div>
         @yield('content')
         <p class="mt-8 text-center text-[11px] text-white/70">
             © {{ date('Y') }} KAMATANI All Rights Reserved.

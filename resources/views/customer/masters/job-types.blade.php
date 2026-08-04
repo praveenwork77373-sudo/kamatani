@@ -17,15 +17,6 @@
         </div>
     </div>
 
-    @if(session('status'))
-        <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                <span class="text-[14px] text-emerald-800 font-medium">{{ session('status') }}</span>
-            </div>
-        </div>
-    @endif
-
     {{-- Search Section - Right Aligned --}}
     <div class="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div class="flex items-center gap-2 text-slate-600">
@@ -96,8 +87,6 @@
         </div>
 
             <x-table-pagination :paginator="$jobTypes" />
-
-
 
     </div>
 

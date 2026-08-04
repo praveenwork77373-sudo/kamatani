@@ -19,7 +19,7 @@ class ApplicationDocumentController extends Controller
         $admin = $request->user()->adminUser;
 
         if (! $admin || ! in_array($admin->role, ['system_admin', 'operation'], true)) {
-            abort(403, '帳票操作の権限がありません。');
+            abort(403, __('pages.flash_11c0282d3d'));
         }
 
         return $admin;
@@ -33,12 +33,12 @@ class ApplicationDocumentController extends Controller
             Application::STATUS_IN_PROGRESS,
             Application::STATUS_COMPLETED,
         ], true)) {
-            return back()->with('error', '対応中または完了の申請のみ帳票を発行できます。');
+            return back()->with('error', __('pages.flash_d99d790cb2'));
         }
 
         $pdfs->issueAll($application, $request->user());
 
-        return back()->with('status', '帳票PDF（5種）を発行しました。');
+        return back()->with('status', __('pages.flash_3d21289657'));
     }
 
     public function bulkIssue(Request $request, ApplicationPdfService $pdfs): RedirectResponse
@@ -77,7 +77,7 @@ class ApplicationDocumentController extends Controller
         $this->ensureApprover($request);
 
         if (! in_array($formType, ApplicationDocument::TYPES, true)) {
-            return back()->with('error', '帳票種別が不正です。');
+            return back()->with('error', __('pages.flash_1b78aa0609'));
         }
 
         $doc = $pdfs->issue($application, $formType, $request->user());
@@ -91,7 +91,7 @@ class ApplicationDocumentController extends Controller
 
         $path = app(ApplicationPdfService::class)->absolutePath($document);
         if (! is_file($path)) {
-            abort(404, 'ファイルが見つかりません。');
+            abort(404, __('pages.flash_8b58a00b36'));
         }
 
         return response()->download(
@@ -107,7 +107,7 @@ class ApplicationDocumentController extends Controller
 
         $path = app(ApplicationPdfService::class)->absolutePath($document);
         if (! is_file($path)) {
-            abort(404, 'ファイルが見つかりません。');
+            abort(404, __('pages.flash_8b58a00b36'));
         }
 
         return response(file_get_contents($path), 200, [

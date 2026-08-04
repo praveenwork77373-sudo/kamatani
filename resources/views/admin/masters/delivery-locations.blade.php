@@ -17,15 +17,6 @@
         </div>
     </div>
 
-    @if(session('status'))
-        <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-check-circle text-lg text-emerald-600"></i>
-                <span class="text-[14px] text-emerald-800 font-medium">{{ session('status') }}</span>
-            </div>
-        </div>
-    @endif
-
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div class="p-4 border-b border-slate-200">
             <form method="GET" action="{{ route('admin.masters.delivery-locations') }}" class="flex items-center gap-3">
@@ -96,8 +87,6 @@
 
             <x-table-pagination :paginator="$locations" />
 
-
-
     </div>
 
 @push('scripts')
@@ -112,8 +101,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 @endpush
 @endsection
-
-
-
-
 

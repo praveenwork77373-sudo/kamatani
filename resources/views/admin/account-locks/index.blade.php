@@ -1,34 +1,26 @@
 @extends('layouts.app')
 
-@section('title', 'アカウントロック管理 | ' . __('auth.system_title'))
-@section('page_title', 'アカウントロック管理')
+@section('title', __('pages.account_locks_page_title') . ' | ' . __('auth.system_title'))
+@section('page_title', __('menu.account_locks'))
 
 @section('content')
     <div class="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">アカウントロック管理</h1>
-            <p class="text-[14px] text-slate-600 mt-1.5">ログイン連続失敗による一時ロックを確認・解除できます。</p>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('menu.account_locks') }}</h1>
+            <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.account_locks_desc') }}</p>
         </div>
     </div>
-
-    @if(session('status'))
-        <div class="mb-4 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg text-[14px] text-emerald-800">
-            {{ session('status') }}
-        </div>
-    @endif
 
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
         <form method="GET" action="{{ route('admin.account-locks.index') }}" class="p-4 flex gap-3 items-end">
                 <x-per-page-field />
             <div class="flex-1">
-                <label class="block text-[13px] font-semibold text-slate-700 mb-1">検索（氏名・メール）</label>
+                <label class="block text-[13px] font-semibold text-slate-700 mb-1">{{ __('pages.search_name_email') }}</label>
                 <input type="text" name="q" value="{{ $searchQuery }}"
                        class="w-full px-3 py-2 rounded-lg border border-slate-300 text-[14px]"
-                       placeholder="例: hospital-admin@example.com">
+                       placeholder="{{ __('pages.example_email_placeholder') }}">
             </div>
-            <button type="submit" class="px-4 py-2 rounded-lg bg-primary-600 text-white text-[14px] font-medium hover:bg-primary-700">
-                検索
-            </button>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-primary-600 text-white text-[14px] font-medium hover:bg-primary-700">{{ __('common.search') }}</button>
         </form>
     </div>
 
@@ -37,10 +29,10 @@
             <table class="min-w-full text-[14px]">
                 <thead class="bg-slate-50 border-b border-slate-200">
                     <tr>
-                        <th class="px-5 py-3 text-left font-semibold text-slate-700">ユーザー</th>
-                        <th class="px-5 py-3 text-left font-semibold text-slate-700">種別</th>
-                        <th class="px-5 py-3 text-left font-semibold text-slate-700">ロック解除予定</th>
-                        <th class="px-5 py-3 text-right font-semibold text-slate-700">操作</th>
+                        <th class="px-5 py-3 text-left font-semibold text-slate-700">{{ __('pages.user_label') }}</th>
+                        <th class="px-5 py-3 text-left font-semibold text-slate-700">{{ __('pages.type') }}</th>
+                        <th class="px-5 py-3 text-left font-semibold text-slate-700">{{ __('pages.unlock_scheduled') }}</th>
+                        <th class="px-5 py-3 text-right font-semibold text-slate-700">{{ __('common.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -52,7 +44,7 @@
                             </td>
                             <td class="px-5 py-3 text-slate-700">
                                 @if($user->adminUser)
-                                    管理者（{{ $user->adminUser->role }}）
+                                    {{ __('pages.admin_user_label') }}（{{ $user->adminUser->role }}）
                                 @elseif($user->customerUser)
                                     顧客（{{ $user->customerUser->role }}）
                                     @if($user->customerUser->medicalInstitution)
@@ -67,16 +59,16 @@
                                 @php
                                     $remainingMinutes = max(0, (int) round(abs(now()->floatDiffInRealMinutes($user->locked_until))));
                                 @endphp
-                                <div class="text-[12px] text-amber-600">残り約 {{ $remainingMinutes }} 分</div>
+                                <div class="text-[12px] text-amber-600">{{ __('pages.remaining_minutes', ['minutes' => $remainingMinutes]) }}</div>
                             </td>
                             <td class="px-5 py-3 text-right">
                                 <form method="POST" action="{{ route('admin.account-locks.unlock', $user) }}"
-                                      onsubmit="return confirm('このアカウントの一時ロックを解除しますか？');">
+                                      onsubmit="return confirm(@js(__('pages.confirm_unlock_account')));">
                                     @csrf
                                     <button type="submit"
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[13px] font-medium hover:bg-emerald-700">
                                         <i data-lucide="unlock" class="w-3.5 h-3.5"></i>
-                                        ロック解除
+                                        {{ __('pages.unlock') }}
                                     </button>
                                 </form>
                             </td>
@@ -84,7 +76,7 @@
                     @empty
                         <tr>
                             <td colspan="4" class="px-5 py-10 text-center text-slate-500">
-                                現在、一時ロック中のアカウントはありません。
+                                {{ __('pages.no_locked_accounts') }}
                             </td>
                         </tr>
                     @endforelse
@@ -93,7 +85,6 @@
         </div>
 
             <x-table-pagination :paginator="$lockedUsers" />
-
 
     </div>
 @endsection

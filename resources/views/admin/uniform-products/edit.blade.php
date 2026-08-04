@@ -9,7 +9,7 @@
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.edit_uniform') }}</h1>
                 <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.new_uniform_product_description') }}</p>
-                <p class="text-[13px] text-slate-500 mt-2">商品はカタログです。適用は「契約プラン」画面で商品をチェックして紐付けます。医療機関・部署は不要です。</p>
+                <p class="text-[13px] text-slate-500 mt-2">{{ __('pages.ui_179a51c73a') }}</p>
             </div>
             <a href="{{ route('admin.uniform-products.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
@@ -41,24 +41,24 @@
         {{-- Maker (SPEC) --}}
         <div class="max-w-xl mx-auto mb-6">
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">メーカー情報</h2>
+                <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('pages.maker_info') }}</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">メーカー</label>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">{{ __('menu.makers') }}</label>
                         <select name="maker_id" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
-                            <option value="">未設定</option>
+                            <option value="">{{ __('pages.not_set') }}</option>
                             @foreach(($makers ?? []) as $maker)
                                 <option value="{{ $maker->id }}" @selected(old('maker_id', $product->maker_id)==$maker->id)>{{ $maker->name }}（{{ $maker->code }}）</option>
                             @endforeach
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">メーカー品番</label>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">{{ __('pages.maker_product_code') }}</label>
                         <input type="text" name="maker_product_code" value="{{ old('maker_product_code', $product->maker_product_code) }}"
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px]">
                     </div>
                     <div>
-                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">色名</label>
+                        <label class="block text-[13px] font-semibold text-slate-700 mb-2">{{ __('pages.color_name') }}</label>
                         <input type="text" name="color_name" value="{{ old('color_name', $product->color_name) }}"
                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px]">
                     </div>
@@ -169,17 +169,18 @@
                                         <i data-lucide="ruler" class="w-4 h-4 text-primary-600"></i>
                                         {{ __('pages.sizes') }} <span class="text-red-500">*</span>
                                     </label>
-                                    <div class="product-sizes-container space-y-2 max-h-64 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
+                                    <div class="product-sizes-container space-y-2 p-2 border border-slate-200 rounded-lg bg-slate-50 min-h-[3rem] max-h-72 overflow-y-auto overflow-x-hidden">
                                         @foreach($allSizes as $sizeProduct)
-                                            <div class="size-row flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
-                                                <div class="flex-1 relative">
-@if(\App\Models\UniformCategory::sizeSchemeFor($product->category) === 'shoe')
+                                            <div class="size-row grid grid-cols-[1fr_5.5rem_auto] gap-2 items-end p-2 bg-white rounded-lg border border-slate-200 min-w-0">
+                                                <div class="min-w-0">
+                                                    <label class="block text-[11px] font-medium text-slate-500 mb-1">{{ __('pages.size') }}</label>
+                                                    @if(\App\Models\UniformCategory::sizeSchemeFor($product->category) === 'shoe')
                                                         <input type="number" name="sizes[{{ $loop->index }}][size]" value="{{ old("sizes.{$loop->index}.size", $sizeProduct->size) }}" step="0.5" min="20" max="30" required
-                                                               class="size-select w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
+                                                               class="size-select w-full min-w-0 px-2.5 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
                                                                placeholder="{{ __('pages.example_shoe_size') }}">
                                                     @else
                                                         <select name="sizes[{{ $loop->index }}][size]" required
-                                                                class="size-select w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+                                                                class="size-select w-full min-w-0 px-2.5 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
                                                             <option value="">{{ __('pages.select_size') }}</option>
                                                             @foreach($topBottomSizes as $size)
                                                                 <option value="{{ $size }}" @selected(old("sizes.{$loop->parent->index}.size", $sizeProduct->size)===$size)>{{ $size }}</option>
@@ -187,15 +188,18 @@
                                                         </select>
                                                     @endif
                                                 </div>
-                                                <div class="w-24 relative">
-<input type="number" name="sizes[{{ $loop->index }}][stock_quantity]" value="{{ old("sizes.{$loop->index}.stock_quantity", $sizeProduct->stock_quantity) }}" min="0" required
-                                                           class="stock-quantity-input w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
-                                                           placeholder="{{ __('pages.stock') }}">
+                                                <div class="min-w-0">
+                                                    <label class="block text-[11px] font-medium text-slate-500 mb-1">{{ __('pages.stock') }}</label>
+                                                    <input type="number" name="sizes[{{ $loop->index }}][stock_quantity]" value="{{ old("sizes.{$loop->index}.stock_quantity", $sizeProduct->stock_quantity) }}" min="0" required
+                                                           class="stock-quantity-input w-full min-w-0 px-2 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white text-center"
+                                                           placeholder="0">
                                                 </div>
                                                 @if($allSizes->count() > 1)
-                                                    <button type="button" class="remove-size-btn text-red-500 hover:text-red-700 p-1 flex items-center justify-center">
+                                                    <button type="button" class="remove-size-btn text-red-500 hover:text-red-700 p-2 mb-0.5 flex items-center justify-center rounded-lg hover:bg-red-50">
                                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                                                     </button>
+                                                @else
+                                                    <span class="w-9"></span>
                                                 @endif
                                             </div>
                                         @endforeach
@@ -231,19 +235,21 @@
 
     {{-- Size Template (Hidden) --}}
     <template id="size-row-template">
-        <div class="size-row flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
-            <div class="flex-1 relative">
-<select name="sizes[SIZE_INDEX][size]" required
-                        class="size-select w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
+        <div class="size-row grid grid-cols-[1fr_5.5rem_auto] gap-2 items-end p-2 bg-white rounded-lg border border-slate-200 min-w-0">
+            <div class="min-w-0">
+                <label class="block text-[11px] font-medium text-slate-500 mb-1">{{ __('pages.size') }}</label>
+                <select name="sizes[SIZE_INDEX][size]" required
+                        class="size-select w-full min-w-0 px-2.5 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white">
                     <option value="">{{ __('pages.select_size') }}</option>
                 </select>
             </div>
-            <div class="w-24 relative">
-<input type="number" name="sizes[SIZE_INDEX][stock_quantity]" required min="0" value="0"
-                       class="stock-quantity-input w-full pl-11 pr-3 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white"
-                       placeholder="{{ __('pages.stock') }}">
+            <div class="min-w-0">
+                <label class="block text-[11px] font-medium text-slate-500 mb-1">{{ __('pages.stock') }}</label>
+                <input type="number" name="sizes[SIZE_INDEX][stock_quantity]" required min="0" value="0"
+                       class="stock-quantity-input w-full min-w-0 px-2 py-2 text-[13px] border border-slate-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 bg-white text-center"
+                       placeholder="0">
             </div>
-            <button type="button" class="remove-size-btn text-red-500 hover:text-red-700 p-1 flex items-center justify-center">
+            <button type="button" class="remove-size-btn text-red-500 hover:text-red-700 p-2 mb-0.5 flex items-center justify-center rounded-lg hover:bg-red-50">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
         </div>

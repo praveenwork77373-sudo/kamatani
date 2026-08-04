@@ -26,15 +26,6 @@
         </div>
     </div>
 
-    @if(session('status'))
-        <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-            <div class="flex items-center gap-2">
-                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
-                <span class="text-[14px] text-emerald-800 font-medium">{{ session('status') }}</span>
-            </div>
-        </div>
-    @endif
-
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Main Information Card --}}
         <div class="lg:col-span-2">
@@ -42,9 +33,6 @@
                 {{-- Header --}}
                 <div class="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-blue-50">
                     <div class="flex items-center gap-3">
-                        <div class="h-12 w-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xl font-semibold">
-                            {{ mb_substr($employee->name, 0, 1) }}
-                        </div>
                         <div>
                             <h2 class="text-lg font-semibold text-slate-900">{{ $employee->name }}</h2>
                             <p class="text-[13px] text-slate-600">{{ __('pages.staff_number') }}: {{ $employee->staff_no }}</p>
@@ -97,7 +85,7 @@
                                 {{ __('pages.department') }}
                             </label>
                             <div class="flex items-center gap-2">
-                                <i data-lucide="briefcase" class="w-4 h-4 text-slate-400"></i>
+                                <i data-lucide="building-2" class="w-4 h-4 text-slate-400"></i>
                                 <span class="text-[15px] text-slate-900">{{ $employee->primaryDepartment?->name ?? '-' }}</span>
                             </div>
                         </div>

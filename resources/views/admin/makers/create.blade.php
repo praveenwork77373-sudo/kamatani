@@ -1,15 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'メーカー登録')
-@section('page_title', 'メーカー登録')
+@section('title', __('pages.maker_create'))
+@section('page_title', __('pages.maker_create'))
 @section('header_category', __('menu.makers'))
 
 @section('content')
 <div class="max-w-xl mx-auto sm:mx-0">
     <div class="ui-page-header">
         <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.maker_master') }} — 登録</h1>
-            <p class="text-[13px] text-slate-500 mt-1">仕入先／メーカーを登録します</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.maker_master') }} {{ __('pages.suffix_create') }}</h1>
+            <p class="text-[13px] text-slate-500 mt-1">{{ __('pages.maker_create_desc') }}</p>
         </div>
     </div>
 
@@ -17,7 +17,7 @@
         @csrf
         <x-master-code-field type="maker" name="code" :value="old('code')" :label="__('pages.code')" />
         <div>
-            <label class="ui-label" for="name">メーカー名 <span class="text-red-500">*</span></label>
+            <label class="ui-label" for="name">{{ __('pages.ui_aeef0fe5d6') }} <span class="text-red-500">*</span></label>
             <input id="name" type="text" name="name" value="{{ old('name') }}" required class="ui-input">
             @error('name')<p class="ui-error">{{ $message }}</p>@enderror
         </div>
@@ -40,8 +40,8 @@
             有効
         </label>
         <div class="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-            <a href="{{ route('admin.makers.index') }}" class="ui-btn ui-btn-secondary">戻る</a>
-            <button type="submit" class="ui-btn ui-btn-primary">保存</button>
+            <a href="{{ route('admin.makers.index') }}" class="ui-btn ui-btn-secondary">{{ __('common.back') }}</a>
+            <button type="submit" class="ui-btn ui-btn-primary">{{ __('common.save') }}</button>
         </div>
     </form>
 </div>

@@ -54,7 +54,7 @@
                         <div class="ui-field-icon">
                             <i data-lucide="map-pin"></i>
                             <input type="text" name="name" value="{{ old('name') }}" required class="ui-input"
-                                   placeholder="例: 本館 1階 受付">
+                                   placeholder="{{ __('pages.example_reception') }}">
                         </div>
                         @error('name')<p class="ui-error">{{ $message }}</p>@enderror
                     </div>
@@ -67,7 +67,7 @@
                         <div class="ui-field-icon ui-field-icon--textarea">
                             <i data-lucide="file-text"></i>
                             <textarea name="note" rows="4" class="ui-textarea"
-                                      placeholder="例: 平日 9:00-17:00">{{ old('note') }}</textarea>
+                                      placeholder="{{ __('pages.example_hours') }}">{{ old('note') }}</textarea>
                         </div>
                         @error('note')<p class="ui-error">{{ $message }}</p>@enderror
                     </div>

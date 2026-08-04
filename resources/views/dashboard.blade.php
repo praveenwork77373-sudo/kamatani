@@ -21,7 +21,7 @@
                             <i data-lucide="layout-dashboard" class="w-5 h-5 text-white"></i>
                         </div>
                         <div>
-                            <h2 class="text-xl font-bold text-slate-900">ダッシュボード</h2>
+                            <h2 class="text-xl font-bold text-slate-900">{{ __('menu.dashboard') }}</h2>
                             <p class="text-[13px] text-slate-600 flex items-center gap-2 mt-0.5">
                                 @if($admin)
                                     <span>{{ __('pages.system_admin') }}</span>
@@ -40,8 +40,8 @@
                             <i data-lucide="calendar" class="w-4 h-4 text-primary-600"></i>
                         </div>
                         <div>
-                            <p class="text-[11px] font-semibold text-primary-700 mb-0.5">締め日（請求基準日）</p>
-                            <p class="text-[13px] font-bold text-slate-900">毎月 {{ $closingDay }}日</p>
+                            <p class="text-[11px] font-semibold text-primary-700 mb-0.5">{{ __('pages.closing_day_billing') }}</p>
+                            <p class="text-[13px] font-bold text-slate-900">{{ __('pages.every_month_day', ['day' => $closingDay]) }}</p>
                         </div>
                     </div>
                 @endif
@@ -51,258 +51,270 @@
 
     @if($admin)
         {{-- ============================================ --}}
-        {{-- KAMATANI ADMIN DASHBOARD --}}
+        {{-- KAMATANI ADMIN DASHBOARD (design.md tabs) --}}
         {{-- ============================================ --}}
-        
-        {{-- Summary Cards --}}
-        <x-stat-grid :cols="4">
-            <x-stat-card
-                tone="blue"
-                icon="file-text"
-                :value="$stats['total_applications'] ?? 0"
-                :label="__('pages.total_applications')"
-                :badge="__('pages.total')"
-                :hint="__('pages.month_over_month')"
-            />
-            <x-stat-card
-                tone="amber"
-                icon="clock"
-                :value="$stats['pending_approvals'] ?? 0"
-                :label="__('pages.pending_approval')"
-                :badge="__('pages.action_required_badge')"
-                :hint="__('pages.immediate_action_required')"
-            />
-            <x-stat-card
-                tone="emerald"
-                icon="users"
-                :value="$stats['total_employees'] ?? 0"
-                :label="__('pages.registered_employees')"
-                :badge="__('pages.active_employees')"
-                :hint="__('pages.all_institutions_total')"
-            />
-            <x-stat-card
-                tone="red"
-                icon="shopping-cart"
-                :value="$stats['inventory_alerts'] ?? 0"
-                label="在庫アラート"
-                badge="補充必要"
-                hint="在庫不足商品"
-            />
-        </x-stat-grid>
+        @php
+            $tab = in_array($dashTab ?? 'queue', ['queue', 'overview', 'history'], true) ? $dashTab : 'queue';
+        @endphp
 
-        {{-- Charts and Recent Applications --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-            @php
-                $trendData = $trendData ?? [];
-            @endphp
-            @if(!empty($trendData))
-            {{-- Application Trend Chart --}}
-            <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm  flex flex-col">
-                <div class="px-4 pt-4 pb-3 flex-shrink-0">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                                <i data-lucide="trending-up" class="w-4 h-4 text-primary-600"></i>
-                                {{ __('pages.application_trend') }}
-                            </h3>
-                            <p class="text-[12px] text-slate-500 mt-0.5">{{ __('pages.last_6_months') }}</p>
-                        </div>
+        <nav class="dash-tabs" aria-label="{{ __('menu.dashboard') }}">
+            <a href="{{ route('dashboard', ['tab' => 'queue']) }}" class="{{ $tab === 'queue' ? 'is-active' : '' }}">
+                {{ __('pages.today_queue') }}
+                @if(($queueCounts['total'] ?? 0) > 0)
+                    <span class="dash-tab-count">{{ $queueCounts['total'] }}</span>
+                @endif
+            </a>
+            <a href="{{ route('dashboard', ['tab' => 'overview']) }}" class="{{ $tab === 'overview' ? 'is-active' : '' }}">{{ __('pages.overview') }}</a>
+            <a href="{{ route('dashboard', ['tab' => 'history']) }}" class="{{ $tab === 'history' ? 'is-active' : '' }}">{{ __('pages.history_tab') }}</a>
+        </nav>
+
+        @if($tab === 'queue')
+            <div class="mb-4 flex flex-wrap gap-2">
+                <span class="ui-status-pill ui-status-pill--warning">{{ __('pages.normal_pending') }} {{ $queueCounts['pending'] ?? 0 }}</span>
+                <span class="ui-status-pill ui-status-pill--warning">{{ __('pages.special_pending_short') }} {{ $queueCounts['special'] ?? 0 }}</span>
+                <span class="ui-status-pill ui-status-pill--info">{{ __('pages.cancel_pending_short') }} {{ $queueCounts['cancel'] ?? 0 }}</span>
+                <a href="{{ route('admin.applications.index') }}" class="ml-auto text-[13px] text-primary-600 hover:underline font-medium">{{ __('pages.to_applications_list') }}</a>
+            </div>
+
+            <div class="ui-card overflow-hidden mb-6">
+                <div class="ui-table-wrap">
+                    <table class="ui-table">
+                        <thead>
+                            <tr>
+                                <th>{{ __('pages.application_id') }}</th>
+                                <th class="hidden md:table-cell">{{ __('pages.medical_institution') }}</th>
+                                <th>{{ __('common.employees') }}</th>
+                                <th>{{ __('pages.type') }}</th>
+                                <th>{{ __('pages.status') }}</th>
+                                <th class="hidden sm:table-cell">{{ __('pages.application_date') }}</th>
+                                <th class="ui-table__actions">{{ __('common.actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($queueApplications as $app)
+                                <tr>
+                                    <td class="font-mono font-semibold">#APP-{{ str_pad($app->id, 4, '0', STR_PAD_LEFT) }}</td>
+                                    <td class="hidden md:table-cell">{{ $app->medicalInstitution?->name ?? '-' }}</td>
+                                    <td>
+                                        <div class="font-medium">{{ $app->employee?->name ?? '-' }}</div>
+                                        <div class="text-[11px] text-slate-500">{{ $app->department?->name ?? '-' }}</div>
+                                    </td>
+                                    <td>
+                                        @php
+                                            $typeLabel = match($app->type) {
+                                                'new_loan' => __('pages.new_loan'),
+                                                'return' => __('pages.return'),
+                                                'resize' => __('pages.size_exchange'),
+                                                'exchange' => __('pages.exchange'),
+                                                'transfer' => __('pages.transfer'),
+                                                default => $app->type,
+                                            };
+                                        @endphp
+                                        <span class="ui-status-pill ui-status-pill--muted">{{ $typeLabel }}</span>
+                                    </td>
+                                    <td>
+                                        @php
+                                            $pill = match($app->status) {
+                                                'waiting_special_approval' => 'warning',
+                                                'cancel_request' => 'info',
+                                                default => 'warning',
+                                            };
+                                            $statusLabel = match($app->status) {
+                                                'pending' => __('pages.pending_approval'),
+                                                'waiting_special_approval' => __('pages.special_approval_pending'),
+                                                'cancel_request' => __('pages.cancel_request_status'),
+                                                default => $app->status,
+                                            };
+                                        @endphp
+                                        <span class="ui-status-pill ui-status-pill--{{ $pill }}">{{ $statusLabel }}</span>
+                                    </td>
+                                    <td class="hidden sm:table-cell whitespace-nowrap">{{ $app->created_at?->format('Y-m-d H:i') }}</td>
+                                    <td class="ui-table__actions">
+                                        <div class="ui-table__actions-row">
+                                            <x-table-action
+                                                :href="route('admin.applications.show', $app)"
+                                                icon="eye"
+                                                :label="__('common.view')"
+                                            />
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="px-4 py-12 text-center text-slate-500">
+                                        {{ __('pages.no_queue_applications') }}
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        @elseif($tab === 'overview')
+            <x-stat-grid :cols="4">
+                <x-stat-card
+                    tone="brand"
+                    icon="file-text"
+                    :value="$stats['total_applications'] ?? 0"
+                    :label="__('pages.total_applications')"
+                    :badge="__('pages.total')"
+                    :hint="__('pages.month_over_month')"
+                />
+                <x-stat-card
+                    tone="amber"
+                    icon="clock"
+                    :value="$stats['pending_approvals'] ?? 0"
+                    :label="__('pages.pending_approval')"
+                    :badge="__('pages.action_required_badge')"
+                    :hint="__('pages.immediate_action_required')"
+                />
+                <x-stat-card
+                    tone="emerald"
+                    icon="users"
+                    :value="$stats['total_employees'] ?? 0"
+                    :label="__('pages.registered_employees')"
+                    :badge="__('pages.active_employees')"
+                    :hint="__('pages.all_institutions_total')"
+                />
+                <x-stat-card
+                    tone="red"
+                    icon="package"
+                    :value="$stats['inventory_alerts'] ?? 0"
+                    :label="__('pages.inventory_alerts')"
+                    :badge="__('pages.restock_needed_badge')"
+                    :hint="__('pages.low_stock_products')"
+                />
+            </x-stat-grid>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                @php
+                    $trendData = $trendData ?? [];
+                @endphp
+                @if(!empty($trendData))
+                <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="px-4 pt-4 pb-3 flex-shrink-0">
+                        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="trending-up" class="w-4 h-4 text-primary-600"></i>
+                            {{ __('pages.application_trend') }}
+                        </h3>
+                        <p class="text-[12px] text-slate-500 mt-0.5">{{ __('pages.last_6_months') }}</p>
+                    </div>
+                    <div class="px-4 pb-4 flex-1 min-h-0" style="position: relative;">
+                        <canvas id="applicationTrendChart"></canvas>
                     </div>
                 </div>
-                <div class="px-4 pb-4 flex-1 min-h-0" style="position: relative;">
-                    <canvas id="applicationTrendChart"></canvas>
+                @endif
+
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                    <div class="px-4 pt-6 pb-4 flex-shrink-0">
+                        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="zap" class="w-4 h-4 text-primary-600"></i>
+                            {{ __('pages.quick_actions') }}
+                        </h3>
+                    </div>
+                    <div class="px-4 pb-4 space-y-2 flex-1 overflow-y-auto min-h-0">
+                        @php $adminRole = $admin->role ?? null; @endphp
+                        @if(in_array($adminRole, ['system_admin', 'operation']))
+                        <a href="{{ route('admin.applications.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg border border-primary-200 bg-primary-50/50 hover:border-primary-400 transition-all group">
+                            <i data-lucide="clipboard-list" class="w-4 h-4 text-primary-600"></i>
+                            <span class="text-[13px] font-semibold text-slate-900 flex-1">{{ __('pages.application_management') }}</span>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                        </a>
+                        @endif
+                        @if(in_array($adminRole, ['system_admin', 'operation', 'sales', 'contract_plan_manager']))
+                        <a href="{{ route('admin.customer-contract-plans.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 hover:border-slate-300 transition-all">
+                            <i data-lucide="file-signature" class="w-4 h-4 text-slate-600"></i>
+                            <span class="text-[13px] font-semibold text-slate-900 flex-1">{{ __('menu.customer_contract_plans') }}</span>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                        </a>
+                        @endif
+                        @if(in_array($adminRole, ['system_admin', 'operation', 'sales', 'accounting']))
+                        <a href="{{ route('admin.billing.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 hover:border-slate-300 transition-all">
+                            <i data-lucide="receipt-text" class="w-4 h-4 text-amber-600"></i>
+                            <span class="text-[13px] font-semibold text-slate-900 flex-1">{{ __('menu.billing') }}</span>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                        </a>
+                        @endif
+                        @if(in_array($adminRole, ['system_admin', 'operation']))
+                        <a href="{{ route('admin.uniform-products.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 hover:border-slate-300 transition-all">
+                            <i data-lucide="shirt" class="w-4 h-4 text-slate-600"></i>
+                            <span class="text-[13px] font-semibold text-slate-900 flex-1">{{ __('pages.uniform_products') }}</span>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                        </a>
+                        @endif
+                    </div>
                 </div>
             </div>
-            @endif
 
-            {{-- Quick Actions --}}
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm  flex flex-col">
-                <div class="px-4 pt-6 pb-6 flex-shrink-0">
+        @else
+            {{-- history --}}
+            <div class="ui-card overflow-hidden mb-6">
+                <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                     <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                        <i data-lucide="zap" class="w-4 h-4 text-primary-600"></i>
-                        {{ __('pages.quick_actions') }}
+                        <i data-lucide="clock" class="w-4 h-4 text-primary-600"></i>
+                        {{ __('pages.recent_applications') }}
                     </h3>
+                    <a href="{{ route('admin.applications.index') }}" class="text-primary-600 hover:text-primary-700 text-[12px] font-medium flex items-center gap-1">
+                        {{ __('pages.view_all') }}
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
                 </div>
-                <div class="px-4 pb-4 space-y-2 flex-1 overflow-y-auto min-h-0">
-                    @php
-                        $adminRole = $admin->role ?? null;
-                    @endphp
-                    
-                    {{-- System Admin & Operations: Applications --}}
-                    @if(in_array($adminRole, ['system_admin', 'operation']))
-                    <a href="{{ route('admin.applications.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-200 hover:border-primary-400 hover:shadow-sm transition-all group">
-                        <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <i data-lucide="clipboard-list" class="w-4 h-4 text-white"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-[13px] font-semibold text-slate-900">{{ __('pages.application_management') }}</p>
-                            <p class="text-[11px] text-slate-600">{{ __('pages.application_management_desc') }}</p>
-                        </div>
-                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-primary-600"></i>
-                    </a>
-                    @endif
-                    
-                    {{-- System Admin, Operations, Sales: Customer Contract Plans (SPEC) --}}
-                    @if(in_array($adminRole, ['system_admin', 'operation', 'sales', 'contract_plan_manager']))
-                    <a href="{{ route('admin.customer-contract-plans.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
-                        <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <i data-lucide="file-signature" class="w-4 h-4 text-white"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-[13px] font-semibold text-slate-900">{{ __('menu.customer_contract_plans') }}</p>
-                            <p class="text-[11px] text-slate-600">契約プランの確認・管理</p>
-                        </div>
-                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-slate-600"></i>
-                    </a>
-                    @endif
-                    
-                    {{-- System Admin, Operations, Sales, Accounting: Billing --}}
-                    @if(in_array($adminRole, ['system_admin', 'operation', 'sales', 'accounting']))
-                    <a href="{{ route('admin.billing.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 hover:border-amber-300 hover:shadow-sm transition-all group">
-                        <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <i data-lucide="receipt-text" class="w-4 h-4 text-white"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-[13px] font-semibold text-slate-900">{{ __('menu.billing') }}</p>
-                            <p class="text-[11px] text-slate-600">{{ __('pages.billing_management_desc') ?? '請求データの確認・管理' }}</p>
-                        </div>
-                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-amber-600"></i>
-                    </a>
-                    @endif
-                    
-                    {{-- System Admin & Operations: Uniform Products --}}
-                    @if(in_array($adminRole, ['system_admin', 'operation']))
-                    <a href="{{ route('admin.uniform-products.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
-                        <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <i data-lucide="shirt" class="w-4 h-4 text-white"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-[13px] font-semibold text-slate-900">{{ __('pages.uniform_products') }}</p>
-                            <p class="text-[11px] text-slate-600">{{ __('pages.uniform_products_desc') }}</p>
-                        </div>
-                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-slate-600"></i>
-                    </a>
-                    @endif
-                    
-                    {{-- System Admin & Operations: Employees --}}
-                    @if(in_array($adminRole, ['system_admin', 'operation']))
-                    <a href="{{ route('admin.employees.index') }}" class="flex items-center gap-2.5 p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 hover:border-emerald-400 hover:shadow-sm transition-all group">
-                        <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <i data-lucide="users" class="w-4 h-4 text-white"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-[13px] font-semibold text-slate-900">{{ __('menu.all_employees') }}</p>
-                            <p class="text-[11px] text-slate-600">{{ __('pages.all_employees_description') }}</p>
-                        </div>
-                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-emerald-600"></i>
-                    </a>
-                    @endif
-                    
-                    {{-- System Admin Only: Master Data Management --}}
-                    @if($adminRole === 'system_admin')
-                    <a href="{{ route('admin.masters.institutions') }}" class="flex items-center gap-2.5 p-3 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 hover:border-indigo-300 hover:shadow-sm transition-all group">
-                        <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <i data-lucide="database" class="w-4 h-4 text-white"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-[13px] font-semibold text-slate-900">{{ __('menu.menu_master_data') }}</p>
-                            <p class="text-[11px] text-slate-600">{{ __('pages.master_data_management_desc') ?? 'マスタデータの管理' }}</p>
-                        </div>
-                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-indigo-600"></i>
-                    </a>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        {{-- Recent Applications Table --}}
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-            <div class="px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white flex items-center justify-between">
-                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="clock" class="w-4 h-4 text-primary-600"></i>
-                    {{ __('pages.recent_applications') }}
-                </h3>
-                <a href="{{ route('admin.applications.index') }}" class="text-primary-600 hover:text-primary-700 text-[12px] font-medium flex items-center gap-1">
-                    {{ __('pages.view_all') }}
-                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                </a>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="px-4 py-2.5 text-left text-[12px] font-semibold text-slate-700 uppercase tracking-wider">{{ __('pages.application_id') }}</th>
-                            <th class="px-4 py-2.5 text-left text-[12px] font-semibold text-slate-700 uppercase tracking-wider">{{ __('pages.employee_name') }}</th>
-                            <th class="px-4 py-2.5 text-left text-[12px] font-semibold text-slate-700 uppercase tracking-wider">{{ __('pages.department') }}</th>
-                            <th class="px-4 py-2.5 text-left text-[12px] font-semibold text-slate-700 uppercase tracking-wider">{{ __('pages.application_type') }}</th>
-                            <th class="px-4 py-2.5 text-left text-[12px] font-semibold text-slate-700 uppercase tracking-wider">{{ __('pages.status') }}</th>
-                            <th class="px-4 py-2.5 text-left text-[12px] font-semibold text-slate-700 uppercase tracking-wider">{{ __('pages.application_date') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200">
-                        @forelse($recentApplications as $app)
-                            <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="px-4 py-3">
-                                    <span class="text-[13px] font-mono text-slate-600">APP-{{ str_pad($app->id, 6, '0', STR_PAD_LEFT) }}</span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="h-8 w-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
-                                            {{ mb_substr($app->employee->name ?? 'N', 0, 1) }}
-                                        </div>
-                                        <span class="text-[14px] font-medium text-slate-900">{{ $app->employee->name ?? '-' }}</span>
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <span class="text-[13px] text-slate-700">{{ $app->department->name ?? '-' }}</span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <span class="text-[13px] text-slate-700">
-                                        @if($app->type === 'new_loan') 新規貸出
-                                        @elseif($app->type === 'return') 返却
-                                        @elseif($app->type === 'resize') サイズ変更
-                                        @elseif($app->type === 'exchange') 交換
-                                        @else 異動
-                                        @endif
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    @php
-                                        $statusColors = [
-                                            'pending' => 'bg-amber-100 text-amber-700',
-                                            'waiting_special_approval' => 'bg-orange-100 text-orange-700',
-                                            'approved' => 'bg-emerald-100 text-emerald-700',
-                                            'rejected' => 'bg-red-100 text-red-700',
-                                        ];
-                                        $statusText = [
-                                            'pending' => __('pages.pending_approval'),
-                                            'waiting_special_approval' => __('pages.special_approval_pending'),
-                                            'approved' => __('pages.approved'),
-                                            'rejected' => __('pages.reject'),
-                                        ];
-                                    @endphp
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-semibold {{ $statusColors[$app->status] ?? 'bg-slate-100 text-slate-700' }}">
-                                        {{ $statusText[$app->status] ?? $app->status }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <span class="text-[13px] text-slate-600">{{ $app->created_at->format('Y-m-d') }}</span>
-                                </td>
-                            </tr>
-                        @empty
+                <div class="ui-table-wrap">
+                    <table class="ui-table">
+                        <thead>
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center">
-                                    <div class="flex flex-col items-center gap-3">
-                                        <i data-lucide="inbox" class="w-12 h-12 text-slate-300"></i>
-                                        <p class="text-[14px] text-slate-500">{{ __('pages.no_application_data') }}</p>
-                                    </div>
-                                </td>
+                                <th>{{ __('pages.application_id') }}</th>
+                                <th>{{ __('pages.employee_name') }}</th>
+                                <th class="hidden md:table-cell">{{ __('pages.department') }}</th>
+                                <th>{{ __('pages.application_type') }}</th>
+                                <th>{{ __('pages.status') }}</th>
+                                <th class="hidden sm:table-cell">{{ __('pages.application_date') }}</th>
+                                <th class="ui-table__actions">{{ __('common.actions') }}</th>
                             </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse($recentApplications as $app)
+                                <tr>
+                                    <td class="font-mono">#APP-{{ str_pad($app->id, 4, '0', STR_PAD_LEFT) }}</td>
+                                    <td class="font-medium">{{ $app->employee->name ?? '-' }}</td>
+                                    <td class="hidden md:table-cell">{{ $app->department->name ?? '-' }}</td>
+                                    <td>
+                                        @if($app->type === 'new_loan') {{ __('pages.new_loan') }}
+                                        @elseif($app->type === 'return') {{ __('pages.return') }}
+                                        @elseif($app->type === 'resize') {{ __('pages.size_exchange') }}
+                                        @elseif($app->type === 'exchange') {{ __('pages.exchange') }}
+                                        @else {{ __('pages.transfer') }}
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @php
+                                            $pill = match($app->status) {
+                                                'pending', 'waiting_special_approval' => 'warning',
+                                                'approved', 'in_progress', 'completed' => 'brand',
+                                                'rejected' => 'danger',
+                                                default => 'muted',
+                                            };
+                                        @endphp
+                                        <span class="ui-status-pill ui-status-pill--{{ $pill }}">{{ $app->statusLabel() }}</span>
+                                    </td>
+                                    <td class="hidden sm:table-cell">{{ $app->created_at->format('Y-m-d') }}</td>
+                                    <td class="ui-table__actions">
+                                        <div class="ui-table__actions-row">
+                                            <x-table-action :href="route('admin.applications.show', $app)" icon="eye" :label="__('common.view')" />
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="px-6 py-12 text-center text-slate-500">{{ __('pages.no_application_data') }}</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+        @endif
 
     @else
         {{-- ============================================ --}}
@@ -321,32 +333,32 @@
                 tone="emerald"
                 icon="users"
                 :value="$stats['total_employees'] ?? 0"
-                label="登録従業員数"
+                :label="__('pages.registered_employees')"
                 :badge="'+'.($stats['new_employees_this_month'] ?? 0)"
-                :hint="'在籍中: '.($stats['employed_employees'] ?? 0).'名'"
+                :hint="__('pages.active_employees_prefix') . ($stats['employed_employees'] ?? 0) . __('pages.people_unit')"
             />
             <x-stat-card
                 tone="blue"
                 icon="shirt"
                 :value="$stats['active_loans'] ?? 0"
                 :label="__('pages.loaned_uniforms')"
-                badge="今月"
+                :badge="__('pages.this_month_badge')"
                 :hint="__('pages.contract_limit').': '.number_format($stats['contract_limit'] ?? 0).__('pages.points')"
             />
             <x-stat-card
                 tone="purple"
                 icon="file-text"
                 :value="$stats['applications_this_month'] ?? 0"
-                label="今月の申請数"
+                :label="__('pages.applications_this_month_count')"
                 :badge="($appChange >= 0 ? '+' : '').$appChangePercent.'%'"
-                :hint="'前月比: '.($appChange >= 0 ? '+' : '').$appChange.'件'"
+                :hint="__('pages.vs_prev_month_prefix') . ($appChange >= 0 ? '+' : '') . $appChange . __('pages.count_unit')"
             />
             <x-stat-card
                 tone="amber"
                 icon="file-check"
                 :value="$stats['pending_approvals'] ?? 0"
                 :label="__('pages.pending_approval_applications')"
-                badge="要対応"
+                :badge="__('pages.action_needed_badge')"
                 :hint="__('pages.special_approval_pending_count').': '.($stats['special_approval_pending'] ?? 0).__('pages.items')"
             />
         </x-stat-grid>
@@ -398,7 +410,7 @@
                             <i data-lucide="user-plus" class="w-4 h-4 text-white"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-[13px] font-semibold text-slate-900">従業員登録</p>
+                            <p class="text-[13px] font-semibold text-slate-900">{{ __('pages.ui_494e614f7e') }}</p>
                             <p class="text-[11px] text-slate-600">{{ __('pages.new_employee_registration') }}</p>
                         </div>
                         <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-emerald-600"></i>
@@ -411,7 +423,7 @@
                         </div>
                         <div class="flex-1">
                             <p class="text-[13px] font-semibold text-slate-900">{{ __('menu.applications') }}</p>
-                            <p class="text-[11px] text-slate-600">申請履歴の確認・管理</p>
+                            <p class="text-[11px] text-slate-600">{{ __('pages.manage_application_history') }}</p>
                         </div>
                         <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-slate-600"></i>
                     </a>
@@ -424,7 +436,7 @@
                         </div>
                         <div class="flex-1">
                             <p class="text-[13px] font-semibold text-slate-900">{{ __('menu.departments') }}</p>
-                            <p class="text-[11px] text-slate-600">部署マスタ管理</p>
+                            <p class="text-[11px] text-slate-600">{{ __('pages.department_master') }}</p>
                         </div>
                         <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-slate-600"></i>
                     </a>
@@ -439,9 +451,9 @@
                         <div>
                             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
                                 <i data-lucide="bar-chart-3" class="w-4 h-4 text-primary-600"></i>
-                                部門別貸出状況
+                                {{ __('pages.dept_loan_status') }}
                             </h3>
-                            <p class="text-[12px] text-slate-500 mt-0.5">今月の貸出状況</p>
+                            <p class="text-[12px] text-slate-500 mt-0.5">{{ __('pages.loans_this_month') }}</p>
                         </div>
                     </div>
                 </div>
@@ -457,9 +469,9 @@
                                     <span class="text-[12px] font-bold text-slate-700">{{ $dept['utilization'] ?? 0 }}%</span>
                                 </div>
                                 <div class="flex items-center gap-3 text-[11px] text-slate-600 mb-1.5">
-                                    <span>従業員数: <strong>{{ $dept['employees_count'] ?? 0 }}</strong></span>
-                                    <span>貸出点数: <strong>{{ $dept['loans'] ?? 0 }}</strong></span>
-                                    <span>上限: <strong>{{ $dept['limit'] ?? 0 }}</strong></span>
+                                    <span>{{ __('pages.ui_73db50d24d') }} <strong>{{ $dept['employees_count'] ?? 0 }}</strong></span>
+                                    <span>{{ __('pages.ui_0885e49c98') }} <strong>{{ $dept['loans'] ?? 0 }}</strong></span>
+                                    <span>{{ __('pages.limit_label') }} <strong>{{ $dept['limit'] ?? 0 }}</strong></span>
                                 </div>
                                 <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
                                     <div class="h-full rounded-full transition-all duration-500 {{ ($dept['utilization'] ?? 0) >= 90 ? 'bg-gradient-to-r from-red-500 to-red-600' : (($dept['utilization'] ?? 0) >= 70 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-emerald-500 to-teal-600') }}" style="width: {{ min($dept['utilization'] ?? 0, 100) }}%"></div>
@@ -469,7 +481,7 @@
                     @empty
                         <div class="text-center py-8">
                             <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
-                            <p class="text-[14px] text-slate-500">部署データがありません</p>
+                            <p class="text-[14px] text-slate-500">{{ __('pages.no_departments') }}</p>
                         </div>
                     @endforelse
                 </div>
@@ -481,7 +493,7 @@
             <div class="px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white flex items-center justify-between">
                 <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
                     <i data-lucide="clock" class="w-4 h-4 text-primary-600"></i>
-                    最近の申請
+                    {{ __('pages.recent_applications_heading') }}
                 </h3>
                 <a href="{{ route('applications.index') }}" class="text-primary-600 hover:text-primary-700 text-[12px] font-medium flex items-center gap-1">
                     {{ __('pages.view_all') }}
@@ -499,19 +511,19 @@
                                 <div class="flex items-center gap-2.5 mb-1">
                                     <p class="text-[13px] font-semibold text-slate-900">{{ $app->employee->name ?? '-' }}</p>
                                     <span class="px-2 py-0.5 rounded text-[10px] font-medium {{ $app->status === 'approved' ? 'bg-emerald-100 text-emerald-700' : ($app->status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700') }}">
-                                        @if($app->status === 'approved') 承認済み
-                                        @elseif($app->status === 'pending') 処理中
-                                        @elseif($app->status === 'waiting_special_approval') 特別承認待ち
-                                        @else 完了
+                                        @if($app->status === 'approved') {{ __('pages.status_approved_short') }}
+                                        @elseif($app->status === 'pending') {{ __('pages.status_processing_short') }}
+                                        @elseif($app->status === 'waiting_special_approval') {{ __('pages.special_approval_pending') }}
+                                        @else {{ __('pages.status_done_short') }}
                                         @endif
                                     </span>
                                 </div>
                                 <p class="text-[12px] text-slate-600">
-                                    @if($app->type === 'new_loan') 新規貸出
-                                    @elseif($app->type === 'resize') サイズ変更
-                                    @elseif($app->type === 'return') 返却
-                                    @elseif($app->type === 'exchange') 交換
-                                    @else 異動
+                                    @if($app->type === 'new_loan') {{ __('pages.hospital_type_new_loan') }}
+                                    @elseif($app->type === 'resize') {{ __('pages.hospital_type_resize') }}
+                                    @elseif($app->type === 'return') {{ __('pages.return_type') }}
+                                    @elseif($app->type === 'exchange') {{ __('pages.exchange_type') }}
+                                    @else {{ __('pages.transfer_short') }}
                                     @endif
                                     @if($app->items->count() > 0)
                                         - {{ $app->items->first()->uniformProduct->name ?? '' }} × {{ $app->items->sum('quantity') }}
@@ -526,7 +538,7 @@
                     @empty
                         <div class="text-center py-6">
                             <i data-lucide="inbox" class="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
-                            <p class="text-[13px] text-slate-500">申請データがありません</p>
+                            <p class="text-[13px] text-slate-500">{{ __('pages.no_application_data') }}</p>
                         </div>
                     @endforelse
                 </div>

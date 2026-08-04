@@ -1,93 +1,101 @@
 @extends('layouts.app')
 
-@section('title', '顧客契約プラン')
-@section('page_title', '顧客契約プラン')
+@section('title', __('pages.customer_contract_plans_title'))
+@section('page_title', __('pages.customer_contract_plans_title'))
 
 @section('content')
-@if(session('status'))
-    <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-sm">{{ session('status') }}</div>
-@endif
+@php
+    $ccpRole = auth()->user()->adminUser->role ?? null;
+    $canWriteCcp = in_array($ccpRole, ['system_admin', 'contract_plan_manager'], true);
+@endphp
 
-<div class="flex items-center justify-between mb-6">
+<div class="ui-page-header">
     <div>
-        <h1 class="text-2xl font-bold text-slate-900">顧客契約プラン</h1>
-        <p class="text-sm text-slate-600 mt-1">医療機関ごとの契約プラン・契約数（仮登録／本登録）</p>
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900">{{ __('pages.customer_contract_plans_title') }}</h1>
+        <p class="text-sm text-slate-600 mt-1">{{ __('pages.customer_contract_plans_desc') }}</p>
     </div>
-    @php
-        $ccpRole = auth()->user()->adminUser->role ?? null;
-        $canWriteCcp = in_array($ccpRole, ['system_admin', 'contract_plan_manager'], true);
-    @endphp
     @if($canWriteCcp)
-    <a href="{{ route('admin.customer-contract-plans.create') }}" class="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold">新規登録</a>
+    <a href="{{ route('admin.customer-contract-plans.create') }}" class="ui-btn ui-btn-primary">{{ __('pages.new_registration') }}</a>
     @endif
 </div>
 
-<form method="GET" class="mb-4 flex gap-2 items-end">
-                <x-per-page-field />
-    <div>
-        <label class="block text-xs text-slate-500 mb-1">医療機関</label>
-        <select name="medical_institution_id" class="rounded-lg border-slate-300 text-sm">
-            <option value="">すべて</option>
+<form method="GET" class="ui-toolbar mb-4">
+    <x-per-page-field />
+    <div class="min-w-0 flex-1 sm:flex-none">
+        <label class="block text-xs text-slate-500 mb-1">{{ __('pages.medical_institution') }}</label>
+        <select name="medical_institution_id" class="ui-select">
+            <option value="">{{ __('pages.all_institutions') }}</option>
             @foreach($institutions as $inst)
                 <option value="{{ $inst->id }}" @selected((string)$selectedInstitutionId === (string)$inst->id)>{{ $inst->name }}</option>
             @endforeach
         </select>
     </div>
-    <button class="px-3 py-2 rounded-lg border text-sm">絞り込み</button>
+    <button class="ui-btn ui-btn-secondary">{{ __('pages.apply_filter') }}</button>
 </form>
 
-<div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
-    <table class="min-w-full text-sm">
-        <thead class="bg-slate-50 text-slate-600">
-            <tr>
-                <th class="px-4 py-3 text-left">医療機関</th>
-                <th class="px-4 py-3 text-left">プラン</th>
-                <th class="px-4 py-3 text-right">契約数（参考）</th>
-                <th class="px-4 py-3 text-left">期間</th>
-                <th class="px-4 py-3 text-left">状態</th>
-                <th class="px-4 py-3 text-right">操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($plans as $row)
-                <tr class="border-t">
-                    <td class="px-4 py-3">{{ $row->medicalInstitution->name ?? '-' }}</td>
-                    <td class="px-4 py-3">
-                        <span class="font-mono text-xs">{{ $row->contractPlan->code ?? '' }}</span>
-                        {{ $row->contractPlan->name ?? '' }}
-                    </td>
-                    <td class="px-4 py-3 text-right">{{ $row->contract_count }}</td>
-                    <td class="px-4 py-3 text-xs">
-                        {{ optional($row->start_date)->format('Y-m-d') ?? '-' }}
-                        〜
-                        {{ optional($row->end_date)->format('Y-m-d') ?? '-' }}
-                    </td>
-                    <td class="px-4 py-3">
-                        @if($row->status === 'confirmed')
-                            <span class="text-emerald-700 font-medium">本登録</span>
-                        @else
-                            <span class="text-amber-700 font-medium">仮登録</span>
-                        @endif
-                    </td>
-                    <td class="px-4 py-3 text-right space-x-2">
-                        @if($canWriteCcp)
-                            @if($row->status === 'draft')
-                                <form method="POST" action="{{ route('admin.customer-contract-plans.confirm', $row) }}" class="inline">
-                                    @csrf
-                                    <button class="text-emerald-600 hover:underline">本登録</button>
-                                </form>
-                            @endif
-                            <a href="{{ route('admin.customer-contract-plans.edit', $row) }}" class="text-primary-600 hover:underline">編集</a>
-                        @else
-                            <span class="text-slate-400 text-xs">閲覧のみ</span>
-                        @endif
-                    </td>
+<div class="ui-card overflow-hidden">
+    <div class="ui-table-wrap">
+        <table class="ui-table">
+            <thead>
+                <tr>
+                    <th>{{ __('pages.medical_institution') }}</th>
+                    <th>{{ __('pages.contract_plans_short') }}</th>
+                    <th class="text-right hidden sm:table-cell">{{ __('pages.contract_count_ref') }}</th>
+                    <th class="hidden md:table-cell">{{ __('pages.period') }}</th>
+                    <th>{{ __('pages.status') }}</th>
+                    <th class="ui-table__actions">{{ __('common.actions') }}</th>
                 </tr>
-            @empty
-                <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">データがありません</td></tr>
-            @endforelse
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @forelse($plans as $row)
+                    <tr>
+                        <td>{{ $row->medicalInstitution->name ?? '-' }}</td>
+                        <td>
+                            <span class="font-mono text-xs text-slate-500">{{ $row->contractPlan->code ?? '' }}</span>
+                            {{ $row->contractPlan->name ?? '' }}
+                        </td>
+                        <td class="text-right hidden sm:table-cell">{{ $row->contract_count }}</td>
+                        <td class="hidden md:table-cell text-xs whitespace-nowrap">
+                            {{ optional($row->start_date)->format('Y-m-d') ?? '-' }}
+                            〜
+                            {{ optional($row->end_date)->format('Y-m-d') ?? '-' }}
+                        </td>
+                        <td>
+                            @if($row->status === 'confirmed')
+                                <span class="ui-status-pill ui-status-pill--success">{{ __('pages.status_confirmed') }}</span>
+                            @else
+                                <span class="ui-status-pill ui-status-pill--warning">{{ __('pages.status_draft') }}</span>
+                            @endif
+                        </td>
+                        <td class="ui-table__actions">
+                            <div class="ui-table__actions-row">
+                                @if($canWriteCcp)
+                                    @if($row->status === 'draft')
+                                        <x-table-action
+                                            :href="route('admin.customer-contract-plans.confirm', $row)"
+                                            method="POST"
+                                            icon="check"
+                                            tone="success"
+                                            :label="__('pages.confirm_plan')"
+                                        />
+                                    @endif
+                                    <x-table-action
+                                        :href="route('admin.customer-contract-plans.edit', $row)"
+                                        icon="pencil"
+                                        :label="__('common.edit')"
+                                    />
+                                @else
+                                    <span class="text-slate-400 text-xs">{{ __('pages.view_only') }}</span>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">{{ __('common.no_data') }}</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
     <x-table-pagination :paginator="$plans" />
 </div>
 

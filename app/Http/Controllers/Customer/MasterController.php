@@ -23,7 +23,7 @@ class MasterController extends Controller
         $customer = $user->customerUser;
         
         if (!$customer || $customer->role !== 'institution_admin') {
-            abort(403, '医療機関全体管理者のみアクセス可能です。');
+            abort(403, __('pages.flash_6720a4d2e2'));
         }
     }
     
@@ -74,7 +74,7 @@ class MasterController extends Controller
         Department::create($data);
         
         return redirect()->route('customer.masters.departments')
-            ->with('status', '部署を登録しました。');
+            ->with('status', __('pages.flash_2ea71ecf52'));
     }
     
     public function departmentEdit(Department $department): View
@@ -112,7 +112,7 @@ class MasterController extends Controller
         $department->update($data);
         
         return redirect()->route('customer.masters.departments')
-            ->with('status', '部署を更新しました。');
+            ->with('status', __('pages.flash_1dc4495bb8'));
     }
     
     public function departmentDestroy(Department $department): RedirectResponse
@@ -128,7 +128,7 @@ class MasterController extends Controller
         $department->delete();
         
         return redirect()->route('customer.masters.departments')
-            ->with('status', '部署を削除しました。');
+            ->with('status', __('pages.flash_af38158b22'));
     }
     
     // 職種管理
@@ -178,7 +178,7 @@ class MasterController extends Controller
         JobType::create($data);
         
         return redirect()->route('customer.masters.job-types')
-            ->with('status', '職種を登録しました。');
+            ->with('status', __('pages.flash_0d3d2e43d0'));
     }
     
     public function jobTypeEdit(JobType $jobType): View
@@ -216,7 +216,7 @@ class MasterController extends Controller
         $jobType->update($data);
         
         return redirect()->route('customer.masters.job-types')
-            ->with('status', '職種を更新しました。');
+            ->with('status', __('pages.flash_0c4bf5aad8'));
     }
     
     public function jobTypeDestroy(JobType $jobType): RedirectResponse
@@ -232,7 +232,7 @@ class MasterController extends Controller
         $jobType->delete();
         
         return redirect()->route('customer.masters.job-types')
-            ->with('status', '職種を削除しました。');
+            ->with('status', __('pages.flash_a0a027191e'));
     }
     
     // 納品場所管理
@@ -277,7 +277,7 @@ class MasterController extends Controller
         DeliveryLocation::create($data);
         
         return redirect()->route('customer.masters.delivery-locations')
-            ->with('status', '納品場所を登録しました。');
+            ->with('status', __('pages.flash_ee4ee84877'));
     }
     
     public function deliveryLocationEdit(DeliveryLocation $deliveryLocation): View
@@ -313,7 +313,7 @@ class MasterController extends Controller
         $deliveryLocation->update($data);
         
         return redirect()->route('customer.masters.delivery-locations')
-            ->with('status', '納品場所を更新しました。');
+            ->with('status', __('pages.flash_7069dee0cc'));
     }
     
     public function deliveryLocationDestroy(DeliveryLocation $deliveryLocation): RedirectResponse
@@ -329,7 +329,7 @@ class MasterController extends Controller
         $deliveryLocation->delete();
         
         return redirect()->route('customer.masters.delivery-locations')
-            ->with('status', '納品場所を削除しました。');
+            ->with('status', __('pages.flash_22fcddcd54'));
     }
 }
 

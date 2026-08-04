@@ -73,12 +73,12 @@
                                     <div class="flex items-center gap-4 text-[12px] text-slate-500">
                                         <span class="flex items-center gap-1.5">
                                             <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-                                            {{ $notification->created_at->format('Y年m月d日 H:i') }}
+                                            {{ $notification->created_at->format(app()->getLocale() === 'ja' ? 'Y年m月d日 H:i' : 'Y-m-d H:i') }}
                                         </span>
                                         @if($notification->read_at)
                                             <span class="flex items-center gap-1.5">
                                                 <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                                {{ __('pages.read_at') }}: {{ $notification->read_at->format('Y年m月d日 H:i') }}
+                                                {{ __('pages.read_at') }}: {{ $notification->read_at->format(app()->getLocale() === 'ja' ? 'Y年m月d日 H:i' : 'Y-m-d H:i') }}
                                             </span>
                                         @endif
                                     </div>

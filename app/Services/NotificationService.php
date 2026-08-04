@@ -63,8 +63,8 @@ class NotificationService
             self::create(
                 $admin,
                 'application_created',
-                '新しい申請が登録されました',
-                "申請ID: #APP-{$application->id} ({$application->employee?->name})",
+                __('pages.notify_app_created_title'),
+                __('pages.notify_app_created_body', ['id' => $application->id, 'name' => $application->employee?->name]),
                 route('admin.applications.show', $application),
                 ['application_id' => $application->id]
             );
@@ -99,8 +99,8 @@ class NotificationService
             self::create(
                 $application->requestedBy,
                 'application_approved',
-                '申請が承認されました',
-                "申請ID: #APP-{$application->id} が承認されました",
+                __('pages.notify_app_approved_title'),
+                __('pages.notify_app_approved_body', ['id' => $application->id]),
                 route('applications.show', $application),
                 ['application_id' => $application->id]
             );
@@ -126,8 +126,8 @@ class NotificationService
             self::create(
                 $application->requestedBy,
                 'application_rejected',
-                '申請が却下されました',
-                "申請ID: #APP-{$application->id} が却下されました",
+                __('pages.notify_app_rejected_title'),
+                __('pages.notify_app_rejected_body', ['id' => $application->id]),
                 route('applications.show', $application),
                 ['application_id' => $application->id]
             );
@@ -156,8 +156,8 @@ class NotificationService
             self::create(
                 $admin,
                 'cancel_requested',
-                'キャンセル申請が送信されました',
-                "申請ID: #APP-{$application->id} のキャンセル申請",
+                __('pages.notify_cancel_req_title'),
+                __('pages.notify_cancel_req_body', ['id' => $application->id]),
                 route('admin.applications.show', $application),
                 ['application_id' => $application->id]
             );
@@ -195,8 +195,8 @@ class NotificationService
             self::create(
                 $admin,
                 'special_approval_requested',
-                '特別承認が必要な申請があります',
-                "申請ID: #APP-{$application->id} は上限超過のため特別承認が必要です",
+                __('pages.notify_special_title'),
+                __('pages.notify_special_body', ['id' => $application->id]),
                 route('admin.applications.show', $application),
                 ['application_id' => $application->id]
             );
@@ -234,8 +234,8 @@ class NotificationService
         self::create(
             $application->requestedBy,
             'cancel_approved',
-            'キャンセル申請が承認されました',
-            "申請ID: #APP-{$application->id} のキャンセルが承認されました",
+            __('pages.notify_cancel_ok_title'),
+            __('pages.notify_cancel_ok_body', ['id' => $application->id]),
             route('applications.show', $application),
             ['application_id' => $application->id]
         );
@@ -263,8 +263,8 @@ class NotificationService
         self::create(
             $application->requestedBy,
             'cancel_rejected',
-            'キャンセル申請が却下されました',
-            "申請ID: #APP-{$application->id} のキャンセルが却下されました",
+            __('pages.notify_cancel_ng_title'),
+            __('pages.notify_cancel_ng_body', ['id' => $application->id]),
             route('applications.show', $application),
             ['application_id' => $application->id]
         );

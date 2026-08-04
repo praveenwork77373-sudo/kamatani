@@ -18,7 +18,7 @@ class SpecialApprovalRequestedMail extends Mailable implements ShouldQueue
 
     public function build()
     {
-        return $this->subject('【ユニフォーム管理システム】特別承認が必要な申請があります')
+        return $this->subject(__('pages.mail_subject_special'))
             ->view('emails.special-approval-requested')
             ->with([
                 'application' => $this->application,

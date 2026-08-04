@@ -70,7 +70,7 @@
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('admin.uniform-products.export', request()->query()) }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
-                CSV出力
+                {{ __('pages.csv_export') }}
             </a>
             <a href="{{ route('admin.uniform-products.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all">
                 <i class="ph ph-plus text-base"></i>
@@ -82,7 +82,7 @@
     {{-- Statistics Cards --}}
     <x-stat-grid :cols="4">
         <x-stat-card tone="blue" icon="package" :value="$stats['total_products'] ?? 0" :label="__('pages.total_products')" :badge="__('pages.total')" />
-        <x-stat-card tone="emerald" icon="layers" :value="$stats['total_stock'] ?? 0" label="総在庫数" badge="在庫" />
+        <x-stat-card tone="emerald" icon="layers" :value="$stats['total_stock'] ?? 0" :label="__('pages.total_stock')" badge="在庫" />
         <x-stat-card tone="green" icon="check-circle" :value="$stats['in_stock_products'] ?? 0" :label="__('pages.in_stock_products')" :badge="__('pages.in_stock')" />
         <x-stat-card tone="red" icon="x-circle" :value="$stats['out_of_stock_products'] ?? 0" :label="__('pages.out_of_stock_products')" :badge="__('pages.out_of_stock')" />
     </x-stat-grid>

@@ -4,7 +4,7 @@
 <div>
     <label class="ui-label" for="name">{{ __('pages.name') }} <span class="text-red-500">*</span></label>
     <input id="name" type="text" name="name" value="{{ old('name', $category->name ?? '') }}" required class="ui-input"
-           placeholder="例: 白衣 / エプロン">
+           placeholder="{{ __('pages.example_white_coat') }}">
     @error('name')<p class="ui-error">{{ $message }}</p>@enderror
 </div>
 <div>
@@ -21,9 +21,9 @@
     <label class="ui-label" for="employee_size_field">{{ __('pages.employee_size_field') }}</label>
     <select id="employee_size_field" name="employee_size_field" class="ui-select">
         <option value="">{{ __('pages.none') }}</option>
-        <option value="top_size" @selected(old('employee_size_field', $category->employee_size_field ?? '') === 'top_size')>top_size（上衣）</option>
-        <option value="bottom_size" @selected(old('employee_size_field', $category->employee_size_field ?? '') === 'bottom_size')>bottom_size（ズボン）</option>
-        <option value="shoe_size" @selected(old('employee_size_field', $category->employee_size_field ?? '') === 'shoe_size')>shoe_size（靴）</option>
+        <option value="top_size" @selected(old('employee_size_field', $category->employee_size_field ?? '') === 'top_size')>{{ __('pages.top_size_label') }}</option>
+        <option value="bottom_size" @selected(old('employee_size_field', $category->employee_size_field ?? '') === 'bottom_size')>{{ __('pages.bottom_size_label') }}</option>
+        <option value="shoe_size" @selected(old('employee_size_field', $category->employee_size_field ?? '') === 'shoe_size')>{{ __('pages.shoe_size_label') }}</option>
     </select>
     <p class="ui-hint mt-1">{{ __('pages.employee_size_field_hint') }}</p>
     @error('employee_size_field')<p class="ui-error">{{ $message }}</p>@enderror
