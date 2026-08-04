@@ -21,7 +21,7 @@ See also: `PRODUCTION.md` (go-live checklist), `README.md` (setup).
 ```text
 [Kamatani setup]
   Institution (+ hospital admin login, 締め日)
-  → Maker → Uniform products → (optional: product unit prices = cost only)
+  → Maker → Uniform products
   → Contract plan (単価税抜 + linked products + rentable points)
   → Customer contract plan (hospital ↔ plan, 契約数＝参考枠) → 本登録 (confirmed)
 
@@ -92,7 +92,7 @@ Create when you add an institution (manager email/password on the form).
 
 | Side | Who | Responsibility |
 |------|-----|----------------|
-| **Kamatani** | Admin portal | Institutions, makers, products, unit prices (cost), plans, CCP, accept apps, PDFs, ship, billing export |
+| **Kamatani** | Admin portal | Institutions, makers, products, plans, CCP, accept apps, PDFs, ship, billing export |
 | **Hospital** | `/login` | Staff, assign plans, apply, cancel request |
 
 **Important rules (from SPEC):**
@@ -129,7 +129,7 @@ Login: `kamatani-admin@example.com` → `/admin/login`
 | Check | Expected |
 |-------|----------|
 | Institutions list | Empty |
-| Products / makers / plans / CCP / unit prices | Empty |
+| Products / makers / plans / CCP | Empty |
 | Applications / billing | Empty |
 | Admin users | Seeded Kamatani roles present |
 
@@ -185,14 +185,6 @@ Create at least **2 departments** if you will test 兼務 (e.g. 内科 + 外科)
 Link products on **Contract Plan** (next) — not on the product screen as the application filter.
 
 **Pass if:** Products listed with stock.
-
----
-
-### 4b. Product unit prices (商品単価マスタ)
-
-**Menu:** Product unit prices → New — product code (+ size), purchase unit price.  
-**Cost master only.** Billing does **not** use this.  
-**Billing uses Contract Plan 単価（税抜） × assigned staff.**
 
 ---
 
@@ -319,7 +311,6 @@ Excel sheets roughly match client samples (Koyama style): summary + person detai
 
 - Seeded hospital users from `DatabaseSeeder` alone (create manager on institution form)  
 - Invoice / payment / ERP import (export only)  
-- Billing from 商品単価マスタ (cost only)  
 - Billing from loan piece counts or product SKUs  
 - Billing = 契約口数 × 単価 (口数 is reference only)  
 - Matsuda-style item + piece-tier billing (`K-JJ-5` etc.) — **not** implemented; official model is plan × assigned headcount  

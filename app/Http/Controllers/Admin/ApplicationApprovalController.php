@@ -11,7 +11,6 @@ use App\Models\UniformProduct;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use App\Support\Pagination;
@@ -175,15 +174,11 @@ class ApplicationApprovalController extends Controller
                     $application->return_date = $application->return_date ?? ($application->end_date ?? now()->toDateString());
                 }
 
-                if (Schema::hasColumn('applications', 'billing_status')) {
-                    $application->billing_status = 'waiting';
-                }
-
                 $application->save();
             });
 
             // 通知はコミット後に実行（失敗しても受付は維持）
-            // SPEC: 請求は締め日基準の PlanBillingService スナップショットのみ。レガシー AutoBilling は呼ばない。
+            // SPEC: 請求は締め日基準の PlanBillingService スナップショットのみ。
             try {
                 $approved = Application::with(['medicalInstitution', 'department', 'items'])->findOrFail($applicationId);
                 \App\Services\NotificationService::notifyApplicationApproved($approved);

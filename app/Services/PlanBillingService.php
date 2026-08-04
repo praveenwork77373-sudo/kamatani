@@ -227,10 +227,6 @@ class PlanBillingService
                 'total_amount_ex_tax' => $totalAmount,
                 // Reference only (契約口数 × 単価)
                 'contract_capacity_amount' => $totalCapacityAmount,
-                'unit_price' => null,
-                'return_points' => 0,
-                'total_loan_points' => 0,
-                'cleaning_count' => 0,
             ],
             'plan_summary' => $planSummary,
             'staff_rows' => $staffRows,

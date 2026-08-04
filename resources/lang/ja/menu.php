@@ -9,7 +9,6 @@ return [
     'contract_info' => '契約情報',
     'makers' => 'メーカー',
     'uniform_categories' => 'ユニフォームカテゴリ',
-    'product_unit_prices' => '商品単価マスタ',
     'contract_plans' => '契約プラン',
     'customer_contract_plans' => '顧客契約プラン',
     'menu_contract_plans' => '契約プラン',

@@ -10,9 +10,6 @@
     $summary = $data['summary'] ?? [];
     $planSummary = $data['plan_summary'] ?? [];
     $staffRows = $data['staff_rows'] ?? [];
-    $departmentBreakdown = $data['department_breakdown'] ?? [];
-    $itemBreakdown = $data['item_breakdown'] ?? [];
-
     $billingAmount = (float) ($summary['billing_amount'] ?? $summary['total_amount_ex_tax'] ?? 0);
     $taxRate = 10;
     $taxAmount = (int) floor($billingAmount * ($taxRate / 100));
@@ -318,57 +315,11 @@
             </div>
         </section>
     @else
-        {{-- Legacy loan-based snapshot fallback --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="rounded-xl border border-slate-200 bg-white p-4">
-                <p class="text-[12px] text-slate-500">{{ __('pages.number_of_targets') }}</p>
-                <p class="text-2xl font-bold mt-1">{{ number_format($summary['total_targets'] ?? 0) }}{{ __('pages.people') }}</p>
-            </div>
-            <div class="rounded-xl border border-slate-200 bg-white p-4">
-                <p class="text-[12px] text-slate-500">{{ __('pages.total_loan_points') }}</p>
-                <p class="text-2xl font-bold mt-1">{{ number_format($summary['total_loan_points'] ?? $summary['return_points'] ?? 0) }}{{ __('pages.points') }}</p>
-            </div>
-            <div class="rounded-xl border border-slate-200 bg-white p-4">
-                <p class="text-[12px] text-slate-500">{{ __('pages.cleaning_count') }}</p>
-                <p class="text-2xl font-bold mt-1">{{ number_format($summary['cleaning_count'] ?? 0) }}{{ __('pages.times') }}</p>
-            </div>
-            <div class="rounded-xl border border-slate-200 bg-white p-4">
-                <p class="text-[12px] text-slate-500">{{ __('pages.billing_amount_excl_tax') }}</p>
-                <p class="text-2xl font-bold mt-1">¥{{ number_format($billingAmount) }}</p>
-            </div>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+            <p class="font-semibold">{{ __('pages.legacy_billing_snapshot_title') }}</p>
+            <p class="mt-1">{{ __('pages.legacy_billing_snapshot_hint') }}</p>
+            <p class="mt-2 font-medium">{{ __('pages.billing_amount_excl_tax') }}: ¥{{ number_format($billingAmount) }}</p>
         </div>
-
-        @if(count($departmentBreakdown) > 0)
-            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-200"><h2 class="font-bold">{{ __('pages.department_breakdown') }}</h2></div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-[14px]">
-                        <thead class="bg-slate-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left">{{ __('pages.department_name') }}</th>
-                                <th class="px-4 py-3 text-right">{{ __('pages.number_of_targets') }}</th>
-                                <th class="px-4 py-3 text-right">{{ __('pages.billing_amount') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @foreach($departmentBreakdown as $dept)
-                                <tr>
-                                    <td class="px-4 py-3">{{ $dept['name'] ?? '-' }}</td>
-                                    <td class="px-4 py-3 text-right">{{ number_format($dept['employee_count'] ?? 0) }}</td>
-                                    <td class="px-4 py-3 text-right">¥{{ number_format($dept['billing_amount'] ?? 0) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        @endif
-
-        @if(count($itemBreakdown) > 0)
-            <div class="bg-white border border-slate-200 rounded-xl p-5 text-[13px] text-slate-600">
-                {{ __('pages.item_breakdown') }}: {{ count($itemBreakdown) }}
-            </div>
-        @endif
     @endif
 </div>
 

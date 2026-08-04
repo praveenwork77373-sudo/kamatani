@@ -60,8 +60,6 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::resource('applications', ApplicationController::class)->only(['index', 'create', 'store', 'show']);
     Route::post('/applications/{application}/request-cancel', [ApplicationController::class, 'requestCancel'])->name('applications.request_cancel');
     Route::get('/api/uniforms-by-plan', [ApplicationController::class, 'getUniformsByPlan'])->name('api.uniforms_by_plan');
-    // Legacy alias (plan-based; not dept/job recommendations)
-    Route::get('/api/uniforms-by-dept-job', [ApplicationController::class, 'getUniformsByPlan'])->name('api.uniforms_by_dept_job');
     Route::get('/api/employees-by-department', [ApplicationController::class, 'getEmployeesByDepartment'])->name('api.employees_by_department');
     Route::get('/api/employees/search', [ApplicationController::class, 'searchEmployees'])->name('api.employees.search');
     Route::get('/api/employees/{employee}/loans', [ApplicationController::class, 'getEmployeeLoans'])->name('api.employees.loans');
@@ -202,14 +200,12 @@ Route::prefix('admin')
                 ->whereNumber('contract_plan')
                 ->name('contract-plans.show');
             Route::get('customer-contract-plans', [\App\Http\Controllers\Admin\CustomerContractPlanController::class, 'index'])->name('customer-contract-plans.index');
-            Route::get('product-unit-prices', [\App\Http\Controllers\Admin\ProductUnitPriceController::class, 'index'])->name('product-unit-prices.index');
             Route::get('uniform-categories', [\App\Http\Controllers\Admin\UniformCategoryController::class, 'index'])->name('uniform-categories.index');
         });
 
         Route::middleware('admin.role:system_admin,contract_plan_manager')->group(function () {
             Route::resource('makers', \App\Http\Controllers\Admin\MakerController::class)->except(['show', 'index']);
             Route::resource('uniform-categories', \App\Http\Controllers\Admin\UniformCategoryController::class)->except(['show', 'index']);
-            Route::resource('product-unit-prices', \App\Http\Controllers\Admin\ProductUnitPriceController::class)->except(['show', 'index']);
             Route::resource('contract-plans', \App\Http\Controllers\Admin\ContractPlanController::class)->except(['index', 'show']);
             Route::resource('customer-contract-plans', \App\Http\Controllers\Admin\CustomerContractPlanController::class)->except(['show', 'index']);
             Route::post('/customer-contract-plans/{customerContractPlan}/confirm', [\App\Http\Controllers\Admin\CustomerContractPlanController::class, 'confirm'])

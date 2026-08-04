@@ -31,7 +31,6 @@ class Application extends Model
         'transfer_to_employee_id',
         'type',
         'status',
-        'billing_status',
         'start_date',
         'end_date',
         'return_date',
