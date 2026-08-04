@@ -227,6 +227,7 @@ Route::prefix('admin')
             });
             Route::middleware('admin.role:system_admin,operation,accounting,sales')->group(function () {
                 Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'index'])->name('index');
+                Route::get('/history', [\App\Http\Controllers\Admin\BillingController::class, 'history'])->name('history');
                 Route::get('/{snapshot}/export', [\App\Http\Controllers\Admin\BillingController::class, 'export'])->name('export');
                 Route::get('/{snapshot}', [\App\Http\Controllers\Admin\BillingController::class, 'show'])->name('show');
             });

@@ -73,6 +73,11 @@
                 <i data-lucide="download" class="w-4 h-4"></i>
                 {{ __('pages.excel_export') }}
             </a>
+            <a href="{{ route('admin.billing.history') }}"
+               class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium">
+                <i data-lucide="history" class="w-4 h-4"></i>
+                {{ __('pages.billing_snapshot_history') }}
+            </a>
             <a href="{{ route('admin.billing.index') }}"
                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>

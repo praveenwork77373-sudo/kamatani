@@ -1558,3 +1558,50 @@ main .ui-table-pagination select.ui-table-pagination__select,
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius);
 }
+
+/* Flatpickr month picker — match brand controls */
+.ui-month-picker,
+.ui-month-picker__display {
+  cursor: pointer;
+}
+
+.flatpickr-calendar.flatpickr-monthSelect-theme-light {
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-xl);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+  font-family: inherit;
+}
+
+.flatpickr-monthSelect-months {
+  margin: 0.35rem;
+}
+
+.flatpickr-monthSelect-month {
+  border-radius: 0.45rem;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.flatpickr-monthSelect-month:hover,
+.flatpickr-monthSelect-month.selected,
+.flatpickr-monthSelect-month.today:not(.selected) {
+  background: #E6F3F3 !important;
+  color: #0F6B6B !important;
+  border-color: transparent !important;
+}
+
+.flatpickr-monthSelect-month.selected {
+  background: #0F6B6B !important;
+  color: #fff !important;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover svg,
+.flatpickr-months .flatpickr-next-month:hover svg {
+  fill: #0F6B6B;
+}
+
+.flatpickr-current-month .numInputWrapper span.arrowUp:after,
+.flatpickr-current-month .numInputWrapper span.arrowDown:after {
+  border-bottom-color: #0F6B6B;
+  border-top-color: #0F6B6B;
+}

@@ -43,25 +43,6 @@ class BillingController extends Controller
         $monthStart = \Carbon\Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth();
         $monthEnd = $monthStart->copy()->endOfMonth();
 
-        $query = BillingSnapshot::with(['medicalInstitution', 'generatedBy'])
-            ->orderByDesc('target_date')
-            ->orderByDesc('created_at');
-
-        $institutionId = $request->integer('medical_institution_id');
-        if ($institutionId) {
-            $query->where('medical_institution_id', $institutionId);
-        }
-
-        // Default list: snapshots whose target_date falls in selected month
-        if (! $request->boolean('all_months')) {
-            $query->whereBetween('target_date', [
-                $monthStart->toDateString(),
-                $monthEnd->toDateString(),
-            ]);
-        }
-
-        $billingSnapshots = $query->paginate(Pagination::perPage($request))->withQueryString();
-
         $institutions = MedicalInstitution::orderBy('name')->get();
         $planService = app(PlanBillingService::class);
 
@@ -126,14 +107,6 @@ class BillingController extends Controller
             $statusFilter = 'all';
         }
 
-        $billingCounts = ['institution' => []];
-        foreach ($institutions as $institution) {
-            $snapshotCount = BillingSnapshot::where('medical_institution_id', $institution->id)->count();
-            if ($snapshotCount > 0) {
-                $billingCounts['institution'][$institution->id] = $snapshotCount;
-            }
-        }
-
         $totalBillingSnapshots = BillingSnapshot::query()
             ->whereIn('id', BillingSnapshot::latestIds())
             ->count();
@@ -148,10 +121,7 @@ class BillingController extends Controller
         );
 
         return view('admin.billing.index', [
-            'billingSnapshots' => $billingSnapshots,
             'institutions' => $institutions,
-            'institutionsWithDepartments' => $institutions,
-            'billingCounts' => $billingCounts,
             'billingMonth' => $yearMonth,
             'institutionMonthStatus' => $institutionMonthStatus,
             'boardStats' => $boardStats,
@@ -162,6 +132,53 @@ class BillingController extends Controller
                 'total_billing_amount' => $totalBillingAmount,
                 'this_month_billing_amount' => $thisMonthBillingAmount,
             ],
+        ]);
+    }
+
+    public function history(Request $request): View
+    {
+        $this->checkViewPermission();
+
+        $yearMonth = $request->input('billing_month');
+        if ($yearMonth && ! preg_match('/^\d{4}-\d{2}$/', (string) $yearMonth)) {
+            $yearMonth = null;
+        }
+
+        $query = BillingSnapshot::with(['medicalInstitution', 'generatedBy'])
+            ->orderByDesc('target_date')
+            ->orderByDesc('created_at');
+
+        $institutionId = $request->integer('medical_institution_id');
+        if ($institutionId) {
+            $query->where('medical_institution_id', $institutionId);
+        }
+
+        if ($yearMonth) {
+            $monthStart = \Carbon\Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth();
+            $monthEnd = $monthStart->copy()->endOfMonth();
+            $query->whereBetween('target_date', [
+                $monthStart->toDateString(),
+                $monthEnd->toDateString(),
+            ]);
+        }
+
+        $billingSnapshots = $query->paginate(Pagination::perPage($request))->withQueryString();
+        $institutions = MedicalInstitution::orderBy('name')->get();
+
+        $billingCounts = ['institution' => []];
+        foreach ($institutions as $institution) {
+            $snapshotCount = BillingSnapshot::where('medical_institution_id', $institution->id)->count();
+            if ($snapshotCount > 0) {
+                $billingCounts['institution'][$institution->id] = $snapshotCount;
+            }
+        }
+
+        return view('admin.billing.history', [
+            'billingSnapshots' => $billingSnapshots,
+            'institutions' => $institutions,
+            'billingCounts' => $billingCounts,
+            'billingMonth' => $yearMonth,
+            'selectedInstitutionId' => $institutionId ?: null,
         ]);
     }
 

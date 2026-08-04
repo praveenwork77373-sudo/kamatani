@@ -48,9 +48,12 @@
 
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2">{{ __('pages.target_month') }}</label>
-                        <input type="month" name="target_month" id="target-month"
-                               value="{{ old('target_month', \Carbon\Carbon::parse($targetDate)->format('Y-m')) }}"
-                               class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-[14px] bg-white">
+                        <x-month-picker
+                            name="target_month"
+                            id="target-month"
+                            :value="old('target_month', \Carbon\Carbon::parse($targetDate)->format('Y-m'))"
+                            class="w-full ui-input"
+                        />
                     </div>
 
                     <div>

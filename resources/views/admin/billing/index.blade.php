@@ -9,14 +9,12 @@
     $admin = $user->adminUser ?? null;
     $adminRole = $admin->role ?? null;
     $canManageBilling = in_array($adminRole, ['system_admin', 'accounting'], true);
-    $selectedInstitutionId = request('medical_institution_id');
     $billingMonth = $billingMonth ?? now()->format('Y-m');
     $statusFilter = $statusFilter ?? 'all';
     $boardStats = $boardStats ?? ['total' => 0, 'pending' => 0, 'generated' => 0, 'no_contract' => 0];
     $institutionMonthStatus = $institutionMonthStatus ?? collect();
     $filterBase = array_filter([
         'billing_month' => $billingMonth,
-        'medical_institution_id' => $selectedInstitutionId ?: null,
     ]);
 @endphp
 
@@ -28,16 +26,25 @@
                 <i data-lucide="receipt" class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 shrink-0"></i>
                 <span class="truncate">{{ __('pages.billing_approval') }}</span>
             </h1>
+            <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.billing_month_board_page_desc') }}</p>
         </div>
-        @if($canManageBilling)
-            <a href="{{ route('admin.billing.create') }}"
-               class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 sm:px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-semibold shadow-sm shrink-0">
-                <i data-lucide="plus" class="w-4 h-4"></i>
-                {{ __('pages.generate_billing_data') }}
+        <div class="ui-page-actions">
+            <a href="{{ route('admin.billing.history') }}" class="ui-page-action-btn">
+                <i data-lucide="history" class="w-4 h-4"></i>
+                <span>{{ __('pages.billing_snapshot_history') }}</span>
             </a>
-        @endif
+            @if($canManageBilling)
+                <a href="{{ route('admin.billing.create') }}" class="ui-page-action-btn ui-page-action-btn--primary">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>{{ __('pages.generate_billing_data') }}</span>
+                </a>
+            @endif
+        </div>
     </div>
 
+    <div class="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-[13px] text-sky-900">
+        {{ __('pages.billing_early_generate_hint') }}
+    </div>
     <x-stat-grid :cols="4">
         <x-stat-card tone="amber" icon="clock" :value="$stats['total_billing_snapshots'] ?? 0" :label="__('pages.billing_snapshots')" :badge="__('pages.total')" />
         <x-stat-card tone="blue" icon="calendar" :value="$stats['this_month_billing_snapshots'] ?? 0" :label="__('pages.this_month_billing_snapshots')" :badge="__('pages.this_month_short')" />
@@ -57,13 +64,14 @@
             <form method="GET" action="{{ route('admin.billing.index') }}" class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 shrink-0 w-full lg:w-auto">
                 <div class="min-w-0 flex-1 lg:flex-none">
                     <label class="block text-[11px] font-semibold text-slate-600 mb-1">{{ __('pages.target_month') }}</label>
-                    <input type="month" name="billing_month" value="{{ $billingMonth }}"
-                           class="ui-input py-2 w-full sm:w-44" onchange="this.form.submit()">
+                    <x-month-picker
+                        name="billing_month"
+                        :value="$billingMonth"
+                        :auto-submit="true"
+                        class="ui-input py-2 w-full sm:w-44"
+                    />
                 </div>
                 <input type="hidden" name="status_filter" value="{{ $statusFilter }}">
-                @if($selectedInstitutionId)
-                    <input type="hidden" name="medical_institution_id" value="{{ $selectedInstitutionId }}">
-                @endif
             </form>
         </div>
 
@@ -228,114 +236,6 @@
                     @endforelse
                 </tbody>
             </table>
-        </div>
-    </section>
-
-    {{-- Snapshot history --}}
-    <section class="space-y-4 min-w-0">
-        <h2 class="text-[15px] font-bold text-slate-900">{{ __('pages.billing_snapshot_history') }}</h2>
-
-        @php
-            $billingFiltersActive = filled($selectedInstitutionId);
-        @endphp
-        <x-filter-bar :action="route('admin.billing.index')" form-id="billing-filter-form" :active="$billingFiltersActive">
-            <x-slot:before>
-                <input type="hidden" name="billing_month" value="{{ $billingMonth }}">
-                <input type="hidden" name="status_filter" value="{{ $statusFilter }}">
-            </x-slot:before>
-            <div class="ui-filter-field">
-                <label class="ui-filter-field__label">{{ __('pages.medical_institution') }}</label>
-                <select name="medical_institution_id" id="billing-institution-select" class="ui-select" onchange="this.form.submit();">
-                    <option value="">{{ __('pages.all_institutions') }}</option>
-                    @foreach($institutions ?? [] as $institution)
-                        <option value="{{ $institution->id }}" @selected($selectedInstitutionId == $institution->id)>
-                            {{ $institution->name }}
-                            @if(isset($billingCounts['institution'][$institution->id]) && $billingCounts['institution'][$institution->id] > 0)
-                                ({{ $billingCounts['institution'][$institution->id] }})
-                            @endif
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <x-slot:actions>
-                <a href="{{ route('admin.billing.index', ['billing_month' => $billingMonth]) }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </a>
-            </x-slot:actions>
-        </x-filter-bar>
-
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden min-w-0">
-            {{-- Mobile snapshot cards --}}
-            <div class="md:hidden divide-y divide-slate-100">
-                @forelse($billingSnapshots as $snapshot)
-                    <div class="p-4 space-y-2">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="min-w-0">
-                                <p class="font-semibold text-slate-900">#BILL-{{ str_pad($snapshot->id, 4, '0', STR_PAD_LEFT) }}</p>
-                                <p class="text-[12px] text-slate-500 truncate">{{ $snapshot->medicalInstitution?->name ?? '-' }}</p>
-                            </div>
-                            <p class="shrink-0 font-semibold text-primary-700">¥{{ number_format($snapshot->data['summary']['billing_amount'] ?? $snapshot->data['summary']['total_amount_ex_tax'] ?? 0) }}</p>
-                        </div>
-                        <p class="text-[12px] text-slate-600">{{ $snapshot->target_date->format(app()->getLocale() === 'ja' ? 'Y年n月' : 'M Y') }} · {{ $snapshot->created_at->format('Y/m/d H:i') }}</p>
-                        <a href="{{ route('admin.billing.show', $snapshot) }}"
-                           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 text-slate-700 text-[12px] font-medium">
-                            <i data-lucide="eye" class="w-4 h-4"></i>
-                            {{ __('pages.details') }}
-                        </a>
-                    </div>
-                @empty
-                    <div class="px-5 py-12 text-center">
-                        <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                            <i data-lucide="receipt" class="w-8 h-8 text-slate-300"></i>
-                        </div>
-                        <p class="text-slate-500 text-[14px] font-medium">{{ __('pages.no_billing_snapshots') }}</p>
-                    </div>
-                @endforelse
-            </div>
-
-            {{-- Desktop snapshot table --}}
-            <div class="hidden md:block overflow-x-auto">
-                <table class="min-w-full text-[14px]">
-                    <thead class="bg-slate-50 border-b border-slate-200">
-                        <tr>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-700 whitespace-nowrap">{{ __('pages.billing_id') }}</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-700 whitespace-nowrap">{{ __('pages.medical_institution_label') }}</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-700 whitespace-nowrap">{{ __('pages.target_month') }}</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-700 whitespace-nowrap">{{ __('pages.invoice_number') }}</th>
-                            <th class="px-5 py-3.5 text-right font-semibold text-slate-700 whitespace-nowrap">{{ __('pages.billing_amount') }}</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-700 whitespace-nowrap">{{ __('pages.generated_at') }}</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-700 whitespace-nowrap">{{ __('pages.generated_by') }}</th>
-                            <th class="px-5 py-3.5 text-right font-semibold text-slate-700 whitespace-nowrap">{{ __('pages.actions_label') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200">
-                        @forelse($billingSnapshots as $snapshot)
-                            <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="px-5 py-4 font-semibold text-slate-900 whitespace-nowrap">#BILL-{{ str_pad($snapshot->id, 4, '0', STR_PAD_LEFT) }}</td>
-                                <td class="px-5 py-4 text-slate-800">{{ $snapshot->medicalInstitution?->name ?? '-' }}</td>
-                                <td class="px-5 py-4 text-slate-700 whitespace-nowrap">{{ $snapshot->target_date->format(app()->getLocale() === 'ja' ? 'Y年n月' : 'M Y') }}</td>
-                                <td class="px-5 py-4 text-slate-700">{{ $snapshot->data['invoice']['invoice_number'] ?? '-' }}</td>
-                                <td class="px-5 py-4 text-right text-primary-700 font-semibold whitespace-nowrap">¥{{ number_format($snapshot->data['summary']['billing_amount'] ?? $snapshot->data['summary']['total_amount_ex_tax'] ?? 0) }}</td>
-                                <td class="px-5 py-4 text-slate-600 whitespace-nowrap">{{ $snapshot->created_at->format('Y/m/d H:i') }}</td>
-                                <td class="px-5 py-4 text-slate-600">{{ $snapshot->generatedBy?->name ?? '-' }}</td>
-                                <td class="px-5 py-4 text-right">
-                                    <a href="{{ route('admin.billing.show', $snapshot) }}"
-                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] font-medium">
-                                        <i data-lucide="eye" class="w-4 h-4"></i>
-                                        {{ __('pages.details') }}
-                                    </a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8" class="px-5 py-12 text-center text-slate-500">{{ __('pages.no_billing_snapshots') }}</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <x-table-pagination :paginator="$billingSnapshots" />
         </div>
     </section>
 </div>
