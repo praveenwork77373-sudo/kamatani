@@ -317,7 +317,10 @@
                                         </a>
                                         <form method="POST" action="{{ route('admin.uniform-products.destroy', $product['sizes'][0]['id']) }}"
                                               class="inline"
-                                              onsubmit="return confirm('{{ __('pages.confirm_delete_product') }}')">
+                                              data-ui-confirm="{{ __('pages.confirm_delete_product') }}"
+                                              data-ui-confirm-title="{{ __('pages.confirm_action_title_delete') }}"
+                                              data-ui-confirm-tone="danger"
+                                              data-ui-confirm-ok="{{ __('common.delete') }}">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="px-3 py-2 rounded-lg border border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 text-[12px] font-medium transition-all flex items-center justify-center">

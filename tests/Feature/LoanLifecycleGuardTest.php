@@ -282,4 +282,60 @@ class LoanLifecycleGuardTest extends TestCase
         $this->assertDatabaseMissing('employees', ['id' => $this->employee->id]);
         $this->assertSame($stockBefore + 2, (int) $this->product->fresh()->stock_quantity);
     }
+
+    public function test_cannot_delete_product_with_active_loans(): void
+    {
+        $this->actingAs($this->admin)
+            ->delete(route('admin.uniform-products.destroy', $this->product))
+            ->assertRedirect(route('admin.uniform-products.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('uniform_products', ['id' => $this->product->id]);
+    }
+
+    public function test_cancel_after_return_approval_restores_loan_and_stock(): void
+    {
+        $app = Application::create([
+            'medical_institution_id' => $this->institution->id,
+            'department_id' => $this->department->id,
+            'employee_id' => $this->employee->id,
+            'type' => 'return',
+            'status' => 'pending',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'delivery_location_id' => $this->delivery->id,
+            'requested_by_user_id' => $this->customer->id,
+        ]);
+        ApplicationItem::create([
+            'application_id' => $app->id,
+            'uniform_product_id' => $this->product->id,
+            'quantity' => 2,
+            'action' => 'return',
+        ]);
+
+        $stockBefore = (int) $this->product->fresh()->stock_quantity;
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.applications.approve', $app))
+            ->assertRedirect();
+
+        $this->assertSame($stockBefore + 2, (int) $this->product->fresh()->stock_quantity);
+
+        $app->refresh();
+        $app->update(['status' => 'cancel_request']);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.applications.cancel_approve', $app))
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $loan = EmployeeLoan::where('employee_id', $this->employee->id)
+            ->where('uniform_product_id', $this->product->id)
+            ->first();
+
+        $this->assertSame('in_use', $loan->status);
+        $this->assertSame(2, (int) $loan->quantity);
+        $this->assertSame($stockBefore, (int) $this->product->fresh()->stock_quantity);
+        $this->assertSame('cancel_approved', $app->fresh()->status);
+    }
 }

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\CustomerUser;
 use App\Models\Department;
 use App\Models\DeliveryLocation;
+use App\Models\Employee;
+use App\Models\EmployeeLoan;
 use App\Models\JobType;
 use App\Models\MedicalInstitution;
 use App\Models\User;
@@ -212,6 +214,24 @@ class MasterController extends Controller
     public function institutionDestroy(MedicalInstitution $institution): RedirectResponse
     {
         $this->checkSystemAdmin();
+
+        $employeeCount = Employee::where('medical_institution_id', $institution->id)->count();
+        $activeLoanQty = (int) EmployeeLoan::query()
+            ->whereHas('employee', fn ($q) => $q->where('medical_institution_id', $institution->id))
+            ->where('status', 'in_use')
+            ->where('quantity', '>', 0)
+            ->sum('quantity');
+
+        if ($activeLoanQty > 0) {
+            return redirect()->route('admin.masters.institutions')
+                ->with('error', __('pages.institution_delete_blocked_active_loans', ['count' => $activeLoanQty]));
+        }
+
+        if ($employeeCount > 0) {
+            return redirect()->route('admin.masters.institutions')
+                ->with('error', __('pages.institution_delete_blocked_employees', ['count' => $employeeCount]));
+        }
+
         $institution->delete();
 
         return redirect()->route('admin.masters.institutions')

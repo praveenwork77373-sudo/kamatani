@@ -61,7 +61,7 @@
                                         <i data-lucide="pencil" class="w-4 h-4"></i>
                                         {{ __('common.edit') }}
                                     </a>
-                                    <form method="POST" action="{{ route('customer.masters.job-types.destroy', $jobType) }}" class="inline" onsubmit="return confirm('{{ __('pages.confirm_delete_job_type') }}')">
+                                    <form method="POST" action="{{ route('customer.masters.job-types.destroy', $jobType) }}" class="inline" data-ui-confirm="{{ __('pages.confirm_delete_job_type') }}" data-ui-confirm-title="{{ __('pages.confirm_action_title_delete') }}" data-ui-confirm-tone="danger" data-ui-confirm-ok="{{ __('common.delete') }}">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 text-[13px] font-medium transition-all">

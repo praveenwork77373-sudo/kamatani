@@ -5,15 +5,26 @@
     'tone' => 'brand', // brand|muted|danger|success
     'method' => null,
     'confirm' => null,
+    'confirmTitle' => null,
+    'confirmOk' => null,
 ])
 
 @php
     $classes = 'ui-icon-btn ui-icon-btn--'.$tone;
+    $confirmTone = $tone === 'danger' ? 'danger' : 'brand';
+    $resolvedConfirmTitle = $confirmTitle ?? ($tone === 'danger' ? __('pages.confirm_action_title_delete') : __('pages.confirm_action_title'));
+    $resolvedConfirmOk = $confirmOk ?? ($tone === 'danger' ? __('common.delete') : __('pages.confirm_action_ok'));
 @endphp
 
 @if($method && $href)
     <form method="POST" action="{{ $href }}" class="inline-flex"
-          @if($confirm) onsubmit="return confirm(@js($confirm))" @endif>
+          @if($confirm)
+              data-ui-confirm="{{ $confirm }}"
+              data-ui-confirm-title="{{ $resolvedConfirmTitle }}"
+              data-ui-confirm-tone="{{ $confirmTone }}"
+              data-ui-confirm-ok="{{ $resolvedConfirmOk }}"
+              data-ui-confirm-cancel="{{ __('pages.cancel') }}"
+          @endif>
         @csrf
         @if(strtoupper($method) !== 'POST')
             @method($method)

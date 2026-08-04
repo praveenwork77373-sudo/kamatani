@@ -744,7 +744,7 @@ class UniformProductController extends Controller
                     return trim($s);
                 })->toArray();
                 
-                $existingProducts->each(function($product) use ($submittedSizes, $baseProductCode, $newBaseProductCode) {
+                $existingProducts->each(function ($product) use ($submittedSizes, $baseProductCode, $newBaseProductCode, &$errors) {
                     // Only delete if it belongs to the same base product
                     $productBaseCode = $product->product_code;
                     $lastDashPos = strrpos($productBaseCode, '-');
@@ -763,7 +763,22 @@ class UniformProductController extends Controller
                             }
                         }
                         
-                        if (!empty($productSize) && !in_array($productSize, $submittedSizes)) {
+                        if (! empty($productSize) && ! in_array($productSize, $submittedSizes)) {
+                            $activeLoanQty = (int) \App\Models\EmployeeLoan::query()
+                                ->where('uniform_product_id', $product->id)
+                                ->where('status', 'in_use')
+                                ->where('quantity', '>', 0)
+                                ->sum('quantity');
+
+                            if ($activeLoanQty > 0) {
+                                $errors[] = __('pages.product_size_delete_blocked_active_loans', [
+                                    'size' => $productSize,
+                                    'count' => $activeLoanQty,
+                                ]);
+
+                                return;
+                            }
+
                             \Log::info("Deleting removed size", [
                                 'product_id' => $product->id,
                                 'product_code' => $product->product_code,
@@ -805,6 +820,18 @@ class UniformProductController extends Controller
 
     public function destroy(UniformProduct $uniformProduct): RedirectResponse
     {
+        $activeLoanQty = (int) \App\Models\EmployeeLoan::query()
+            ->where('uniform_product_id', $uniformProduct->id)
+            ->where('status', 'in_use')
+            ->where('quantity', '>', 0)
+            ->sum('quantity');
+
+        if ($activeLoanQty > 0) {
+            return redirect()
+                ->route('admin.uniform-products.index')
+                ->with('error', __('pages.product_delete_blocked_active_loans', ['count' => $activeLoanQty]));
+        }
+
         $uniformProduct->delete();
 
         return redirect()

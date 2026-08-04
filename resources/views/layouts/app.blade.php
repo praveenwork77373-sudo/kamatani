@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="{{ asset('css/ui-kit.css') }}?v={{ filemtime(public_path('css/ui-kit.css')) }}">
     <script src="{{ asset('js/custom-select.js') }}?v={{ filemtime(public_path('js/custom-select.js')) }}" defer></script>
     <script src="{{ asset('js/master-code.js') }}?v={{ filemtime(public_path('js/master-code.js')) }}" defer></script>
+    <script src="{{ asset('js/confirm-modal.js') }}?v={{ filemtime(public_path('js/confirm-modal.js')) }}" defer></script>
     {{-- Tailwind CSS CDN --}}
     <script src="https://cdn.tailwindcss.com"></script>
     {{-- Lucide Icons --}}
@@ -356,6 +357,8 @@
             @endunless
         </div>
     </div>
+
+    <x-confirm-modal />
 </body>
 @stack('scripts')
 <script>

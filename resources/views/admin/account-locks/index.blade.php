@@ -67,7 +67,10 @@
                             </td>
                             <td class="px-5 py-3 text-right">
                                 <form method="POST" action="{{ route('admin.account-locks.unlock', $user) }}"
-                                      onsubmit="return confirm(@js(__('pages.confirm_unlock_account')));">
+                                      data-ui-confirm="{{ __('pages.confirm_unlock_account') }}"
+                                      data-ui-confirm-title="{{ __('pages.confirm_action_title') }}"
+                                      data-ui-confirm-tone="brand"
+                                      data-ui-confirm-ok="{{ __('pages.unlock') }}">
                                     @csrf
                                     <button type="submit"
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[13px] font-medium hover:bg-emerald-700">

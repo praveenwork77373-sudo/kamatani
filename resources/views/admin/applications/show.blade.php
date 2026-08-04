@@ -220,7 +220,11 @@
                     @endif
 
                     @if($application->status === 'in_progress')
-                        <form method="POST" action="{{ route('admin.applications.complete', $application) }}" class="inline-block w-full" onsubmit="return confirm(@json(__('pages.confirm_ship_complete')));">
+                        <form method="POST" action="{{ route('admin.applications.complete', $application) }}" class="inline-block w-full"
+                              data-ui-confirm="{{ __('pages.confirm_ship_complete') }}"
+                              data-ui-confirm-title="{{ __('pages.confirm_action_title') }}"
+                              data-ui-confirm-tone="brand"
+                              data-ui-confirm-ok="{{ __('pages.ship_complete') }}">
                             @csrf
                             <button type="submit" class="w-full px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
                                 <i class="ph ph-truck text-base"></i>

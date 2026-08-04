@@ -1605,3 +1605,92 @@ main .ui-table-pagination select.ui-table-pagination__select,
   border-bottom-color: #0F6B6B;
   border-top-color: #0F6B6B;
 }
+
+/* —— Confirm modal (replaces window.confirm) —— */
+body.ui-confirm-open {
+  overflow: hidden;
+}
+
+.ui-confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.ui-confirm-modal.hidden,
+.ui-confirm-modal[hidden] {
+  display: none !important;
+}
+
+.ui-confirm-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.ui-confirm-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 26rem;
+  background: #fff;
+  border-radius: 0.875rem;
+  border: 1px solid var(--ui-border, #e2e8f0);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.ui-confirm-modal__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0 auto 0.875rem;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.ui-confirm-modal--brand .ui-confirm-modal__icon {
+  background: #ecfdf5;
+  color: #0F6B6B;
+}
+
+.ui-confirm-modal__icon i,
+.ui-confirm-modal__icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.ui-confirm-modal__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.ui-confirm-modal__message {
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #475569;
+  white-space: pre-line;
+}
+
+.ui-confirm-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.625rem;
+}
+
+.ui-confirm-modal__actions .ui-btn {
+  min-width: 6.5rem;
+}

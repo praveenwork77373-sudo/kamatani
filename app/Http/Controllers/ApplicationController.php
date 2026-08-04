@@ -830,6 +830,7 @@ class ApplicationController extends Controller
                 }
 
                 $totalQuantity = array_sum(array_column($data['items'], 'quantity'));
+                $returnQuantity = array_sum(array_column($data['return_items'] ?? [], 'quantity'));
                 $currentLoans = EmployeeLoan::where('employee_id', $employee->id)
                     ->where('status', 'in_use')
                     ->sum('quantity');
@@ -837,7 +838,8 @@ class ApplicationController extends Controller
                 $exceedsLimit = false;
                 $rentableLimit = $eligibility->rentableLimit($employee);
                 if ($rentableLimit !== null && $rentableLimit > 0 && in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
-                    if (($currentLoans + $totalQuantity) > $rentableLimit) {
+                    $projected = $currentLoans - $returnQuantity + $totalQuantity;
+                    if ($projected > $rentableLimit) {
                         $exceedsLimit = true;
                     }
                 }

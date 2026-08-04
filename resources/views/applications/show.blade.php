@@ -127,10 +127,13 @@
                 <div class="space-y-3">
                     {{-- Cancel request — allowed until completed --}}
                     @if($application->isCancellableByHospital())
-                        <form method="POST" action="{{ route('applications.request_cancel', $application) }}" class="inline-block w-full">
+                        <form method="POST" action="{{ route('applications.request_cancel', $application) }}" class="inline-block w-full"
+                              data-ui-confirm="{{ __('pages.confirm_cancel_request') }}"
+                              data-ui-confirm-title="{{ __('pages.confirm_action_title') }}"
+                              data-ui-confirm-tone="danger"
+                              data-ui-confirm-ok="{{ __('pages.cancel_request') }}">
                             @csrf
-                            <button type="submit" 
-                                    onclick="return confirm(@js(__('pages.confirm_cancel_request')))"
+                            <button type="submit"
                                     class="w-full px-4 py-2.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-[14px] font-medium shadow-md transition-all flex items-center justify-center gap-2">
                                 <i class="ph ph-x-circle text-base"></i>
                                 {{ __('pages.cancel_request') }}

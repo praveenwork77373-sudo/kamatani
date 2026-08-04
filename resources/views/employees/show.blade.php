@@ -231,7 +231,11 @@
                             <i data-lucide="edit" class="w-4 h-4"></i>
                             {{ __('common.edit') }}
                         </a>
-                        <form method="POST" action="{{ route('employees.destroy', $employee) }}" onsubmit="return confirm('{{ __('pages.confirm_delete_employee') }}');">
+                        <form method="POST" action="{{ route('employees.destroy', $employee) }}"
+                              data-ui-confirm="{{ __('pages.confirm_delete_employee') }}"
+                              data-ui-confirm-title="{{ __('pages.confirm_action_title_delete') }}"
+                              data-ui-confirm-tone="danger"
+                              data-ui-confirm-ok="{{ __('common.delete') }}">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[14px] font-medium shadow-md transition-all">

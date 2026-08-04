@@ -10,11 +10,14 @@
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('menu.database_management') }}</h1>
                 <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.database_backups_description') }}</p>
             </div>
-            <form action="{{ route('admin.database-backups.store') }}" method="POST">
+            <form action="{{ route('admin.database-backups.store') }}" method="POST"
+                  data-ui-confirm="{{ __('pages.backup_create_confirm') }}"
+                  data-ui-confirm-title="{{ __('pages.confirm_action_title') }}"
+                  data-ui-confirm-tone="brand"
+                  data-ui-confirm-ok="{{ __('pages.backup_now') }}">
                 @csrf
                 <button type="submit"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all"
-                        onclick="return confirm(@json(__('pages.backup_create_confirm')))">
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all">
                     <i data-lucide="hard-drive-download" class="w-4 h-4"></i>
                     {{ __('pages.backup_now') }}
                 </button>
@@ -203,7 +206,10 @@
                                                 </button>
                                             @endif
                                             <form action="{{ route('admin.database-backups.destroy', $backup) }}" method="POST"
-                                                  onsubmit="return confirm(@json(__('pages.backup_delete_confirm')))">
+                                                  data-ui-confirm="{{ __('pages.backup_delete_confirm') }}"
+                                                  data-ui-confirm-title="{{ __('pages.confirm_action_title_delete') }}"
+                                                  data-ui-confirm-tone="danger"
+                                                  data-ui-confirm-ok="{{ __('common.delete') }}">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit"

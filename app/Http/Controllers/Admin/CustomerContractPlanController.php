@@ -145,6 +145,21 @@ class CustomerContractPlanController extends Controller
 
     public function destroy(CustomerContractPlan $customerContractPlan): RedirectResponse
     {
+        $today = now()->toDateString();
+        $activeAssignments = \App\Models\EmployeeContractPlan::query()
+            ->where('customer_contract_plan_id', $customerContractPlan->id)
+            ->where(function ($q) use ($today) {
+                $q->whereNull('assigned_until')
+                    ->orWhere('assigned_until', '>=', $today);
+            })
+            ->count();
+
+        if ($activeAssignments > 0) {
+            return redirect()
+                ->route('admin.customer-contract-plans.index')
+                ->with('error', __('pages.ccp_delete_blocked_active_assignments', ['count' => $activeAssignments]));
+        }
+
         $customerContractPlan->delete();
 
         return redirect()->route('admin.customer-contract-plans.index')
