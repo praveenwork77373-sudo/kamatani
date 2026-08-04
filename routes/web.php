@@ -197,7 +197,10 @@ Route::prefix('admin')
         Route::middleware('admin.role:system_admin,contract_plan_manager,sales')->group(function () {
             Route::get('makers', [\App\Http\Controllers\Admin\MakerController::class, 'index'])->name('makers.index');
             Route::get('contract-plans', [\App\Http\Controllers\Admin\ContractPlanController::class, 'index'])->name('contract-plans.index');
-            Route::get('contract-plans/{contract_plan}', [\App\Http\Controllers\Admin\ContractPlanController::class, 'show'])->name('contract-plans.show');
+            // whereNumber so "create" is not captured as {contract_plan} before the write-group resource routes
+            Route::get('contract-plans/{contract_plan}', [\App\Http\Controllers\Admin\ContractPlanController::class, 'show'])
+                ->whereNumber('contract_plan')
+                ->name('contract-plans.show');
             Route::get('customer-contract-plans', [\App\Http\Controllers\Admin\CustomerContractPlanController::class, 'index'])->name('customer-contract-plans.index');
             Route::get('product-unit-prices', [\App\Http\Controllers\Admin\ProductUnitPriceController::class, 'index'])->name('product-unit-prices.index');
             Route::get('uniform-categories', [\App\Http\Controllers\Admin\UniformCategoryController::class, 'index'])->name('uniform-categories.index');
