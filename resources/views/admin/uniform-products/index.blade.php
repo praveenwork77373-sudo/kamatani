@@ -88,47 +88,46 @@
     </x-stat-grid>
 
     <div class="space-y-6">
-        {{-- Horizontal filters above products --}}
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <form method="GET" action="{{ route('admin.uniform-products.index') }}" id="filter-form" class="p-4">
-                <x-per-page-field />
-                <div class="flex flex-col xl:flex-row xl:items-end gap-3">
-                    <div class="flex-[1.5] min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.search') }}</label>
-                        <input type="text" name="search" value="{{ $searchQuery }}"
-                               placeholder="{{ __('pages.search_product') }}"
-                               class="ui-input">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.status') }}</label>
-                        <select name="status" class="ui-select">
-                            <option value="">{{ __('pages.all') }}</option>
-                            <option value="in_stock" @selected($selectedStatus === 'in_stock')>{{ __('pages.in_stock') }}</option>
-                            <option value="out_of_stock" @selected($selectedStatus === 'out_of_stock')>{{ __('pages.out_of_stock') }}</option>
-                        </select>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.gender') }}</label>
-                        <select name="gender" class="ui-select">
-                            <option value="">{{ __('pages.all') }}</option>
-                            <option value="male" @selected($selectedGender === 'male')>{{ __('pages.male') }}</option>
-                            <option value="female" @selected($selectedGender === 'female')>{{ __('pages.female') }}</option>
-                            <option value="unisex" @selected($selectedGender === 'unisex')>{{ __('pages.unisex') }}</option>
-                        </select>
-                    </div>
-                    <input type="hidden" name="category" id="category-filter" value="{{ $selectedCategory }}">
-                    <div class="flex gap-2 shrink-0">
-                        <button type="submit" class="ui-btn ui-btn-primary">
-                            <i data-lucide="search" class="w-4 h-4"></i>
-                            {{ __('pages.apply_filters') }}
-                        </button>
-                        <a href="{{ route('admin.uniform-products.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
+        @php
+            $productFiltersActive = filled($searchQuery) || filled($selectedStatus) || filled($selectedGender) || filled($selectedCategory);
+        @endphp
+        <x-filter-bar :action="route('admin.uniform-products.index')" form-id="filter-form" :active="$productFiltersActive">
+            <x-slot:before>
+                <input type="hidden" name="category" id="category-filter" value="{{ $selectedCategory }}">
+            </x-slot:before>
+            <div class="ui-filter-field ui-filter-field--grow">
+                <label class="ui-filter-field__label">{{ __('pages.search') }}</label>
+                <input type="text" name="search" value="{{ $searchQuery }}"
+                       placeholder="{{ __('pages.search_product') }}"
+                       class="ui-input">
+            </div>
+            <div class="ui-filter-field ui-filter-field--sm">
+                <label class="ui-filter-field__label">{{ __('pages.status') }}</label>
+                <select name="status" class="ui-select">
+                    <option value="">{{ __('pages.all') }}</option>
+                    <option value="in_stock" @selected($selectedStatus === 'in_stock')>{{ __('pages.in_stock') }}</option>
+                    <option value="out_of_stock" @selected($selectedStatus === 'out_of_stock')>{{ __('pages.out_of_stock') }}</option>
+                </select>
+            </div>
+            <div class="ui-filter-field ui-filter-field--sm">
+                <label class="ui-filter-field__label">{{ __('pages.gender') }}</label>
+                <select name="gender" class="ui-select">
+                    <option value="">{{ __('pages.all') }}</option>
+                    <option value="male" @selected($selectedGender === 'male')>{{ __('pages.male') }}</option>
+                    <option value="female" @selected($selectedGender === 'female')>{{ __('pages.female') }}</option>
+                    <option value="unisex" @selected($selectedGender === 'unisex')>{{ __('pages.unisex') }}</option>
+                </select>
+            </div>
+            <x-slot:actions>
+                <button type="submit" class="ui-btn ui-btn-primary">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                    {{ __('pages.apply_filters') }}
+                </button>
+                <a href="{{ route('admin.uniform-products.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </a>
+            </x-slot:actions>
+        </x-filter-bar>
 
         {{-- Full-width products content --}}
         <div>

@@ -46,8 +46,10 @@ Route::middleware('auth')->group(function () {
 
     // 通知
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.read_all');
+    Route::post('/notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])
+        ->whereNumber('notification')
+        ->name('notifications.read');
     Route::get('/api/notifications/unread-count', [\App\Http\Controllers\NotificationController::class, 'unreadCount'])->name('api.notifications.unread_count');
     Route::get('/api/master-code/check', [\App\Http\Controllers\Api\MasterCodeController::class, 'check'])->name('api.master_code.check');
 });
@@ -57,6 +59,8 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::resource('employees', EmployeeController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::post('/employees/export-csv', [EmployeeController::class, 'exportCsv'])->name('employees.export_csv');
     Route::post('/employees/import-csv', [EmployeeController::class, 'importCsv'])->name('employees.import_csv');
+    Route::get('/loan-status', [\App\Http\Controllers\LoanStatusController::class, 'index'])->name('loan-status.index');
+    Route::get('/departments/{department}/loans', [\App\Http\Controllers\Customer\MasterController::class, 'departmentShow'])->name('departments.loans');
     Route::resource('applications', ApplicationController::class)->only(['index', 'create', 'store', 'show']);
     Route::post('/applications/{application}/request-cancel', [ApplicationController::class, 'requestCancel'])->name('applications.request_cancel');
     Route::get('/api/uniforms-by-plan', [ApplicationController::class, 'getUniformsByPlan'])->name('api.uniforms_by_plan');
@@ -81,6 +85,7 @@ Route::middleware(['auth', 'customer'])->group(function () {
         Route::get('/departments', [\App\Http\Controllers\Customer\MasterController::class, 'departments'])->name('departments');
         Route::get('/departments/create', [\App\Http\Controllers\Customer\MasterController::class, 'departmentCreate'])->name('departments.create');
         Route::post('/departments', [\App\Http\Controllers\Customer\MasterController::class, 'departmentStore'])->name('departments.store');
+        Route::get('/departments/{department}', [\App\Http\Controllers\Customer\MasterController::class, 'departmentShow'])->name('departments.show');
         Route::get('/departments/{department}/edit', [\App\Http\Controllers\Customer\MasterController::class, 'departmentEdit'])->name('departments.edit');
         Route::put('/departments/{department}', [\App\Http\Controllers\Customer\MasterController::class, 'departmentUpdate'])->name('departments.update');
         Route::delete('/departments/{department}', [\App\Http\Controllers\Customer\MasterController::class, 'departmentDestroy'])->name('departments.destroy');
@@ -132,6 +137,8 @@ Route::prefix('admin')
             Route::get('/application-documents/{document}/download', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'download'])->name('application-documents.download');
             Route::get('/application-documents/{document}/preview', [\App\Http\Controllers\Admin\ApplicationDocumentController::class, 'preview'])->name('application-documents.preview');
             Route::get('/orders', [ApplicationApprovalController::class, 'orders'])->name('orders.index');
+            Route::get('/loan-status', [\App\Http\Controllers\Admin\LoanStatusController::class, 'index'])->name('loan-status.index');
+            Route::get('/departments/{department}/loans', [\App\Http\Controllers\Admin\MasterController::class, 'departmentShow'])->name('departments.loans');
 
             Route::resource('uniform-products', UniformProductController::class);
             Route::get('/uniform-products-export', [UniformProductController::class, 'exportCsv'])->name('uniform-products.export');
@@ -225,12 +232,16 @@ Route::prefix('admin')
             });
         });
         
-        // システム管理者: 全職員管理
-        Route::prefix('employees')->name('employees.')->middleware('admin.role:system_admin')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'index'])->name('index');
-            Route::post('/export-csv', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'exportCsv'])->name('export_csv');
-            Route::post('/import-csv', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'importCsv'])->name('import_csv');
-            Route::get('/{employee}', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'show'])->name('show');
+        // システム管理者: 全職員管理（運営は貸与状況からの詳細閲覧のみ可）
+        Route::prefix('employees')->name('employees.')->group(function () {
+            Route::middleware('admin.role:system_admin')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'index'])->name('index');
+                Route::post('/export-csv', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'exportCsv'])->name('export_csv');
+                Route::post('/import-csv', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'importCsv'])->name('import_csv');
+            });
+            Route::middleware('admin.role:system_admin,operation')->group(function () {
+                Route::get('/{employee}', [\App\Http\Controllers\Admin\EmployeeManagementController::class, 'show'])->name('show');
+            });
         });
 
         // システム管理者: データベースバックアップ

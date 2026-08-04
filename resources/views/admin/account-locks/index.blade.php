@@ -11,18 +11,22 @@
         </div>
     </div>
 
-    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
-        <form method="GET" action="{{ route('admin.account-locks.index') }}" class="p-4 flex gap-3 items-end">
-                <x-per-page-field />
-            <div class="flex-1">
-                <label class="block text-[13px] font-semibold text-slate-700 mb-1">{{ __('pages.search_name_email') }}</label>
-                <input type="text" name="q" value="{{ $searchQuery }}"
-                       class="w-full px-3 py-2 rounded-lg border border-slate-300 text-[14px]"
-                       placeholder="{{ __('pages.example_email_placeholder') }}">
-            </div>
-            <button type="submit" class="px-4 py-2 rounded-lg bg-primary-600 text-white text-[14px] font-medium hover:bg-primary-700">{{ __('common.search') }}</button>
-        </form>
-    </div>
+    <x-filter-bar :action="route('admin.account-locks.index')" form-id="account-locks-filter-form" :active="filled($searchQuery)">
+        <div class="ui-filter-field ui-filter-field--grow">
+            <label class="ui-filter-field__label">{{ __('pages.search_name_email') }}</label>
+            <input type="text" name="q" value="{{ $searchQuery }}"
+                   class="ui-input"
+                   placeholder="{{ __('pages.example_email_placeholder') }}">
+        </div>
+        <x-slot:actions>
+            <button type="submit" class="ui-btn ui-btn-primary">{{ __('common.search') }}</button>
+            @if(filled($searchQuery))
+                <a href="{{ route('admin.account-locks.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </a>
+            @endif
+        </x-slot:actions>
+    </x-filter-bar>
 
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto">

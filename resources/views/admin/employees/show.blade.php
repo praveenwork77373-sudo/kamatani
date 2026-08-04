@@ -168,6 +168,40 @@
                 </div>
             </div>
         @endif
+
+        {{-- Active loans --}}
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
+            <div class="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <h3 class="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="package-check" class="w-4 h-4 text-primary-600"></i>
+                        {{ __('pages.active_loans_heading') }}
+                    </h3>
+                    <p class="text-[12px] text-slate-500 mt-0.5">{{ __('pages.active_loans_heading_desc') }}</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 text-[13px] text-slate-600">
+                    <span>
+                        {{ __('pages.active_loan_pieces') }}:
+                        <strong class="text-slate-900">{{ $activeLoanQuantity ?? 0 }}</strong>
+                        @if(($rentableLimit ?? null) !== null)
+                            <span class="text-slate-400">/</span>
+                            {{ __('pages.plan_limit_short') }}:
+                            <strong class="text-slate-900">{{ $rentableLimit }}</strong>
+                        @endif
+                    </span>
+                    @if($employee->primaryDepartment)
+                        <a href="{{ route('admin.departments.loans', $employee->primaryDepartment) }}"
+                           class="inline-flex items-center gap-1.5 text-primary-700 hover:underline font-medium">
+                            <i data-lucide="building" class="w-3.5 h-3.5"></i>
+                            {{ __('pages.view_department_loans') }}
+                        </a>
+                    @endif
+                </div>
+            </div>
+            <div class="p-2 sm:p-4">
+                <x-active-loans-table :loans="$activeLoans ?? collect()" />
+            </div>
+        </div>
     </div>
 
 @push('scripts')

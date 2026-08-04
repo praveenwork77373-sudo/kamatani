@@ -19,10 +19,12 @@
     @endif
 </div>
 
-<form method="GET" class="ui-toolbar mb-4">
-    <x-per-page-field />
-    <div class="min-w-0 flex-1 sm:flex-none">
-        <label class="block text-xs text-slate-500 mb-1">{{ __('pages.medical_institution') }}</label>
+@php
+    $ccpFiltersActive = filled($selectedInstitutionId);
+@endphp
+<x-filter-bar :action="route('admin.customer-contract-plans.index')" form-id="ccp-filter-form" :active="$ccpFiltersActive">
+    <div class="ui-filter-field">
+        <label class="ui-filter-field__label">{{ __('pages.medical_institution') }}</label>
         <select name="medical_institution_id" class="ui-select">
             <option value="">{{ __('pages.all_institutions') }}</option>
             @foreach($institutions as $inst)
@@ -30,8 +32,15 @@
             @endforeach
         </select>
     </div>
-    <button class="ui-btn ui-btn-secondary">{{ __('pages.apply_filter') }}</button>
-</form>
+    <x-slot:actions>
+        <button type="submit" class="ui-btn ui-btn-secondary">{{ __('pages.apply_filter') }}</button>
+        @if($ccpFiltersActive)
+            <a href="{{ route('admin.customer-contract-plans.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </a>
+        @endif
+    </x-slot:actions>
+</x-filter-bar>
 
 <div class="ui-card overflow-hidden">
     <div class="ui-table-wrap">

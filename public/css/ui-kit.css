@@ -1093,3 +1093,200 @@ main button.px-6.py-2\.5 {
 .relative:has(> .ui-cselect) > svg.lucide.absolute {
   display: none !important;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Shared list filter bar — 1 compact row on desktop, toggle on mobile        */
+/* -------------------------------------------------------------------------- */
+
+.ui-filter-bar {
+  --ui-filter-control-h: 2.5rem;
+  background: #fff;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-xl);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  margin-bottom: 1.5rem;
+  overflow: visible;
+}
+
+.ui-filter-bar__toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  background: #fff;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ui-filter-bar__toggle:hover {
+  background: #f8fafc;
+}
+
+.ui-filter-bar__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: #0F6B6B;
+  flex-shrink: 0;
+}
+
+.ui-filter-bar__chevron {
+  margin-left: auto;
+  transition: transform 0.15s ease;
+  color: #94a3b8;
+}
+
+.ui-filter-bar__toggle[aria-expanded="true"] .ui-filter-bar__chevron {
+  transform: rotate(180deg);
+  color: #0F6B6B;
+}
+
+.ui-filter-bar__panel {
+  display: none;
+  border-top: 1px solid var(--ui-border);
+  padding: 0.75rem 1rem 1rem;
+}
+
+.ui-filter-bar__panel.is-open {
+  display: block;
+}
+
+.ui-filter-bar__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ui-filter-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ui-filter-field--grow {
+  flex: 1.35 1 0;
+}
+
+.ui-filter-field--sm {
+  flex: 0.85 1 0;
+}
+
+.ui-filter-field__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
+}
+
+.ui-filter-bar__actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.375rem;
+  flex-shrink: 0;
+  align-items: flex-end;
+}
+
+/* Keep every filter control the same height (input = select = button).
+   Must beat `main input:not(...)` normalize (high :not() specificity). */
+main .ui-filter-bar input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="range"]):not([type="color"]),
+main .ui-filter-bar select,
+main .ui-filter-bar .ui-cselect-trigger,
+main .ui-filter-bar .ui-cselect--compact .ui-cselect-trigger,
+main .ui-filter-bar .ui-btn,
+main .ui-filter-bar a.ui-btn {
+  box-sizing: border-box;
+  height: var(--ui-filter-control-h);
+  min-height: var(--ui-filter-control-h);
+  max-height: var(--ui-filter-control-h);
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+main .ui-filter-bar input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="range"]):not([type="color"]) {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+main .ui-filter-bar select {
+  padding-left: 0.75rem;
+  padding-right: 2rem;
+  background-position: right 0.6rem center;
+}
+
+main .ui-filter-bar .ui-cselect {
+  width: 100%;
+  height: var(--ui-filter-control-h);
+}
+
+main .ui-filter-bar .ui-cselect-trigger,
+main .ui-filter-bar .ui-cselect--compact .ui-cselect-trigger {
+  padding-left: 0.75rem;
+  padding-right: 0.65rem;
+  display: flex;
+  align-items: center;
+}
+
+main .ui-filter-bar .ui-btn,
+main .ui-filter-bar a.ui-btn {
+  padding-left: 0.85rem;
+  padding-right: 0.85rem;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+@media (min-width: 768px) {
+  .ui-filter-bar__toggle {
+    display: none;
+  }
+
+  .ui-filter-bar__panel {
+    display: block !important;
+    border-top: 0;
+    padding: 0.75rem 1rem;
+  }
+
+  .ui-filter-bar__row {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .ui-filter-bar__actions {
+    padding-bottom: 0;
+  }
+}
+
+/* Mid widths with many fields: allow a controlled wrap rather than overflow */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .ui-filter-bar__row {
+    flex-wrap: wrap;
+  }
+
+  .ui-filter-field {
+    flex: 1 1 calc(33.333% - 0.5rem);
+    min-width: 9rem;
+  }
+
+  .ui-filter-field--grow {
+    flex: 1 1 calc(40% - 0.5rem);
+  }
+
+  .ui-filter-bar__actions {
+    margin-left: auto;
+  }
+}

@@ -18,39 +18,36 @@
     </div>
 
     <div class="space-y-6">
-        {{-- Horizontal filters above table --}}
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <form method="GET" action="{{ route('customer.masters.department-admins') }}" class="p-4">
-                <x-per-page-field />
-                <div class="flex flex-col lg:flex-row lg:items-end gap-3">
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.department') }}</label>
-                        <select name="department_id" id="department-filter" class="ui-select">
-                            <option value="">{{ __('pages.all_departments') }}</option>
-                            @foreach($departments as $dept)
-                                <option value="{{ $dept->id }}" @selected($selectedDepartmentId == $dept->id)>{{ $dept->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="flex-[1.5] min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('common.search') }}</label>
-                        <input type="text" name="q" id="search-input" value="{{ $searchQuery }}"
-                               placeholder="{{ __('pages.search_department_admin_placeholder') }}"
-                               class="ui-input">
-                    </div>
-                    <div class="flex gap-2 shrink-0">
-                        <button type="submit" class="ui-btn ui-btn-primary">
-                            <i data-lucide="search" class="w-4 h-4"></i>
-                            {{ __('common.search') }}
-                        </button>
-                        <a href="{{ route('customer.masters.department-admins') }}" class="ui-btn ui-btn-secondary">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                            {{ __('common.reset') }}
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
+        @php
+            $deptAdminFiltersActive = filled($selectedDepartmentId) || filled($searchQuery);
+        @endphp
+        <x-filter-bar :action="route('customer.masters.department-admins')" form-id="department-admins-filter-form" :active="$deptAdminFiltersActive">
+            <div class="ui-filter-field">
+                <label class="ui-filter-field__label">{{ __('pages.department') }}</label>
+                <select name="department_id" id="department-filter" class="ui-select">
+                    <option value="">{{ __('pages.all_departments') }}</option>
+                    @foreach($departments as $dept)
+                        <option value="{{ $dept->id }}" @selected($selectedDepartmentId == $dept->id)>{{ $dept->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="ui-filter-field ui-filter-field--grow">
+                <label class="ui-filter-field__label">{{ __('common.search') }}</label>
+                <input type="text" name="q" id="search-input" value="{{ $searchQuery }}"
+                       placeholder="{{ __('pages.search_department_admin_placeholder') }}"
+                       class="ui-input">
+            </div>
+            <x-slot:actions>
+                <button type="submit" class="ui-btn ui-btn-primary">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                    {{ __('common.search') }}
+                </button>
+                <a href="{{ route('customer.masters.department-admins') }}" class="ui-btn ui-btn-secondary">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                    {{ __('common.reset') }}
+                </a>
+            </x-slot:actions>
+        </x-filter-bar>
 
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">

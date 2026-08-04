@@ -13,19 +13,28 @@
     <a href="{{ route('admin.uniform-recommendations.create') }}" class="ui-btn ui-btn-primary">{{ __('pages.new_registration') }}</a>
 </div>
 
-<form method="GET" class="mb-4 flex flex-wrap gap-2 items-end">
-    <x-per-page-field />
-    <div>
-        <label class="block text-xs text-slate-500 mb-1">{{ __('pages.medical_institution') }}</label>
-        <select name="medical_institution_id" class="rounded-lg border-slate-300 text-sm">
+@php
+    $recFiltersActive = filled(request('medical_institution_id'));
+@endphp
+<x-filter-bar :action="route('admin.uniform-recommendations.index')" form-id="recommendations-filter-form" :active="$recFiltersActive">
+    <div class="ui-filter-field">
+        <label class="ui-filter-field__label">{{ __('pages.medical_institution') }}</label>
+        <select name="medical_institution_id" class="ui-select">
             <option value="">{{ __('pages.all') }}</option>
             @foreach($institutions as $inst)
                 <option value="{{ $inst->id }}" @selected((string) request('medical_institution_id') === (string) $inst->id)>{{ $inst->name }}</option>
             @endforeach
         </select>
     </div>
-    <button class="px-3 py-2 rounded-lg border text-sm">{{ __('pages.apply_filter') }}</button>
-</form>
+    <x-slot:actions>
+        <button type="submit" class="ui-btn ui-btn-secondary">{{ __('pages.apply_filter') }}</button>
+        @if($recFiltersActive)
+            <a href="{{ route('admin.uniform-recommendations.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </a>
+        @endif
+    </x-slot:actions>
+</x-filter-bar>
 
 <div class="ui-card overflow-hidden">
     <div class="ui-table-wrap">

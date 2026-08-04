@@ -4,7 +4,6 @@
 @section('page_title', __('menu.notifications'))
 
 @section('content')
-    {{-- Statistics Cards --}}
     @php
         $unreadCount = $notifications->where('is_read', false)->count();
         $totalCount = $notifications->total();
@@ -17,7 +16,6 @@
         <x-stat-card tone="emerald" icon="check-circle" :value="$readCount" :label="__('pages.read_notifications')" />
     </x-stat-grid>
 
-    {{-- Header --}}
     <div class="mb-6">
         <div class="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -28,7 +26,7 @@
                 <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.notifications_description') }}</p>
             </div>
             @if($unreadCount > 0)
-                <button type="button" id="mark-all-read-btn" onclick="markAllAsRead()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-semibold shadow-md transition-all">
+                <button type="button" id="mark-all-read-btn" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-semibold shadow-md transition-all">
                     <i data-lucide="check-circle" class="w-4 h-4"></i>
                     {{ __('pages.mark_all_as_read') }}
                 </button>
@@ -36,15 +34,13 @@
         </div>
     </div>
 
-    {{-- Notifications List --}}
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div class="divide-y divide-slate-100">
             @forelse($notifications as $notification)
-                <div class="notification-item group relative p-5 hover:bg-slate-50 transition-all {{ !$notification->is_read ? 'bg-blue-50/30 border-l-4 border-primary-500' : '' }}" 
+                <div class="notification-item group relative p-5 hover:bg-slate-50 transition-all {{ !$notification->is_read ? 'bg-blue-50/30 border-l-4 border-primary-500' : '' }}"
                      data-notification-id="{{ $notification->id }}"
                      data-is-read="{{ $notification->is_read ? 'true' : 'false' }}">
                     <div class="flex items-start gap-4">
-                        {{-- Icon --}}
                         <div class="flex-shrink-0 mt-1">
                             @if(!$notification->is_read)
                                 <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
@@ -56,8 +52,7 @@
                                 </div>
                             @endif
                         </div>
-                        
-                        {{-- Content --}}
+
                         <div class="flex-1 min-w-0">
                             <div class="flex items-start justify-between gap-3 mb-2">
                                 <div class="flex-1 min-w-0">
@@ -76,27 +71,26 @@
                                             {{ $notification->created_at->format(app()->getLocale() === 'ja' ? 'Y年m月d日 H:i' : 'Y-m-d H:i') }}
                                         </span>
                                         @if($notification->read_at)
-                                            <span class="flex items-center gap-1.5">
+                                            <span class="flex items-center gap-1.5 read-at-time">
                                                 <i data-lucide="check" class="w-3.5 h-3.5"></i>
                                                 {{ __('pages.read_at') }}: {{ $notification->read_at->format(app()->getLocale() === 'ja' ? 'Y年m月d日 H:i' : 'Y-m-d H:i') }}
                                             </span>
                                         @endif
                                     </div>
                                 </div>
-                                
-                                {{-- Actions --}}
+
                                 <div class="flex items-center gap-2 flex-shrink-0">
                                     @if(!$notification->is_read)
-                                        <button type="button" 
-                                                onclick="markAsRead({{ $notification->id }}, this)"
+                                        <button type="button"
+                                                data-mark-read="{{ $notification->id }}"
                                                 class="notification-read-btn inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 hover:bg-primary-100 text-primary-700 hover:text-primary-800 border border-primary-200 hover:border-primary-300 text-[13px] font-medium transition-all shadow-sm">
                                             <i data-lucide="check-circle" class="w-4 h-4"></i>
                                             <span>{{ __('pages.mark_as_read') }}</span>
                                         </button>
                                     @endif
                                     @if($notification->link)
-                                        <a href="{{ $notification->link }}" 
-                                           onclick="markAsRead({{ $notification->id }}, null, true)"
+                                        <a href="{{ $notification->link }}"
+                                           data-mark-read-link="{{ $notification->id }}"
                                            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-300 text-[13px] font-medium transition-all shadow-sm">
                                             <i data-lucide="arrow-right" class="w-4 h-4"></i>
                                             <span>{{ __('pages.view_details') }}</span>
@@ -124,266 +118,208 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Lucide icons
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-});
+(function () {
+    const routes = {
+        read: @json(url('/notifications')),
+        readAll: @json(route('notifications.read_all')),
+    };
+    const i18n = {
+        processing: @json(__('pages.processing') . '...'),
+        markAsRead: @json(__('pages.mark_as_read')),
+        markAllAsRead: @json(__('pages.mark_all_as_read')),
+        marked: @json(__('pages.notification_marked_as_read')),
+        markedAll: @json(__('pages.all_notifications_marked_as_read')),
+        errorOne: @json(__('pages.error_marking_notification')),
+        errorAll: @json(__('pages.error_marking_notifications')),
+        readAt: @json(__('pages.read_at')),
+        newLabel: @json(__('pages.new')),
+    };
 
-function markAsRead(notificationId, buttonElement = null, isLinkClick = false) {
-    // If already read, don't do anything
-    const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
-    if (notificationItem && notificationItem.dataset.isRead === 'true') {
-        return;
+    function csrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta && meta.content) return meta.content;
+        const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
     }
-    
-    // Disable button and show loading state
-    if (buttonElement) {
-        buttonElement.disabled = true;
-        buttonElement.innerHTML = `
-            <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
-            <span>{{ __('pages.processing') }}...</span>
-        `;
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-    }
-    
-    fetch(`{{ url('/notifications') }}/${notificationId}/read`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        },
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Update UI
-            if (notificationItem) {
-                notificationItem.classList.remove('bg-blue-50/30', 'border-l-4', 'border-primary-500');
-                notificationItem.dataset.isRead = 'true';
-                
-                // Update icon
-                const iconContainer = notificationItem.querySelector('.flex-shrink-0 .w-10.h-10');
-                if (iconContainer) {
-                    iconContainer.className = 'w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center';
-                    iconContainer.innerHTML = '<i data-lucide="bell" class="w-5 h-5 text-slate-400"></i>';
-                }
-                
-                // Remove "new" badge
-                const newBadge = notificationItem.querySelector('.bg-primary-100.text-primary-700');
-                if (newBadge && newBadge.textContent.trim().includes('{{ __('pages.new') }}')) {
-                    newBadge.remove();
-                }
-                
-                // Hide read button
-                const readBtn = notificationItem.querySelector('.notification-read-btn');
-                if (readBtn) {
-                    readBtn.remove();
-                }
-                
-                // Update read at timestamp
-                const timeContainer = notificationItem.querySelector('.flex.items-center.gap-4');
-                if (timeContainer && !timeContainer.querySelector('.read-at-time')) {
-                    const now = new Date();
-                    const timeStr = now.toLocaleString('ja-JP', { 
-                        year: 'numeric', 
-                        month: '2-digit', 
-                        day: '2-digit', 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    });
-                    const readAtSpan = document.createElement('span');
-                    readAtSpan.className = 'flex items-center gap-1.5 read-at-time text-emerald-600';
-                    readAtSpan.innerHTML = `
-                        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                        {{ __('pages.read_at') }}: ${timeStr}
-                    `;
-                    timeContainer.appendChild(readAtSpan);
-                }
-            }
-            
-            // Update statistics
-            updateNotificationStats();
-            
-            // Show success message
-            if (window.showToast) {
-                window.showToast('{{ __('pages.notification_marked_as_read') }}', 'success');
-            }
-            
-            // Re-initialize icons
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error marking notification as read:', error);
-        
-        // Re-enable button on error
-        if (buttonElement) {
-            buttonElement.disabled = false;
-            buttonElement.innerHTML = `
-                <i data-lucide="check-circle" class="w-4 h-4"></i>
-                <span>{{ __('pages.mark_as_read') }}</span>
-            `;
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        }
-        
-        if (window.showToast) {
-            window.showToast('{{ __('pages.error_marking_notification') }}', 'error');
-        }
-    });
-}
 
-function markAllAsRead() {
-    const btn = document.getElementById('mark-all-read-btn');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = `
-            <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
-            {{ __('pages.processing') }}...
-        `;
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
+    function refreshIcons() {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
-    
-    fetch('{{ url('/notifications/read-all') }}', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Content-Type': 'application/json',
+
+    function toast(message, type) {
+        if (window.showToast) window.showToast(message, type);
+    }
+
+    function postJson(url) {
+        const token = csrfToken();
+        const headers = {
             'Accept': 'application/json',
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Update all notification items
-            document.querySelectorAll('.notification-item[data-is-read="false"]').forEach(item => {
-                item.classList.remove('bg-blue-50/30', 'border-l-4', 'border-primary-500');
-                item.dataset.isRead = 'true';
-                
-                // Update icon
-                const iconContainer = item.querySelector('.flex-shrink-0 .w-10.h-10');
-                if (iconContainer) {
-                    iconContainer.className = 'w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center';
-                    iconContainer.innerHTML = '<i data-lucide="bell" class="w-5 h-5 text-slate-400"></i>';
-                }
-                
-                // Remove "new" badge
-                const newBadge = item.querySelector('.bg-primary-100.text-primary-700');
-                if (newBadge && newBadge.textContent.trim().includes('{{ __('pages.new') }}')) {
-                    newBadge.remove();
-                }
-                
-                // Remove read button
-                const readBtn = item.querySelector('.notification-read-btn');
-                if (readBtn) {
-                    readBtn.remove();
-                }
-                
-                // Add read at timestamp
-                const timeContainer = item.querySelector('.flex.items-center.gap-4');
-                if (timeContainer && !timeContainer.querySelector('.read-at-time')) {
-                    const now = new Date();
-                    const timeStr = now.toLocaleString('ja-JP', { 
-                        year: 'numeric', 
-                        month: '2-digit', 
-                        day: '2-digit', 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    });
-                    const readAtSpan = document.createElement('span');
-                    readAtSpan.className = 'flex items-center gap-1.5 read-at-time text-emerald-600';
-                    readAtSpan.innerHTML = `
-                        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                        {{ __('pages.read_at') }}: ${timeStr}
-                    `;
-                    timeContainer.appendChild(readAtSpan);
-                }
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        };
+        if (token) {
+            headers['X-CSRF-TOKEN'] = token;
+            headers['X-XSRF-TOKEN'] = token;
+        }
+        return fetch(url, {
+            method: 'POST',
+            headers,
+            credentials: 'same-origin',
+        }).then(async (response) => {
+            let data = null;
+            try { data = await response.json(); } catch (e) { /* ignore */ }
+            if (!response.ok) {
+                throw new Error((data && data.message) || ('HTTP ' + response.status));
+            }
+            return data || { success: true };
+        });
+    }
+
+    function markItemReadUi(item) {
+        if (!item) return;
+        item.classList.remove('bg-blue-50/30', 'border-l-4', 'border-primary-500');
+        item.dataset.isRead = 'true';
+
+        const iconContainer = item.querySelector('.flex-shrink-0 .w-10.h-10');
+        if (iconContainer) {
+            iconContainer.className = 'w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center';
+            iconContainer.innerHTML = '<i data-lucide="bell" class="w-5 h-5 text-slate-400"></i>';
+        }
+
+        item.querySelectorAll('.bg-primary-100.text-primary-700').forEach((badge) => {
+            if ((badge.textContent || '').trim() === i18n.newLabel) badge.remove();
+        });
+
+        const readBtn = item.querySelector('.notification-read-btn');
+        if (readBtn) readBtn.remove();
+
+        const timeContainer = item.querySelector('.flex.items-center.gap-4');
+        if (timeContainer && !timeContainer.querySelector('.read-at-time')) {
+            const now = new Date();
+            const timeStr = now.toLocaleString(document.documentElement.lang || undefined, {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit',
             });
-            
-            // Update statistics
-            updateNotificationStats();
-            
-            // Hide mark all button
-            if (btn) {
-                btn.remove();
-            }
-            
-            // Show success message
-            if (window.showToast) {
-                window.showToast('{{ __('pages.all_notifications_marked_as_read') }}', 'success');
-            }
-            
-            // Re-initialize icons
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
+            const readAtSpan = document.createElement('span');
+            readAtSpan.className = 'flex items-center gap-1.5 read-at-time text-emerald-600';
+            readAtSpan.innerHTML = '<i data-lucide="check-circle" class="w-3.5 h-3.5"></i> '
+                + i18n.readAt + ': ' + timeStr;
+            timeContainer.appendChild(readAtSpan);
         }
-    })
-    .catch(error => {
-        console.error('Error marking all notifications as read:', error);
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = `
-                <i data-lucide="check-circle" class="w-4 h-4"></i>
-                {{ __('pages.mark_all_as_read') }}
-            `;
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        }
-        if (window.showToast) {
-            window.showToast('{{ __('pages.error_marking_notifications') }}', 'error');
-        }
-    });
-}
+    }
 
-function updateNotificationStats() {
-    // Update unread count in statistics card
-    const unreadItems = document.querySelectorAll('.notification-item[data-is-read="false"]');
-    const unreadCount = unreadItems.length;
-    const totalCount = document.querySelectorAll('.notification-item').length;
-    const readCount = totalCount - unreadCount;
-    
-    // Update unread card
-    const unreadCard = document.querySelector('.from-amber-50');
-    if (unreadCard) {
-        const countElement = unreadCard.querySelector('.text-2xl');
-        if (countElement) {
-            countElement.textContent = unreadCount.toLocaleString();
+    function updateNotificationStats() {
+        const unreadCount = document.querySelectorAll('.notification-item[data-is-read="false"]').length;
+        const totalCount = document.querySelectorAll('.notification-item').length;
+        const readCount = totalCount - unreadCount;
+        const unreadLabel = @json(__('pages.unread_notifications'));
+        const readLabel = @json(__('pages.read_notifications'));
+        document.querySelectorAll('.ui-stat-card, [class*="stat"]').forEach((card) => {
+            const label = (card.textContent || '');
+            const num = card.querySelector('.text-2xl, .text-3xl, [class*="font-bold"]');
+            if (!num) return;
+            if (label.includes(unreadLabel)) num.textContent = String(unreadCount);
+            if (label.includes(readLabel)) num.textContent = String(readCount);
+        });
+
+        if (unreadCount === 0) {
+            const markAllBtn = document.getElementById('mark-all-read-btn');
+            if (markAllBtn) markAllBtn.remove();
+        }
+
+        const badge = document.getElementById('notification-badge');
+        if (badge) {
+            if (unreadCount <= 0) badge.remove();
+            else badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
         }
     }
-    
-    // Update read card
-    const readCard = document.querySelector('.from-green-50');
-    if (readCard) {
-        const countElement = readCard.querySelector('.text-2xl');
-        if (countElement) {
-            countElement.textContent = readCount.toLocaleString();
+
+    function markAsRead(notificationId, buttonElement, isLinkClick) {
+        const item = document.querySelector('[data-notification-id="' + notificationId + '"]');
+        if (item && item.dataset.isRead === 'true') return Promise.resolve();
+
+        if (buttonElement) {
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>' + i18n.processing + '</span>';
+            refreshIcons();
         }
+
+        return postJson(routes.read + '/' + notificationId + '/read')
+            .then((data) => {
+                if (!data.success) throw new Error('Mark read failed');
+                markItemReadUi(item);
+                updateNotificationStats();
+                if (!isLinkClick) toast(i18n.marked, 'success');
+                refreshIcons();
+            })
+            .catch((error) => {
+                console.error('Error marking notification as read:', error);
+                if (buttonElement) {
+                    buttonElement.disabled = false;
+                    buttonElement.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i><span>' + i18n.markAsRead + '</span>';
+                    refreshIcons();
+                }
+                if (!isLinkClick) toast(i18n.errorOne, 'error');
+            });
     }
-    
-    // Hide mark all button if no unread notifications
-    if (unreadCount === 0) {
+
+    function markAllAsRead() {
+        const btn = document.getElementById('mark-all-read-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> ' + i18n.processing;
+            refreshIcons();
+        }
+
+        return postJson(routes.readAll)
+            .then((data) => {
+                if (!data.success) throw new Error('Mark all failed');
+                document.querySelectorAll('.notification-item[data-is-read="false"]').forEach(markItemReadUi);
+                updateNotificationStats();
+                if (btn) btn.remove();
+                toast(i18n.markedAll, 'success');
+                refreshIcons();
+            })
+            .catch((error) => {
+                console.error('Error marking all notifications as read:', error);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> ' + i18n.markAllAsRead;
+                    refreshIcons();
+                }
+                toast(i18n.errorAll, 'error');
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshIcons();
+
         const markAllBtn = document.getElementById('mark-all-read-btn');
         if (markAllBtn) {
-            markAllBtn.remove();
+            markAllBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                markAllAsRead();
+            });
         }
-    }
-}
+
+        document.querySelectorAll('[data-mark-read]').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                markAsRead(btn.getAttribute('data-mark-read'), btn, false);
+            });
+        });
+
+        document.querySelectorAll('[data-mark-read-link]').forEach((link) => {
+            link.addEventListener('click', () => {
+                // Fire-and-forget so navigation still happens
+                markAsRead(link.getAttribute('data-mark-read-link'), null, true);
+            });
+        });
+    });
+
+    // Keep globals for any leftover inline callers
+    window.markAsRead = markAsRead;
+    window.markAllAsRead = markAllAsRead;
+})();
 </script>
 @endpush

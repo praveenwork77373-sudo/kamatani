@@ -53,9 +53,18 @@
                     @forelse($departments as $dept)
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-5 py-4 font-semibold text-slate-900">{{ $dept->code }}</td>
-                            <td class="px-5 py-4 text-slate-800">{{ $dept->name }}</td>
+                            <td class="px-5 py-4 text-slate-800">
+                                <a href="{{ route('customer.masters.departments.show', $dept) }}" class="text-primary-700 hover:underline font-medium">
+                                    {{ $dept->name }}
+                                </a>
+                            </td>
                             <td class="px-5 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('departments.loans', $dept) }}"
+                                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 text-[13px] font-medium transition-all">
+                                        <i data-lucide="package" class="w-4 h-4"></i>
+                                        {{ __('pages.loans') }}
+                                    </a>
                                     <a href="{{ route('customer.masters.departments.edit', $dept) }}"
                                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 text-[13px] font-medium transition-all">
                                         <i data-lucide="pencil" class="w-4 h-4"></i>

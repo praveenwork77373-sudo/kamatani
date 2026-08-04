@@ -272,6 +272,28 @@ class MasterController extends Controller
         ]);
     }
 
+    public function departmentShow(Department $department): View
+    {
+        $user = request()->user();
+        $admin = $user->adminUser;
+        if (! $admin || ! in_array($admin->role, ['system_admin', 'operation'], true)) {
+            abort(403, __('pages.flash_2fb39bebc0'));
+        }
+
+        $department->load('medicalInstitution');
+        $inventory = app(\App\Services\LoanInventoryService::class)->departmentInventory($department);
+
+        return view('shared.department-loan-inventory', [
+            'department' => $department,
+            'inventory' => $inventory,
+            'backUrl' => route('admin.loan-status.index', array_filter([
+                'medical_institution_id' => $department->medical_institution_id,
+                'department_id' => $department->id,
+            ])),
+            'employeeShowRoute' => fn ($employee) => route('admin.employees.show', $employee),
+        ]);
+    }
+
     public function departmentUpdate(Request $request, Department $department): RedirectResponse
     {
         $this->checkSystemAdmin();

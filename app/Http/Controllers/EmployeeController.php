@@ -218,9 +218,16 @@ class EmployeeController extends Controller
 
         $employee->load(['primaryDepartment', 'positions.department', 'positions.jobType', 'contractPlanAssignments.customerContractPlan.contractPlan']);
 
+        $loanInventory = app(\App\Services\LoanInventoryService::class);
+        $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
+        $activeLoans = $loanInventory->activeLoansForEmployee($employee);
+
         return view('employees.show', [
             'employee' => $employee,
             'customer' => $customer,
+            'activeLoans' => $activeLoans,
+            'activeLoanQuantity' => (int) $activeLoans->sum('quantity'),
+            'rentableLimit' => $eligibility->rentableLimit($employee),
         ]);
     }
 

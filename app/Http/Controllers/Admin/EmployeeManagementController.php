@@ -110,7 +110,7 @@ class EmployeeManagementController extends Controller
 
     public function show(Employee $employee): View
     {
-        $this->checkSystemAdmin();
+        $this->checkLoanViewer();
 
         $employee->load([
             'primaryDepartment.medicalInstitution',
@@ -119,9 +119,26 @@ class EmployeeManagementController extends Controller
             'contractPlanAssignments.customerContractPlan.contractPlan',
         ]);
 
+        $loanInventory = app(\App\Services\LoanInventoryService::class);
+        $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
+        $activeLoans = $loanInventory->activeLoansForEmployee($employee);
+
         return view('admin.employees.show', [
             'employee' => $employee,
+            'activeLoans' => $activeLoans,
+            'activeLoanQuantity' => (int) $activeLoans->sum('quantity'),
+            'rentableLimit' => $eligibility->rentableLimit($employee),
         ]);
+    }
+
+    private function checkLoanViewer(): void
+    {
+        $user = request()->user();
+        $admin = $user->adminUser;
+
+        if (! $admin || ! in_array($admin->role, ['system_admin', 'operation'], true)) {
+            abort(403, __('pages.flash_2fb39bebc0'));
+        }
     }
 
     public function exportCsv(Request $request): StreamedResponse

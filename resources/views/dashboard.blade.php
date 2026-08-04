@@ -459,7 +459,8 @@
                 </div>
                 <div class="px-4 pb-4 space-y-3 flex-1 overflow-y-auto min-h-0">
                     @forelse($departmentStats as $dept)
-                        <div class="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-white border border-slate-200 hover:shadow-sm transition-all">
+                        <a href="{{ isset($dept['id']) ? route('departments.loans', $dept['id']) : '#' }}"
+                           class="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-white border border-slate-200 hover:shadow-sm hover:border-primary-300 transition-all {{ empty($dept['id']) ? 'pointer-events-none' : '' }}">
                             <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center flex-shrink-0">
                                 <i data-lucide="building" class="w-5 h-5 text-white"></i>
                             </div>
@@ -477,7 +478,8 @@
                                     <div class="h-full rounded-full transition-all duration-500 {{ ($dept['utilization'] ?? 0) >= 90 ? 'bg-gradient-to-r from-red-500 to-red-600' : (($dept['utilization'] ?? 0) >= 70 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-emerald-500 to-teal-600') }}" style="width: {{ min($dept['utilization'] ?? 0, 100) }}%"></div>
                                 </div>
                             </div>
-                        </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 flex-shrink-0"></i>
+                        </a>
                     @empty
                         <div class="text-center py-8">
                             <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>

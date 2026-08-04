@@ -453,6 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let allUniforms = @json($uniformsJson);
     let filteredUniforms = [];
+    let employeePlanFilterActive = false;
     let selectedItems = new Map();
     let returnItems = new Map(); // product_id => { quantity, max, name, size }
     const returnItemsHidden = document.getElementById('return-items-hidden');
@@ -464,7 +465,11 @@ document.addEventListener('DOMContentLoaded', () => {
         || '';
 
     function productSizeScheme(product) {
-        return product.size_scheme || (productSizeScheme(product) === 'shoe' ? 'shoe' : 'letter');
+        if (product?.size_scheme) {
+            return product.size_scheme;
+        }
+        // Fallback when API omitted size_scheme (avoid recursive self-call)
+        return product?.category === 'shoe' ? 'shoe' : 'letter';
     }
     function productEmployeeSizeField(product) {
         if (product.employee_size_field) return product.employee_size_field;
@@ -691,6 +696,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedEmployeeCard.classList.add('hidden');
                 selectedEmployeeId.value = '';
                 resetEmployeeSelect();
+                filteredUniforms = [];
+                employeePlanFilterActive = false;
                 // Show employee search field only if department is already selected
                 if (departmentSelect.value) {
                     employeeSearchField.classList.remove('hidden');
@@ -708,6 +715,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedEmployeeCard.classList.add('hidden');
                 selectedEmployeeId.value = '';
                 resetEmployeeSelect();
+                filteredUniforms = [];
+                employeePlanFilterActive = false;
                 // Load employees when switching to departmental mode if department is already selected
                 if (departmentSelect.value) {
                     loadDepartmentEmployees(departmentSelect.value);
@@ -1155,6 +1164,7 @@ document.addEventListener('DOMContentLoaded', () => {
             medical_institution_id: null
         };
         filteredUniforms = [];
+        employeePlanFilterActive = false;
         loadProducts();
     });
 
@@ -1175,6 +1185,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!Array.isArray(uniforms) || uniforms.length === 0) {
                     filteredUniforms = [];
+                    employeePlanFilterActive = true;
                     const plansEl = document.getElementById('employee-plans');
                     const planText = plansEl ? plansEl.textContent : '';
                     let emptyMsg = '{{ __('pages.no_products_available') }}';
@@ -1182,6 +1193,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         emptyMsg = @json(__('pages.js_plan_future_start'));
                     } else if (!planText || planText === @json(__('pages.unassigned')) || planText === '-') {
                         emptyMsg = @json(__('pages.js_no_plan_assigned'));
+                    } else {
+                        emptyMsg = @json(__('pages.js_plan_no_products'));
                     }
                     productsContainer.innerHTML = uniformPlaceholderHtml(`
                             <p class="text-[14px]">${emptyMsg}</p>
@@ -1189,6 +1202,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     `);
                     return;
                 }
+
+                employeePlanFilterActive = true;
 
                 const grouped = {};
                 uniforms.forEach(u => {
@@ -1216,6 +1231,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         name: first.name,
                         product_code: key,
                         category: first.category,
+                        category_label: first.category_label,
+                        size_scheme: first.size_scheme || (first.category === 'shoe' ? 'shoe' : 'letter'),
+                        employee_size_field: first.employee_size_field || null,
                         gender: first.gender,
                         sizes_with_ids: group.map(g => ({
                             size: g.size,
@@ -1518,7 +1536,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load products
     function loadProducts() {
         // Get products to display (filtered or all)
-        let productsToShow = filteredUniforms.length > 0 ? filteredUniforms : allUniforms;
+        // When an employee plan filter ran, never fall back to the unfiltered catalog
+        let productsToShow = filteredUniforms.length > 0
+            ? filteredUniforms
+            : (employeePlanFilterActive ? [] : allUniforms);
         
         // Apply gender filter if employee is selected (individual mode) or departmental mode
         const isDepartmentalMode = applicationModeInput.value === 'departmental';

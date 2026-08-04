@@ -34,6 +34,10 @@
         <i data-lucide="users" class="nav-ico"></i>
         <span>{{ __('menu.employees') }}</span>
     </a>
+    <a href="{{ route('loan-status.index') }}" class="{{ request()->routeIs('loan-status.*', 'departments.loans') ? 'nav-link is-active' : 'nav-link' }}">
+        <i data-lucide="package" class="nav-ico"></i>
+        <span>{{ __('menu.loan_status') }}</span>
+    </a>
 
     @if($customer->role === 'institution_admin')
         <p class="nav-section-label">{{ __('menu.menu_master_data') }}</p>
@@ -78,6 +82,10 @@
         <a href="{{ route('admin.orders.index') }}" class="{{ request()->is('admin/orders*') ? 'nav-link is-active' : 'nav-link' }}">
             <i data-lucide="package-check" class="nav-ico"></i>
             <span>{{ __('menu.orders') }}</span>
+        </a>
+        <a href="{{ route('admin.loan-status.index') }}" class="{{ request()->routeIs('admin.loan-status.*', 'admin.departments.loans') ? 'nav-link is-active' : 'nav-link' }}">
+            <i data-lucide="package" class="nav-ico"></i>
+            <span>{{ __('menu.loan_status') }}</span>
         </a>
 
         <p class="nav-section-label">{{ __('menu.menu_products_inventory') }}</p>

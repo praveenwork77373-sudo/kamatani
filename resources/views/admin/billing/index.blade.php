@@ -235,32 +235,34 @@
     <section class="space-y-4 min-w-0">
         <h2 class="text-[15px] font-bold text-slate-900">{{ __('pages.billing_snapshot_history') }}</h2>
 
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <form method="GET" action="{{ route('admin.billing.index') }}" class="p-4" id="billing-filter-form">
+        @php
+            $billingFiltersActive = filled($selectedInstitutionId);
+        @endphp
+        <x-filter-bar :action="route('admin.billing.index')" form-id="billing-filter-form" :active="$billingFiltersActive">
+            <x-slot:before>
                 <input type="hidden" name="billing_month" value="{{ $billingMonth }}">
                 <input type="hidden" name="status_filter" value="{{ $statusFilter }}">
-                <x-per-page-field />
-                <div class="mt-3 flex flex-col sm:flex-row sm:items-end gap-3">
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.medical_institution') }}</label>
-                        <select name="medical_institution_id" id="billing-institution-select" class="ui-select" onchange="this.form.submit();">
-                            <option value="">{{ __('pages.all_institutions') }}</option>
-                            @foreach($institutions ?? [] as $institution)
-                                <option value="{{ $institution->id }}" @selected($selectedInstitutionId == $institution->id)>
-                                    {{ $institution->name }}
-                                    @if(isset($billingCounts['institution'][$institution->id]) && $billingCounts['institution'][$institution->id] > 0)
-                                        ({{ $billingCounts['institution'][$institution->id] }})
-                                    @endif
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <a href="{{ route('admin.billing.index', ['billing_month' => $billingMonth]) }}" class="ui-btn ui-btn-secondary w-full sm:w-auto justify-center" title="{{ __('common.reset') }}">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </a>
-                </div>
-            </form>
-        </div>
+            </x-slot:before>
+            <div class="ui-filter-field">
+                <label class="ui-filter-field__label">{{ __('pages.medical_institution') }}</label>
+                <select name="medical_institution_id" id="billing-institution-select" class="ui-select" onchange="this.form.submit();">
+                    <option value="">{{ __('pages.all_institutions') }}</option>
+                    @foreach($institutions ?? [] as $institution)
+                        <option value="{{ $institution->id }}" @selected($selectedInstitutionId == $institution->id)>
+                            {{ $institution->name }}
+                            @if(isset($billingCounts['institution'][$institution->id]) && $billingCounts['institution'][$institution->id] > 0)
+                                ({{ $billingCounts['institution'][$institution->id] }})
+                            @endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <x-slot:actions>
+                <a href="{{ route('admin.billing.index', ['billing_month' => $billingMonth]) }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </a>
+            </x-slot:actions>
+        </x-filter-bar>
 
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden min-w-0">
             {{-- Mobile snapshot cards --}}

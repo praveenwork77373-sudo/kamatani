@@ -47,47 +47,48 @@
     </x-stat-grid>
 
     <div class="space-y-6">
-        {{-- Horizontal filters always visible --}}
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <form method="GET" action="{{ route('admin.applications.index') }}" class="p-4">
-                <x-per-page-field />
-                @foreach(request()->except(['institution_id','status','page']) as $key => $value)
-                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+        @php
+            $appFiltersActive = filled(request('institution_id')) || filled(request('status'));
+        @endphp
+        <x-filter-bar :action="route('admin.applications.index')" form-id="applications-filter-form" :active="$appFiltersActive">
+            <x-slot:before>
+                @foreach(request()->except(['institution_id','status','page','per_page']) as $key => $value)
+                    @if(is_scalar($value))
+                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                    @endif
                 @endforeach
-                <div class="flex flex-col lg:flex-row lg:items-end gap-3">
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.medical_institution') }}</label>
-                        <select name="institution_id" onchange="this.form.submit()" class="ui-select">
-                            <option value="">{{ __('pages.all_institutions') }}</option>
-                            @foreach($institutions as $inst)
-                                <option value="{{ $inst->id }}" @selected(request('institution_id')==$inst->id)>{{ $inst->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.status') }}</label>
-                        <select name="status" onchange="this.form.submit()" class="ui-select">
-                            <option value="">{{ __('pages.all_statuses') }}</option>
-                            <option value="pending" @selected(request('status')==='pending')>{{ __('pages.unprocessed') }}</option>
-                            <option value="waiting_special_approval" @selected(request('status')==='waiting_special_approval')>{{ __('pages.special_approval_pending') }}</option>
-                            <option value="in_progress" @selected(request('status')==='in_progress')>{{ __('pages.in_progress') }}</option>
-                            <option value="completed" @selected(request('status')==='completed')>{{ __('pages.completed') }}</option>
-                            <option value="rejected" @selected(request('status')==='rejected')>{{ __('pages.reject') }}</option>
-                            <option value="cancel_request" @selected(request('status')==='cancel_request')>{{ __('pages.cancel_request_status') }}</option>
-                        </select>
-                    </div>
-                    <div class="flex gap-2 shrink-0">
-                        <a href="{{ route('admin.applications.index', request()->only('type')) }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                        </a>
-                        <a href="{{ route('admin.applications.export', request()->query()) }}" class="ui-btn ui-btn-secondary">
-                            <i data-lucide="download" class="w-4 h-4"></i>
-                            {{ __('pages.csv_export') }}
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
+            </x-slot:before>
+            <div class="ui-filter-field">
+                <label class="ui-filter-field__label">{{ __('pages.medical_institution') }}</label>
+                <select name="institution_id" onchange="this.form.submit()" class="ui-select">
+                    <option value="">{{ __('pages.all_institutions') }}</option>
+                    @foreach($institutions as $inst)
+                        <option value="{{ $inst->id }}" @selected(request('institution_id')==$inst->id)>{{ $inst->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="ui-filter-field ui-filter-field--sm">
+                <label class="ui-filter-field__label">{{ __('pages.status') }}</label>
+                <select name="status" onchange="this.form.submit()" class="ui-select">
+                    <option value="">{{ __('pages.all_statuses') }}</option>
+                    <option value="pending" @selected(request('status')==='pending')>{{ __('pages.unprocessed') }}</option>
+                    <option value="waiting_special_approval" @selected(request('status')==='waiting_special_approval')>{{ __('pages.special_approval_pending') }}</option>
+                    <option value="in_progress" @selected(request('status')==='in_progress')>{{ __('pages.in_progress') }}</option>
+                    <option value="completed" @selected(request('status')==='completed')>{{ __('pages.completed') }}</option>
+                    <option value="rejected" @selected(request('status')==='rejected')>{{ __('pages.reject') }}</option>
+                    <option value="cancel_request" @selected(request('status')==='cancel_request')>{{ __('pages.cancel_request_status') }}</option>
+                </select>
+            </div>
+            <x-slot:actions>
+                <a href="{{ route('admin.applications.index', request()->only('type')) }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </a>
+                <a href="{{ route('admin.applications.export', request()->query()) }}" class="ui-btn ui-btn-secondary">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    {{ __('pages.csv_export') }}
+                </a>
+            </x-slot:actions>
+        </x-filter-bar>
 
         {{-- テーブルセクション --}}
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">

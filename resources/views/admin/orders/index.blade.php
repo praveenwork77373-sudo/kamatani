@@ -12,10 +12,12 @@
     <x-table-action :href="route('admin.applications.index')" icon="clipboard-list" :label="__('pages.to_applications_list')" tone="muted" />
 </div>
 
-<form method="GET" class="ui-toolbar mb-4">
-    <x-per-page-field />
-    <div class="min-w-0 flex-1 sm:flex-none">
-        <label class="block text-xs text-slate-500 mb-1">{{ __('pages.medical_institution') }}</label>
+@php
+    $ordersFiltersActive = filled(request('institution_id')) || filled(request('status'));
+@endphp
+<x-filter-bar :action="route('admin.orders.index')" form-id="orders-filter-form" :active="$ordersFiltersActive">
+    <div class="ui-filter-field">
+        <label class="ui-filter-field__label">{{ __('pages.medical_institution') }}</label>
         <select name="institution_id" class="ui-select">
             <option value="">{{ __('pages.all_institutions') }}</option>
             @foreach($institutions as $inst)
@@ -23,16 +25,23 @@
             @endforeach
         </select>
     </div>
-    <div class="min-w-0 flex-1 sm:flex-none">
-        <label class="block text-xs text-slate-500 mb-1">{{ __('pages.status') }}</label>
+    <div class="ui-filter-field ui-filter-field--sm">
+        <label class="ui-filter-field__label">{{ __('pages.status') }}</label>
         <select name="status" class="ui-select">
             <option value="">{{ __('pages.all_statuses') }}</option>
             <option value="in_progress" @selected(request('status') === 'in_progress')>{{ __('pages.in_progress') }}</option>
             <option value="completed" @selected(request('status') === 'completed')>{{ __('pages.completed') }}</option>
         </select>
     </div>
-    <button class="ui-btn ui-btn-secondary">{{ __('pages.apply_filter') }}</button>
-</form>
+    <x-slot:actions>
+        <button type="submit" class="ui-btn ui-btn-secondary">{{ __('pages.apply_filter') }}</button>
+        @if($ordersFiltersActive)
+            <a href="{{ route('admin.orders.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </a>
+        @endif
+    </x-slot:actions>
+</x-filter-bar>
 
 <form method="POST" action="{{ route('admin.applications.documents.bulk_issue') }}">
     @csrf

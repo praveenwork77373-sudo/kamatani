@@ -38,5 +38,6 @@ return [
     'menu_management' => '管理',
     'orders' => '受注一覧',
     'uniform_recommendations' => '推奨／指定ユニフォーム',
+    'loan_status' => '貸与状況',
 ];
 

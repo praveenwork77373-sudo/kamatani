@@ -1232,5 +1232,36 @@ return [
     'mail_subject_cancel_ok' => '【ユニフォーム管理システム】キャンセル申請が承認されました',
     'mail_subject_cancel_ng' => '【ユニフォーム管理システム】キャンセル申請が却下されました',
     'mail_subject_special' => '【ユニフォーム管理システム】特別承認が必要な申請があります',
+
+    // apply empty-plan message
+    'js_plan_no_products' => '契約プランは割当済みですが、プランに適用ユニフォームが紐付いていません。カマタニで契約プランに商品を登録してください。',
+
+    // loan inventory UI
+    'active_loans_heading' => '現在の貸与中ユニフォーム',
+    'active_loans_heading_desc' => '受付・出荷完了後に貸与中として記録された商品です。',
+    'active_loan_pieces' => '貸与点数',
+    'plan_limit_short' => 'プラン上限',
+    'loan_start_date_short' => '貸与開始',
+    'view_department_loans' => '部署の貸与状況を見る',
+    'department_loan_inventory' => '部署貸与状況',
+    'department_loan_inventory_desc' => '現在貸与中のユニフォームを商品別・職員別に確認できます。',
+    'staff_with_loans' => '貸与中の職員数',
+    'product_skus_on_loan' => '貸与中SKU数',
+    'loans_by_product' => '商品別集計',
+    'loans_by_product_desc' => '部署内で貸与中のユニフォームを商品単位で集計',
+    'loans_by_employee' => '職員別明細',
+    'loans_by_employee_desc' => '各職員が現在持っているユニフォーム一覧',
+    'no_active_loans_in_department' => 'この部署に貸与中のユニフォームはありません。',
+    'holders' => '所持者数',
+    'loans' => '貸与',
+
+    // loan status board
+    'loan_status_admin_desc' => '医療機関・部署・職員・商品で絞り込み、現在貸与中のユニフォームを横断確認できます。',
+    'loan_status_hospital_desc' => '自医療機関で現在貸与中のユニフォームを職員・部署・商品別に確認できます。',
+    'institutions_with_loans' => '貸与のある医療機関',
+    'departments_with_loans' => '貸与のある部署',
+    'select_institution_first' => '先に医療機関を選択してください',
+    'search_product_placeholder' => '商品コード・商品名',
+    'clear_filters' => '条件クリア',
 ];
 

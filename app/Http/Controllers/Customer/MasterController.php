@@ -91,6 +91,41 @@ class MasterController extends Controller
             'department' => $department,
         ]);
     }
+
+    public function departmentShow(Department $department): View
+    {
+        $user = request()->user();
+        $customer = $user->customerUser;
+
+        if (! $customer) {
+            abort(403, __('pages.flash_5c50f8ee3f'));
+        }
+
+        if ((int) $department->medical_institution_id !== (int) $customer->medical_institution_id) {
+            abort(403);
+        }
+
+        if ($customer->role === 'department_admin'
+            && (int) $customer->department_id !== (int) $department->id) {
+            abort(403);
+        }
+
+        if (! in_array($customer->role, ['institution_admin', 'department_admin'], true)) {
+            abort(403);
+        }
+
+        $department->load('medicalInstitution');
+        $inventory = app(\App\Services\LoanInventoryService::class)->departmentInventory($department);
+
+        return view('shared.department-loan-inventory', [
+            'department' => $department,
+            'inventory' => $inventory,
+            'backUrl' => $customer->role === 'institution_admin'
+                ? route('customer.masters.departments')
+                : route('loan-status.index'),
+            'employeeShowRoute' => fn ($employee) => route('employees.show', $employee),
+        ]);
+    }
     
     public function departmentUpdate(Request $request, Department $department): RedirectResponse
     {

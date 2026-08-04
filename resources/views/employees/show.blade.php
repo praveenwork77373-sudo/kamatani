@@ -182,6 +182,31 @@
                     @endforelse
                 </div>
             </div>
+
+            {{-- Active loans --}}
+            <div class="mt-6 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <h3 class="text-[15px] font-semibold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="package-check" class="w-4 h-4 text-primary-600"></i>
+                            {{ __('pages.active_loans_heading') }}
+                        </h3>
+                        <p class="text-[12px] text-slate-500 mt-0.5">{{ __('pages.active_loans_heading_desc') }}</p>
+                    </div>
+                    <div class="text-[13px] text-slate-600">
+                        {{ __('pages.active_loan_pieces') }}:
+                        <strong class="text-slate-900">{{ $activeLoanQuantity ?? 0 }}</strong>
+                        @if(($rentableLimit ?? null) !== null)
+                            <span class="text-slate-400">/</span>
+                            {{ __('pages.plan_limit_short') }}:
+                            <strong class="text-slate-900">{{ $rentableLimit }}</strong>
+                        @endif
+                    </div>
+                </div>
+                <div class="p-2 sm:p-4">
+                    <x-active-loans-table :loans="$activeLoans ?? collect()" />
+                </div>
+            </div>
         </div>
 
         {{-- Sidebar Actions --}}
@@ -194,6 +219,13 @@
                     </h3>
                 </div>
                 <div class="p-4 space-y-3">
+                    @if($employee->primaryDepartment)
+                        <a href="{{ route('departments.loans', $employee->primaryDepartment) }}"
+                           class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 text-[14px] font-medium transition-all">
+                            <i data-lucide="building" class="w-4 h-4"></i>
+                            {{ __('pages.view_department_loans') }}
+                        </a>
+                    @endif
                     @if($customer && in_array($customer->role, ['institution_admin', 'department_admin'], true))
                         <a href="{{ route('employees.edit', $employee) }}" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all">
                             <i data-lucide="edit" class="w-4 h-4"></i>

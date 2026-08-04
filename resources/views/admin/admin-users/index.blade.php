@@ -26,49 +26,46 @@
     </x-stat-grid>
 
     <div class="space-y-6">
-        {{-- Horizontal filters above table --}}
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <form method="GET" action="{{ route('admin.admin-users.index') }}" class="p-4">
-                <x-per-page-field />
-                <div class="flex flex-col lg:flex-row lg:items-end gap-3">
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.role') }}</label>
-                        <select name="role" class="ui-select">
-                            <option value="">{{ __('pages.all_roles') }}</option>
-                            <option value="system_admin" @selected($selectedRole == 'system_admin')>{{ __('roles.system_admin') }}</option>
-                            <option value="operation" @selected($selectedRole == 'operation')>{{ __('roles.operation') }}</option>
-                            <option value="sales" @selected($selectedRole == 'sales')>{{ __('roles.sales') }}</option>
-                            <option value="accounting" @selected($selectedRole == 'accounting')>{{ __('roles.accounting') }}</option>
-                            <option value="contract_plan_manager" @selected($selectedRole == 'contract_plan_manager')>{{ __('roles.contract_plan_manager') }}</option>
-                        </select>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.status') }}</label>
-                        <select name="status" class="ui-select">
-                            <option value="">{{ __('pages.all_statuses') }}</option>
-                            <option value="active" @selected($selectedStatus == 'active')>{{ __('pages.active') }}</option>
-                            <option value="blocked" @selected($selectedStatus == 'blocked')>{{ __('pages.blocked') }}</option>
-                            <option value="deleted" @selected($selectedStatus == 'deleted')>{{ __('pages.deleted') }}</option>
-                        </select>
-                    </div>
-                    <div class="flex-[1.5] min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('common.search') }}</label>
-                        <input type="text" name="search" value="{{ $searchQuery }}"
-                               placeholder="{{ __('pages.search_admin_user_placeholder') }}"
-                               class="ui-input">
-                    </div>
-                    <div class="flex gap-2 shrink-0">
-                        <button type="submit" class="ui-btn ui-btn-primary">
-                            <i data-lucide="search" class="w-4 h-4"></i>
-                            {{ __('common.search') }}
-                        </button>
-                        <a href="{{ route('admin.admin-users.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
+        @php
+            $adminUserFiltersActive = filled($selectedRole) || filled($selectedStatus) || filled($searchQuery);
+        @endphp
+        <x-filter-bar :action="route('admin.admin-users.index')" form-id="admin-users-filter-form" :active="$adminUserFiltersActive">
+            <div class="ui-filter-field ui-filter-field--sm">
+                <label class="ui-filter-field__label">{{ __('pages.role') }}</label>
+                <select name="role" class="ui-select">
+                    <option value="">{{ __('pages.all_roles') }}</option>
+                    <option value="system_admin" @selected($selectedRole == 'system_admin')>{{ __('roles.system_admin') }}</option>
+                    <option value="operation" @selected($selectedRole == 'operation')>{{ __('roles.operation') }}</option>
+                    <option value="sales" @selected($selectedRole == 'sales')>{{ __('roles.sales') }}</option>
+                    <option value="accounting" @selected($selectedRole == 'accounting')>{{ __('roles.accounting') }}</option>
+                    <option value="contract_plan_manager" @selected($selectedRole == 'contract_plan_manager')>{{ __('roles.contract_plan_manager') }}</option>
+                </select>
+            </div>
+            <div class="ui-filter-field ui-filter-field--sm">
+                <label class="ui-filter-field__label">{{ __('pages.status') }}</label>
+                <select name="status" class="ui-select">
+                    <option value="">{{ __('pages.all_statuses') }}</option>
+                    <option value="active" @selected($selectedStatus == 'active')>{{ __('pages.active') }}</option>
+                    <option value="blocked" @selected($selectedStatus == 'blocked')>{{ __('pages.blocked') }}</option>
+                    <option value="deleted" @selected($selectedStatus == 'deleted')>{{ __('pages.deleted') }}</option>
+                </select>
+            </div>
+            <div class="ui-filter-field ui-filter-field--grow">
+                <label class="ui-filter-field__label">{{ __('common.search') }}</label>
+                <input type="text" name="search" value="{{ $searchQuery }}"
+                       placeholder="{{ __('pages.search_admin_user_placeholder') }}"
+                       class="ui-input">
+            </div>
+            <x-slot:actions>
+                <button type="submit" class="ui-btn ui-btn-primary">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                    {{ __('common.search') }}
+                </button>
+                <a href="{{ route('admin.admin-users.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </a>
+            </x-slot:actions>
+        </x-filter-bar>
 
         {{-- Admin Users List --}}
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">

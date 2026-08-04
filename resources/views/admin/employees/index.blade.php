@@ -73,57 +73,54 @@
     </x-stat-grid>
 
     <div class="space-y-6">
-        {{-- Horizontal filters above table --}}
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <form method="GET" action="{{ route('admin.employees.index') }}" class="p-4">
-                <x-per-page-field />
-                <div class="flex flex-col lg:flex-row lg:items-end gap-3">
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.medical_institution') }}</label>
-                        <select name="medical_institution_id" id="institution-filter" class="ui-select">
-                            <option value="">{{ __('pages.all_medical_institutions') }}</option>
-                            @foreach($institutions as $inst)
-                                <option value="{{ $inst->id }}" @selected($selectedInstitutionId == $inst->id)>{{ $inst->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.department') }}</label>
-                        <select name="department_id" id="department-filter" class="ui-select"
-                                @if(!$selectedInstitutionId) disabled @endif>
-                            <option value="">{{ __('pages.all_departments') }}</option>
-                            @foreach($departments as $dept)
-                                <option value="{{ $dept->id }}" @selected($selectedDepartmentId == $dept->id)>{{ $dept->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('pages.status') }}</label>
-                        <select name="status" class="ui-select">
-                            <option value="">{{ __('pages.all_statuses') }}</option>
-                            <option value="employed" @selected($selectedStatus == 'employed')>{{ __('pages.employed') }}</option>
-                            <option value="on_leave" @selected($selectedStatus == 'on_leave')>{{ __('pages.on_leave') }}</option>
-                            <option value="retired" @selected($selectedStatus == 'retired')>{{ __('pages.retired') }}</option>
-                        </select>
-                    </div>
-                    <div class="flex-[1.5] min-w-0">
-                        <label class="block text-[12px] font-semibold text-slate-600 mb-1.5">{{ __('common.search') }}</label>
-                        <input type="text" name="q" value="{{ $searchQuery }}"
-                               placeholder="{{ __('pages.search_employee_placeholder') }}"
-                               class="ui-input">
-                    </div>
-                    <div class="flex gap-2 shrink-0">
-                        <button type="submit" class="ui-btn ui-btn-primary">
-                            <i data-lucide="search" class="w-4 h-4"></i>
-                            {{ __('common.search') }}
-                        </button>
-                        <a href="{{ route('admin.employees.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
+        @php
+            $adminEmpFiltersActive = filled($selectedInstitutionId) || filled($selectedDepartmentId) || filled($selectedStatus) || filled($searchQuery);
+        @endphp
+        <x-filter-bar :action="route('admin.employees.index')" form-id="admin-employee-filter-form" :active="$adminEmpFiltersActive">
+            <div class="ui-filter-field">
+                <label class="ui-filter-field__label">{{ __('pages.medical_institution') }}</label>
+                <select name="medical_institution_id" id="institution-filter" class="ui-select">
+                    <option value="">{{ __('pages.all_medical_institutions') }}</option>
+                    @foreach($institutions as $inst)
+                        <option value="{{ $inst->id }}" @selected($selectedInstitutionId == $inst->id)>{{ $inst->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="ui-filter-field">
+                <label class="ui-filter-field__label">{{ __('pages.department') }}</label>
+                <select name="department_id" id="department-filter" class="ui-select"
+                        @if(!$selectedInstitutionId) disabled @endif>
+                    <option value="">{{ __('pages.all_departments') }}</option>
+                    @foreach($departments as $dept)
+                        <option value="{{ $dept->id }}" @selected($selectedDepartmentId == $dept->id)>{{ $dept->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="ui-filter-field ui-filter-field--sm">
+                <label class="ui-filter-field__label">{{ __('pages.status') }}</label>
+                <select name="status" class="ui-select">
+                    <option value="">{{ __('pages.all_statuses') }}</option>
+                    <option value="employed" @selected($selectedStatus == 'employed')>{{ __('pages.employed') }}</option>
+                    <option value="on_leave" @selected($selectedStatus == 'on_leave')>{{ __('pages.on_leave') }}</option>
+                    <option value="retired" @selected($selectedStatus == 'retired')>{{ __('pages.retired') }}</option>
+                </select>
+            </div>
+            <div class="ui-filter-field ui-filter-field--grow">
+                <label class="ui-filter-field__label">{{ __('common.search') }}</label>
+                <input type="text" name="q" value="{{ $searchQuery }}"
+                       placeholder="{{ __('pages.search_employee_placeholder') }}"
+                       class="ui-input">
+            </div>
+            <x-slot:actions>
+                <button type="submit" class="ui-btn ui-btn-primary">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                    {{ __('common.search') }}
+                </button>
+                <a href="{{ route('admin.employees.index') }}" class="ui-btn ui-btn-secondary" title="{{ __('common.reset') }}">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </a>
+            </x-slot:actions>
+        </x-filter-bar>
 
         {{-- Employee List --}}
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">

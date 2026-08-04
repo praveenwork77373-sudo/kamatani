@@ -1262,5 +1262,36 @@ return [
     'mail_subject_cancel_ok' => '[Uniform Management System] Cancellation approved',
     'mail_subject_cancel_ng' => '[Uniform Management System] Cancellation rejected',
     'mail_subject_special' => '[Uniform Management System] Special approval required',
+
+    // apply empty-plan message
+    'js_plan_no_products' => 'A contract plan is assigned, but no uniforms are linked to it. Ask Kamatani to attach products on the contract plan.',
+
+    // loan inventory UI
+    'active_loans_heading' => 'Currently loaned uniforms',
+    'active_loans_heading_desc' => 'Items recorded as in-use after accept/shipment completion.',
+    'active_loan_pieces' => 'Loaned pieces',
+    'plan_limit_short' => 'Plan limit',
+    'loan_start_date_short' => 'Loan start',
+    'view_department_loans' => 'View department loans',
+    'department_loan_inventory' => 'Department loan inventory',
+    'department_loan_inventory_desc' => 'Active loans by product and by staff.',
+    'staff_with_loans' => 'Staff with loans',
+    'product_skus_on_loan' => 'SKUs on loan',
+    'loans_by_product' => 'By product',
+    'loans_by_product_desc' => 'Active loan quantities aggregated by product',
+    'loans_by_employee' => 'By employee',
+    'loans_by_employee_desc' => 'Uniforms each employee currently holds',
+    'no_active_loans_in_department' => 'No active loans in this department.',
+    'holders' => 'Holders',
+    'loans' => 'Loans',
+
+    // loan status board
+    'loan_status_admin_desc' => 'Filter by institution, department, staff, or product to review uniforms currently on loan.',
+    'loan_status_hospital_desc' => 'Review uniforms currently on loan at your institution by staff, department, or product.',
+    'institutions_with_loans' => 'Institutions with loans',
+    'departments_with_loans' => 'Departments with loans',
+    'select_institution_first' => 'Select a medical institution first',
+    'search_product_placeholder' => 'Product code or name',
+    'clear_filters' => 'Clear filters',
 ];
 

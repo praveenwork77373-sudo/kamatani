@@ -38,5 +38,6 @@ return [
     'menu_management' => 'Management',
     'orders' => 'Orders',
     'uniform_recommendations' => 'Recommended Uniforms',
+    'loan_status' => 'Loan status',
 ];
 
