@@ -256,6 +256,23 @@ body.app-brand {
   line-height: 1.25;
 }
 
+.shell-hospital #sidebar nav {
+  padding: 0.85rem 0.75rem 1rem !important;
+}
+
+.shell-hospital #sidebar .sidebar-footer {
+  border-top: 1px solid var(--border, #D8DEE3);
+  padding: 0.9rem 0.85rem 1rem !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.shell-hospital #sidebar .sidebar-footer > .flex {
+  padding: 0 0.15rem;
+  min-width: 0;
+}
+
 .shell-hospital #sidebar .sidebar-footer .user-name {
   color: #1A2330;
   font-size: 13px;
@@ -278,6 +295,12 @@ body.app-brand {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.shell-hospital #sidebar .sidebar-footer .nav-link {
+  margin: 0;
+  width: 100%;
 }
 
 

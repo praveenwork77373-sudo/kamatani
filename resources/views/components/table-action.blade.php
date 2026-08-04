@@ -18,18 +18,27 @@
         @if(strtoupper($method) !== 'POST')
             @method($method)
         @endif
-        <button type="submit" {{ $attributes->class([$classes]) }} title="{{ $label }}" aria-label="{{ $label }}">
+        <button type="submit"
+                {{ $attributes->class([$classes]) }}
+                data-tooltip="{{ $label }}"
+                aria-label="{{ $label }}">
             <i data-lucide="{{ $icon }}"></i>
             <span class="sr-only">{{ $label }}</span>
         </button>
     </form>
 @elseif($href)
-    <a href="{{ $href }}" {{ $attributes->class([$classes]) }} title="{{ $label }}" aria-label="{{ $label }}">
+    <a href="{{ $href }}"
+       {{ $attributes->class([$classes]) }}
+       data-tooltip="{{ $label }}"
+       aria-label="{{ $label }}">
         <i data-lucide="{{ $icon }}"></i>
         <span class="sr-only">{{ $label }}</span>
     </a>
 @else
-    <button type="{{ $attributes->get('type', 'button') }}" {{ $attributes->except('type')->class([$classes]) }} title="{{ $label }}" aria-label="{{ $label }}">
+    <button type="{{ $attributes->get('type', 'button') }}"
+            {{ $attributes->except('type')->class([$classes]) }}
+            data-tooltip="{{ $label }}"
+            aria-label="{{ $label }}">
         <i data-lucide="{{ $icon }}"></i>
         <span class="sr-only">{{ $label }}</span>
     </button>

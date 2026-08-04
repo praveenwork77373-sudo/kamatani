@@ -98,7 +98,7 @@
                                 $dept = $departments->first();
                             @endphp
                             <div class="px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[14px] text-slate-700">
-                                {{ $dept?->name ?? @json(__('pages.dept_unset')) }}
+                                {{ $dept?->name ?? __('pages.dept_unset') }}
                             </div>
                             <input type="hidden" name="primary_department_id" value="{{ $dept?->id }}">
                         @else

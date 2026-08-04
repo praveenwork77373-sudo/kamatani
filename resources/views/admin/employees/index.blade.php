@@ -5,28 +5,28 @@
 
 @section('content')
     <div class="mb-6">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <p class="text-[14px] text-slate-600">{{ __('pages.all_employees_description') }}</p>
-            <div class="flex items-center gap-3 flex-wrap">
-                <form method="POST" action="{{ route('admin.employees.export_csv') }}" class="inline">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <p class="text-[14px] text-slate-600 min-w-0">{{ __('pages.all_employees_description') }}</p>
+            <div class="ui-page-actions">
+                <form method="POST" action="{{ route('admin.employees.export_csv') }}" class="inline-flex shrink-0">
                     @csrf
                     <input type="hidden" name="medical_institution_id" value="{{ $selectedInstitutionId }}">
                     <input type="hidden" name="department_id" value="{{ $selectedDepartmentId }}">
                     <input type="hidden" name="status" value="{{ $selectedStatus }}">
                     <input type="hidden" name="q" value="{{ $searchQuery }}">
                     <button type="submit"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium shadow-sm transition-all {{ $selectedInstitutionId ? '' : 'opacity-50 cursor-not-allowed' }}"
-                            @if(!$selectedInstitutionId) disabled :title="__('pages.select_institution_before_export')" @endif>
+                            class="ui-page-action-btn {{ $selectedInstitutionId ? '' : 'is-disabled' }}"
+                            @if(!$selectedInstitutionId) disabled title="{{ __('pages.select_institution_before_export') }}" @endif>
                         <i data-lucide="download" class="w-4 h-4"></i>
-                        {{ __('pages.csv_export') }}
+                        <span>{{ __('pages.csv_export') }}</span>
                     </button>
                 </form>
-                <form method="POST" action="{{ route('admin.employees.import_csv') }}" enctype="multipart/form-data" class="inline" id="admin-csv-import-form">
+                <form method="POST" action="{{ route('admin.employees.import_csv') }}" enctype="multipart/form-data" class="inline-flex shrink-0" id="admin-csv-import-form">
                     @csrf
                     <input type="hidden" name="medical_institution_id" value="{{ $selectedInstitutionId }}">
-                    <label class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium shadow-sm transition-all {{ $selectedInstitutionId ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed' }}">
+                    <label class="ui-page-action-btn {{ $selectedInstitutionId ? 'cursor-pointer' : 'is-disabled' }}">
                         <i data-lucide="upload" class="w-4 h-4"></i>
-                        {{ __('pages.csv_import') }}
+                        <span>{{ __('pages.csv_import') }}</span>
                         <input type="file" name="csv_file" accept=".csv,.txt" class="hidden"
                                @if(!$selectedInstitutionId) disabled @endif
                                onchange="if(this.files.length){ document.getElementById('admin-csv-import-form').submit(); }">

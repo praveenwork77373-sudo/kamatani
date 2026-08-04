@@ -128,7 +128,7 @@ return [
     
     // Employee Management
     'employee_list' => 'Employee List',
-    'employee_list_description' => 'Search uniquely by employee number to reliably identify employees with the same name.',
+    'employee_list_description' => 'Use employee number to find staff with the same name.',
     'csv_export' => 'CSV Export',
     'csv_import' => 'CSV Import',
     'add_employee' => 'Add Employee',

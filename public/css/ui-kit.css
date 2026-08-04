@@ -225,6 +225,71 @@
   }
 }
 
+/* Header action cluster — stay on one line; scroll if needed */
+.ui-page-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  padding-bottom: 0.125rem;
+}
+
+.ui-page-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+  height: 2.25rem;
+  padding: 0 0.85rem;
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-border);
+  background: #fff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.ui-page-action-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.ui-page-action-btn--primary {
+  background: #0F6B6B;
+  border-color: #0F6B6B;
+  color: #fff;
+}
+
+.ui-page-action-btn--primary:hover {
+  background: #0B5555;
+  border-color: #0B5555;
+  color: #fff;
+}
+
+.ui-page-action-btn.is-disabled,
+.ui-page-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ui-page-action-btn i,
+.ui-page-action-btn svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
 .ui-toolbar {
   display: flex;
   flex-direction: column;
@@ -291,13 +356,20 @@
   flex-wrap: nowrap;
 }
 
-/* Icon-only row actions — keeps one line on mobile; label via aria/title */
+/* Icon-only row actions — keeps one line on mobile; label via hover popover */
 .ui-icon-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   width: 2rem;
   height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  max-width: 2rem;
+  max-height: 2rem;
+  padding: 0;
   border-radius: 999px;
   border: 1px solid #D8DEE3;
   background: #fff;
@@ -342,6 +414,51 @@
 .ui-icon-btn--success:hover {
   background: #E6F5EC;
   border-color: #1B7F4A;
+}
+
+/* Hover / focus popover label (below icon to avoid table overflow clipping) */
+.ui-icon-btn[data-tooltip]::before,
+.ui-icon-btn[data-tooltip]::after {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 40;
+}
+
+.ui-icon-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  top: calc(100% + 8px);
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.375rem;
+  background: #1A2330;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.ui-icon-btn[data-tooltip]::before {
+  content: '';
+  top: calc(100% + 2px);
+  border: 5px solid transparent;
+  border-bottom-color: #1A2330;
+}
+
+.ui-icon-btn[data-tooltip]:hover::before,
+.ui-icon-btn[data-tooltip]:hover::after,
+.ui-icon-btn[data-tooltip]:focus-visible::before,
+.ui-icon-btn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+}
+
+.ui-icon-btn[data-tooltip]:hover::after,
+.ui-icon-btn[data-tooltip]:focus-visible::after {
+  transform: translateX(-50%) translateY(2px);
 }
 
 .ui-status-pill {
@@ -544,7 +661,7 @@ main textarea.w-full {
 }
 
 /* Primary action buttons that lack min size on mobile */
-main button[type="submit"]:not(.ui-btn),
+main button[type="submit"]:not(.ui-btn):not(.ui-icon-btn):not(.ui-page-action-btn),
 main a.px-6.py-2\.5,
 main button.px-6.py-2\.5 {
   min-height: 2.5rem;

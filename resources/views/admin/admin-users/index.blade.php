@@ -97,87 +97,68 @@
                         @forelse($adminUsers as $adminUser)
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="px-5 py-4 text-slate-900 font-medium">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-[12px] font-semibold">
-                                            {{ mb_substr($adminUser->user->name, 0, 1) }}
-                                        </div>
-                                        <span>{{ $adminUser->user->name }}</span>
-                                    </div>
+                                    {{ $adminUser->user->name }}
                                 </td>
                                 <td class="px-5 py-4 text-slate-700">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
-                                        <span>{{ $adminUser->user->email }}</span>
-                                    </div>
+                                    {{ $adminUser->user->email }}
                                 </td>
                                 <td class="px-5 py-4">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-primary-100 text-primary-800 border border-primary-200">
-                                        <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+                                    <span class="ui-status-pill ui-status-pill--brand">
                                         {{ __('roles.' . $adminUser->role) }}
                                     </span>
                                 </td>
                                 <td class="px-5 py-4">
                                     @if($adminUser->trashed())
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-red-100 text-red-800 border border-red-200">
-                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                            {{ __('pages.deleted') }}
-                                        </span>
+                                        <span class="ui-status-pill ui-status-pill--danger">{{ __('pages.deleted') }}</span>
                                     @elseif($adminUser->isBlocked())
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-orange-100 text-orange-800 border border-orange-200">
-                                            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-                                            {{ __('pages.blocked') }}
-                                        </span>
+                                        <span class="ui-status-pill ui-status-pill--warning">{{ __('pages.blocked') }}</span>
                                     @else
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                                            {{ __('pages.active') }}
-                                        </span>
+                                        <span class="ui-status-pill ui-status-pill--success">{{ __('pages.active') }}</span>
                                     @endif
                                 </td>
-                                <td class="px-5 py-4 text-slate-600 text-[13px]">
-                                    <div class="flex items-center gap-2">
-                                        <i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i>
-                                        <span>{{ $adminUser->created_at->format('Y/m/d') }}</span>
-                                    </div>
+                                <td class="px-5 py-4 text-slate-600 text-[13px] whitespace-nowrap">
+                                    {{ $adminUser->created_at->format('Y/m/d') }}
                                 </td>
-                                <td class="px-5 py-4">
-                                    <div class="flex items-center justify-center gap-2">
+                                <td class="px-5 py-4 text-center ui-table__actions">
+                                    <div class="ui-table__actions-row justify-center">
                                         @if($adminUser->trashed())
-                                            <form action="{{ route('admin.admin-users.restore', $adminUser->id) }}" method="POST" class="inline">
-                                                @csrf
-                                                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[13px] font-medium transition-all">
-                                                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                                                    {{ __('pages.restore') }}
-                                                </button>
-                                            </form>
+                                            <x-table-action
+                                                :href="route('admin.admin-users.restore', $adminUser->id)"
+                                                icon="rotate-ccw"
+                                                tone="success"
+                                                method="POST"
+                                                :label="__('pages.restore')"
+                                            />
                                         @else
-                                            <a href="{{ route('admin.admin-users.edit', $adminUser) }}"
-                                               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 hover:bg-primary-100 text-primary-700 text-[13px] font-medium transition-all">
-                                                <i data-lucide="edit" class="w-4 h-4"></i>
-                                                {{ __('common.edit') }}
-                                            </a>
+                                            <x-table-action
+                                                :href="route('admin.admin-users.edit', $adminUser)"
+                                                icon="pencil"
+                                                :label="__('common.edit')"
+                                            />
 
                                             @if($adminUser->isBlocked())
-                                                <form action="{{ route('admin.admin-users.unblock', $adminUser) }}" method="POST" class="inline">
-                                                    @csrf
-                                                    <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[13px] font-medium transition-all">
-                                                        <i data-lucide="unlock" class="w-4 h-4"></i>
-                                                        {{ __('pages.unblock') }}
-                                                    </button>
-                                                </form>
+                                                <x-table-action
+                                                    :href="route('admin.admin-users.unblock', $adminUser)"
+                                                    icon="unlock"
+                                                    tone="success"
+                                                    method="POST"
+                                                    :label="__('pages.unblock')"
+                                                />
                                             @else
-                                                <button type="button" onclick="openBlockModal({{ $adminUser->id }}, '{{ $adminUser->user->name }}')"
-                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 text-[13px] font-medium transition-all">
-                                                    <i data-lucide="lock" class="w-4 h-4"></i>
-                                                    {{ __('pages.block') }}
-                                                </button>
+                                                <x-table-action
+                                                    icon="lock"
+                                                    tone="muted"
+                                                    :label="__('pages.block')"
+                                                    onclick="openBlockModal({{ $adminUser->id }}, {{ json_encode($adminUser->user->name) }})"
+                                                />
                                             @endif
 
-                                            <button type="button" onclick="openDeleteModal({{ $adminUser->id }}, '{{ $adminUser->user->name }}')"
-                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-[13px] font-medium transition-all">
-                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                                {{ __('common.delete') }}
-                                            </button>
+                                            <x-table-action
+                                                icon="trash-2"
+                                                tone="danger"
+                                                :label="__('common.delete')"
+                                                onclick="openDeleteModal({{ $adminUser->id }}, {{ json_encode($adminUser->user->name) }})"
+                                            />
                                         @endif
                                     </div>
                                 </td>

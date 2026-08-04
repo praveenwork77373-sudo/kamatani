@@ -9,12 +9,13 @@
     $fid = $formId ?: 'filter-bar-'.uniqid();
 @endphp
 
+{{-- Mobile: always collapsed until toggle click. Desktop: panel always visible via CSS. --}}
 <div {{ $attributes->class(['ui-filter-bar']) }} data-filter-bar>
     <button
         type="button"
         class="ui-filter-bar__toggle"
         data-filter-toggle
-        aria-expanded="{{ $active ? 'true' : 'false' }}"
+        aria-expanded="false"
         aria-controls="{{ $fid }}-panel"
     >
         <i data-lucide="sliders-horizontal" class="w-4 h-4" aria-hidden="true"></i>
@@ -27,7 +28,7 @@
 
     <div
         id="{{ $fid }}-panel"
-        class="ui-filter-bar__panel{{ $active ? ' is-open' : '' }}"
+        class="ui-filter-bar__panel"
         data-filter-panel
     >
         <form

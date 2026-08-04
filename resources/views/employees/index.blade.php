@@ -6,35 +6,35 @@
 
 @section('content')
     <div class="mb-6">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <p class="text-[14px] text-slate-600">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <p class="text-[14px] text-slate-600 min-w-0">
                 {{ __('pages.employee_list_description') }}
             </p>
-            <div class="flex items-center gap-3 flex-wrap">
-                @if($customer && in_array($customer->role, ['institution_admin', 'department_admin'], true))
-                    <form method="POST" action="{{ route('employees.export_csv') }}" class="inline">
+            @if($customer && in_array($customer->role, ['institution_admin', 'department_admin'], true))
+                <div class="ui-page-actions">
+                    <form method="POST" action="{{ route('employees.export_csv') }}" class="inline-flex shrink-0">
                         @csrf
                         <input type="hidden" name="q" value="{{ request('q') }}">
                         <input type="hidden" name="department_id" value="{{ request('department_id') }}">
-                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium shadow-sm transition-all">
+                        <button type="submit" class="ui-page-action-btn">
                             <i data-lucide="download" class="w-4 h-4"></i>
-                            {{ __('pages.csv_export') }}
+                            <span>{{ __('pages.csv_export') }}</span>
                         </button>
                     </form>
-                    <form method="POST" action="{{ route('employees.import_csv') }}" enctype="multipart/form-data" class="inline" id="csv-import-form">
+                    <form method="POST" action="{{ route('employees.import_csv') }}" enctype="multipart/form-data" class="inline-flex shrink-0" id="csv-import-form">
                         @csrf
-                        <label class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium shadow-sm transition-all cursor-pointer">
+                        <label class="ui-page-action-btn cursor-pointer">
                             <i data-lucide="upload" class="w-4 h-4"></i>
-                            {{ __('pages.csv_import') }}
+                            <span>{{ __('pages.csv_import') }}</span>
                             <input type="file" name="csv_file" accept=".csv,.txt" class="hidden" onchange="document.getElementById('csv-import-form').submit()">
                         </label>
                     </form>
-                    <a href="{{ route('employees.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-medium shadow-md transition-all">
+                    <a href="{{ route('employees.create') }}" class="ui-page-action-btn ui-page-action-btn--primary">
                         <i data-lucide="plus" class="w-4 h-4"></i>
-                        {{ __('pages.add_employee') }}
+                        <span>{{ __('pages.add_employee') }}</span>
                     </a>
-                @endif
-            </div>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -193,27 +193,28 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="px-5 py-4 text-center">
-                                        <div class="flex items-center justify-center gap-2">
-                                            <a href="{{ route('employees.show', $employee) }}" 
-                                               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 hover:bg-primary-100 text-primary-700 text-[13px] font-medium transition-all border border-primary-200 hover:border-primary-300">
-                                                <i data-lucide="eye" class="w-4 h-4"></i>
-                                                {{ __('common.view') }}
-                                            </a>
+                                    <td class="px-5 py-4 text-center ui-table__actions">
+                                        <div class="ui-table__actions-row justify-center">
+                                            <x-table-action
+                                                :href="route('employees.show', $employee)"
+                                                icon="eye"
+                                                :label="__('common.view')"
+                                            />
                                             @if($customer && in_array($customer->role, ['institution_admin', 'department_admin'], true))
-                                                <a href="{{ route('employees.edit', $employee) }}" 
-                                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-[13px] font-medium transition-all border border-slate-200 hover:border-slate-300">
-                                                    <i data-lucide="edit" class="w-4 h-4"></i>
-                                                    {{ __('common.edit') }}
-                                                </a>
-                                                <form method="POST" action="{{ route('employees.destroy', $employee) }}" class="inline" onsubmit="return confirm('{{ __('pages.confirm_delete_employee') }}');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-[13px] font-medium transition-all border border-red-200 hover:border-red-300">
-                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                                        {{ __('common.delete') }}
-                                                    </button>
-                                                </form>
+                                                <x-table-action
+                                                    :href="route('employees.edit', $employee)"
+                                                    icon="pencil"
+                                                    tone="muted"
+                                                    :label="__('common.edit')"
+                                                />
+                                                <x-table-action
+                                                    :href="route('employees.destroy', $employee)"
+                                                    icon="trash-2"
+                                                    tone="danger"
+                                                    method="DELETE"
+                                                    :label="__('common.delete')"
+                                                    :confirm="__('pages.confirm_delete_employee')"
+                                                />
                                             @endif
                                         </div>
                                     </td>

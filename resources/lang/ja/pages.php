@@ -128,7 +128,7 @@ return [
     
     // Employee Management
     'employee_list' => '職員一覧',
-    'employee_list_description' => '職員番号で一意に検索し、同姓同名の職員も確実に識別できます。',
+    'employee_list_description' => '職員番号で同姓同名の職員を検索できます。',
     'csv_export' => 'CSVエクスポート',
     'csv_import' => 'CSVインポート',
     'add_employee' => '職員追加',
