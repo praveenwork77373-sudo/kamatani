@@ -930,15 +930,23 @@ class ApplicationController extends Controller
             }
         });
 
-        if (!empty($errors)) {
+        if ($createdCount > 0 && ! empty($errors)) {
+            return redirect()
+                ->route('applications.create')
+                ->with('status', __('pages.departmental_partial_success', ['count' => $createdCount]))
+                ->with('error', implode("\n", $errors))
+                ->with('success', true);
+        }
+
+        if (! empty($errors)) {
             return redirect()->back()
                 ->withInput()
                 ->with('error', implode("\n", $errors));
         }
 
         $message = $createdCount > 0
-            ? "部署一括申請を登録しました。{$createdCount}件の申請を作成しました。"
-            : '申請の作成に失敗しました。';
+            ? __('pages.departmental_success', ['count' => $createdCount])
+            : __('pages.departmental_failed');
 
         return redirect()
             ->route('applications.create')

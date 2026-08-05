@@ -343,10 +343,18 @@ Automated coverage: `php artisan test` (application lifecycle, multi-affiliation
 | `202601.こやまクリニック_請求金額・人数/` | Monthly plan × headcount billing (closest to implemented model) |
 | `202607在宅ほくと_請求集計/` | Same model + site breakdown |
 | `2603.松田病院_明細/` | Item + piece-tier layout (reference only; not app billing engine) |
-| `マスタ資料_テーブル一覧確認用.xlsx` | Master table sketch |
+| `260805.ベースデータ.xlsx` | Latest client base master data (hospitals, plans, products, suppliers) |
+| `マスタ資料_テーブル一覧確認用.xlsx` | Earlier master table sketch |
 | `受注伝票_20260626_1396466.xlsx` | Order / shipping form sample (PDF targets) |
 | `ユニフォーム管理システム_仕様書_改定版_20260731 (2).docx` | Official JP spec |
 | `Uniform_Management_System_Specification_20260731_EN.md` | English translation of the spec |
+
+Load the latest base data (best-fit; category slot caps flattened to one `rentable_points`):
+
+```bash
+php artisan masters:import-base-data --dry-run
+php artisan masters:import-base-data
+```
 
 ---
 

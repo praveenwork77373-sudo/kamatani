@@ -23,6 +23,7 @@
                 <thead class="bg-slate-50 border-b border-slate-200">
                     <tr>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.institution_code') }}</th>
+                        <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.onoe_code') }}</th>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.institution_name') }}</th>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.closing_day') }}</th>
                         <th class="px-5 py-3.5 text-left font-semibold text-slate-700">{{ __('pages.notification_email') }}</th>
@@ -34,6 +35,7 @@
                     @forelse($institutions as $institution)
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-5 py-4 font-semibold text-slate-900">{{ $institution->code }}</td>
+                            <td class="px-5 py-4 text-slate-600 font-mono text-[13px]">{{ $institution->onoe_code ?: '—' }}</td>
                             <td class="px-5 py-4 text-slate-800">{{ $institution->name }}</td>
                             <td class="px-5 py-4 text-slate-600">{{ __('pages.closing_day_unit', ['day' => $institution->billing_closing_day ?? 1]) }}</td>
                             <td class="px-5 py-4 text-slate-600">

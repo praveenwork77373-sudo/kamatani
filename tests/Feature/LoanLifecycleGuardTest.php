@@ -223,7 +223,7 @@ class LoanLifecycleGuardTest extends TestCase
             'delivery_location_id' => $this->delivery->id,
             'requested_by_user_id' => $this->customer->id,
         ]);
-        // Over-request on purpose (should only restock 2)
+        // Over-request must be rejected (no silent partial restock)
         ApplicationItem::create([
             'application_id' => $app->id,
             'uniform_product_id' => $this->product->id,
@@ -235,15 +235,79 @@ class LoanLifecycleGuardTest extends TestCase
 
         $this->actingAs($this->admin)
             ->post(route('admin.applications.approve', $app))
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('error');
 
         $loan = EmployeeLoan::where('employee_id', $this->employee->id)
             ->where('uniform_product_id', $this->product->id)
             ->first();
 
-        $this->assertSame('returned', $loan->status);
-        $this->assertSame(0, (int) $loan->quantity);
-        $this->assertSame($stockBefore + 2, (int) $this->product->fresh()->stock_quantity);
+        $this->assertSame('in_use', $loan->status);
+        $this->assertSame(2, (int) $loan->quantity);
+        $this->assertSame($stockBefore, (int) $this->product->fresh()->stock_quantity);
+        $this->assertSame('pending', $app->fresh()->status);
+    }
+
+    public function test_cancel_before_accept_does_not_mutate_inventory(): void
+    {
+        $app = Application::create([
+            'medical_institution_id' => $this->institution->id,
+            'department_id' => $this->department->id,
+            'employee_id' => $this->employee->id,
+            'type' => 'return',
+            'status' => 'cancel_request',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'delivery_location_id' => $this->delivery->id,
+            'requested_by_user_id' => $this->customer->id,
+            'accepted_at' => null,
+        ]);
+        ApplicationItem::create([
+            'application_id' => $app->id,
+            'uniform_product_id' => $this->product->id,
+            'quantity' => 2,
+            'action' => 'return',
+        ]);
+
+        $stockBefore = (int) $this->product->fresh()->stock_quantity;
+        $loanBefore = EmployeeLoan::where('employee_id', $this->employee->id)->first();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.applications.cancel_approve', $app))
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $this->assertSame('cancel_approved', $app->fresh()->status);
+        $this->assertSame($stockBefore, (int) $this->product->fresh()->stock_quantity);
+        $this->assertSame('in_use', $loanBefore->fresh()->status);
+        $this->assertSame(2, (int) $loanBefore->fresh()->quantity);
+    }
+
+    public function test_customer_cannot_lookup_other_institution_departments(): void
+    {
+        $other = MedicalInstitution::create([
+            'code' => 'H-OTHER',
+            'name' => 'Other Hospital',
+            'notification_email' => 'other@example.com',
+            'billing_closing_day' => 1,
+        ]);
+        Department::create([
+            'medical_institution_id' => $other->id,
+            'code' => 'D-OTHER',
+            'name' => 'Secret Dept',
+        ]);
+
+        $this->actingAs($this->customer)
+            ->getJson(route('api.departments', ['medical_institution_id' => $other->id]))
+            ->assertForbidden();
+
+        $this->actingAs($this->customer)
+            ->getJson(route('api.institution.departments_job_types', $other))
+            ->assertForbidden();
+
+        $this->actingAs($this->customer)
+            ->getJson(route('api.departments', ['medical_institution_id' => $this->institution->id]))
+            ->assertOk();
     }
 
     public function test_happy_path_return_then_delete_employee(): void

@@ -159,6 +159,29 @@ class MasterController extends Controller
         if ($department->medical_institution_id !== $customer->medical_institution_id) {
             abort(403);
         }
+
+        $employeeCount = \App\Models\Employee::query()
+            ->where('medical_institution_id', $customer->medical_institution_id)
+            ->where(function ($q) use ($department) {
+                $q->where('primary_department_id', $department->id)
+                    ->orWhereHas('positions', fn ($p) => $p->where('department_id', $department->id));
+            })
+            ->count();
+
+        if ($employeeCount > 0) {
+            return redirect()->route('customer.masters.departments')
+                ->with('error', __('pages.department_delete_blocked_employees', ['count' => $employeeCount]));
+        }
+
+        $openApps = \App\Models\Application::query()
+            ->where('department_id', $department->id)
+            ->whereNotIn('status', ['completed', 'rejected', 'cancel_approved'])
+            ->count();
+
+        if ($openApps > 0) {
+            return redirect()->route('customer.masters.departments')
+                ->with('error', __('pages.department_delete_blocked_applications', ['count' => $openApps]));
+        }
         
         $department->delete();
         
@@ -262,6 +285,12 @@ class MasterController extends Controller
         
         if ($jobType->medical_institution_id !== $customer->medical_institution_id) {
             abort(403);
+        }
+
+        $positionCount = \App\Models\EmployeePosition::where('job_type_id', $jobType->id)->count();
+        if ($positionCount > 0) {
+            return redirect()->route('customer.masters.job-types')
+                ->with('error', __('pages.job_type_delete_blocked_positions', ['count' => $positionCount]));
         }
         
         $jobType->delete();

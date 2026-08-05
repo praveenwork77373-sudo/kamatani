@@ -58,6 +58,7 @@ class MasterController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'code' => ['nullable', 'string', 'max:50', 'unique:medical_institutions,code'],
+            'onoe_code' => ['nullable', 'string', 'max:50'],
             'notification_email' => ['required', 'email'],
             'billing_closing_day' => ['nullable', 'integer', 'min:1', 'max:28'],
             'sales_person_name' => ['nullable', 'string', 'max:255'],
@@ -67,12 +68,16 @@ class MasterController extends Controller
             'manager_password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $data['code'] = MasterCodeGenerator::next('institution');
+        $submittedCode = isset($data['code']) ? trim((string) $data['code']) : '';
+        $data['code'] = $submittedCode !== ''
+            ? $submittedCode
+            : MasterCodeGenerator::next('institution');
 
         // Create medical institution
         $institution = MedicalInstitution::create([
             'name' => $data['name'],
             'code' => $data['code'],
+            'onoe_code' => $data['onoe_code'] ?? null,
             'notification_email' => $data['notification_email'],
             'billing_closing_day' => $data['billing_closing_day'] ?? 1,
             'sales_person_name' => $data['sales_person_name'] ?? null,
@@ -152,6 +157,7 @@ class MasterController extends Controller
         $validationRules = [
             'name' => ['required', 'string', 'max:255'],
             'code' => ['nullable', 'string', 'max:50', Rule::unique('medical_institutions', 'code')->ignore($institution->id)],
+            'onoe_code' => ['nullable', 'string', 'max:50'],
             'notification_email' => ['required', 'email'],
             'billing_closing_day' => ['nullable', 'integer', 'min:1', 'max:28'],
             'sales_person_name' => ['nullable', 'string', 'max:255'],
@@ -169,11 +175,12 @@ class MasterController extends Controller
 
         $data = $request->validate($validationRules);
 
-        // Update medical institution (code is immutable / auto-assigned)
+        // Institution code is immutable after create (auto or client-supplied)
         unset($data['code']);
 
         $institution->update([
             'name' => $data['name'],
+            'onoe_code' => $data['onoe_code'] ?? null,
             'notification_email' => $data['notification_email'],
             'billing_closing_day' => $data['billing_closing_day'] ?? 1,
             'sales_person_name' => $data['sales_person_name'] ?? null,
@@ -333,7 +340,13 @@ class MasterController extends Controller
     public function departmentDestroy(Department $department): RedirectResponse
     {
         $this->checkSystemAdmin();
+
+        if ($error = $this->departmentDeleteBlockReason($department)) {
+            return redirect()->route('admin.masters.departments')->with('error', $error);
+        }
+
         $department->delete();
+
         return redirect()->route('admin.masters.departments')
             ->with('status', __('pages.flash_af38158b22'));
     }
@@ -411,7 +424,15 @@ class MasterController extends Controller
     public function jobTypeDestroy(JobType $jobType): RedirectResponse
     {
         $this->checkSystemAdmin();
+
+        $positionCount = \App\Models\EmployeePosition::where('job_type_id', $jobType->id)->count();
+        if ($positionCount > 0) {
+            return redirect()->route('admin.masters.job-types')
+                ->with('error', __('pages.job_type_delete_blocked_positions', ['count' => $positionCount]));
+        }
+
         $jobType->delete();
+
         return redirect()->route('admin.masters.job-types')
             ->with('status', __('pages.flash_a0a027191e'));
     }
@@ -488,5 +509,43 @@ class MasterController extends Controller
         $deliveryLocation->delete();
         return redirect()->route('admin.masters.delivery-locations')
             ->with('status', __('pages.flash_22fcddcd54'));
+    }
+
+    private function departmentDeleteBlockReason(Department $department): ?string
+    {
+        $employeeCount = Employee::query()
+            ->where(function ($q) use ($department) {
+                $q->where('primary_department_id', $department->id)
+                    ->orWhereHas('positions', fn ($p) => $p->where('department_id', $department->id));
+            })
+            ->count();
+
+        if ($employeeCount > 0) {
+            return __('pages.department_delete_blocked_employees', ['count' => $employeeCount]);
+        }
+
+        $openApps = \App\Models\Application::query()
+            ->where('department_id', $department->id)
+            ->whereNotIn('status', ['completed', 'rejected', 'cancel_approved'])
+            ->count();
+
+        if ($openApps > 0) {
+            return __('pages.department_delete_blocked_applications', ['count' => $openApps]);
+        }
+
+        $activeLoanQty = (int) EmployeeLoan::query()
+            ->where('status', 'in_use')
+            ->where('quantity', '>', 0)
+            ->whereHas('employee', function ($q) use ($department) {
+                $q->where('primary_department_id', $department->id)
+                    ->orWhereHas('positions', fn ($p) => $p->where('department_id', $department->id));
+            })
+            ->sum('quantity');
+
+        if ($activeLoanQty > 0) {
+            return __('pages.department_delete_blocked_active_loans', ['count' => $activeLoanQty]);
+        }
+
+        return null;
     }
 }

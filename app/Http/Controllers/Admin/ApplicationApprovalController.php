@@ -336,7 +336,6 @@ class ApplicationApprovalController extends Controller
     private function applyLoanReturn(Application $application, $item): void
     {
         $requested = (int) $item->quantity;
-        $restocked = 0;
 
         $loan = EmployeeLoan::lockForUpdate()
             ->where('employee_id', $application->employee_id)
@@ -344,26 +343,28 @@ class ApplicationApprovalController extends Controller
             ->where('status', 'in_use')
             ->first();
 
-        if ($loan) {
-            $held = (int) ($loan->quantity ?? 0);
-            // Never restock more than the employee actually holds
-            $returned = min($requested, max(0, $held));
-            $loan->quantity = $held - $returned;
-            if ($loan->quantity <= 0) {
-                $loan->quantity = 0;
-                $loan->status = 'returned';
-                $loan->loan_end_date = $application->end_date ?? $application->return_date ?? now();
-            }
-            $loan->application_id = $application->id;
-            $loan->save();
-            $restocked = $returned;
+        $held = $loan ? (int) ($loan->quantity ?? 0) : 0;
+        if (! $loan || $held < $requested) {
+            $productName = optional($item->uniformProduct)->name ?? ('#'.$item->uniform_product_id);
+            throw new \Exception(__('pages.return_approve_exceeds_held', [
+                'product' => $productName,
+                'held' => $held,
+                'requested' => $requested,
+            ]));
         }
 
-        if ($restocked > 0) {
-            $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
-            if ($product) {
-                $product->increment('stock_quantity', $restocked);
-            }
+        $loan->quantity = $held - $requested;
+        if ($loan->quantity <= 0) {
+            $loan->quantity = 0;
+            $loan->status = 'returned';
+            $loan->loan_end_date = $application->end_date ?? $application->return_date ?? now();
+        }
+        $loan->application_id = $application->id;
+        $loan->save();
+
+        $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
+        if ($product) {
+            $product->increment('stock_quantity', $requested);
         }
     }
 
@@ -390,81 +391,90 @@ class ApplicationApprovalController extends Controller
     {
         $this->ensureApprover($request);
 
-        if ($application->status !== 'cancel_request') {
-            return back()->with('error', __('pages.flash_07fcf2b9a8'));
-        }
-
         $userId = $request->user()->id;
+        $applicationId = $application->id;
 
         try {
-            DB::transaction(function () use ($application, $userId) {
-                $application->loadMissing('items');
+            DB::transaction(function () use ($applicationId, $userId) {
+                $application = Application::lockForUpdate()
+                    ->with('items')
+                    ->findOrFail($applicationId);
 
-                foreach ($application->items as $item) {
-                    $action = $item->action ?: 'loan';
-                    $qty = (int) $item->quantity;
+                if ($application->status !== 'cancel_request') {
+                    throw new \Exception(__('pages.flash_07fcf2b9a8'));
+                }
 
-                    // Undo outbound loans (stock was decremented on approve)
-                    if (in_array($action, ['loan', 'exchange_in', 'transfer_change'], true)) {
-                        $loan = EmployeeLoan::lockForUpdate()
-                            ->where('employee_id', $application->employee_id)
-                            ->where('uniform_product_id', $item->uniform_product_id)
-                            ->first();
+                // Inventory only moved on accept — reverse only when accept already ran
+                $shouldReverseInventory = $application->accepted_at !== null;
 
-                        if ($loan) {
-                            $held = (int) ($loan->quantity ?? 0);
-                            $reversed = min($qty, max(0, $held));
-                            $loan->quantity = $held - $reversed;
-                            if ($loan->quantity <= 0) {
-                                $loan->quantity = 0;
-                                $loan->status = 'returned';
-                                $loan->loan_end_date = now();
-                            }
-                            $loan->save();
+                if ($shouldReverseInventory) {
+                    foreach ($application->items as $item) {
+                        $action = $item->action ?: 'loan';
+                        $qty = (int) $item->quantity;
 
-                            if ($reversed > 0) {
-                                $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
-                                if ($product) {
-                                    $product->increment('stock_quantity', $reversed);
+                        // Undo outbound loans (stock was decremented on approve)
+                        if (in_array($action, ['loan', 'exchange_in', 'transfer_change'], true)) {
+                            $loan = EmployeeLoan::lockForUpdate()
+                                ->where('employee_id', $application->employee_id)
+                                ->where('uniform_product_id', $item->uniform_product_id)
+                                ->where('status', 'in_use')
+                                ->first();
+
+                            if ($loan) {
+                                $held = (int) ($loan->quantity ?? 0);
+                                $reversed = min($qty, max(0, $held));
+                                $loan->quantity = $held - $reversed;
+                                if ($loan->quantity <= 0) {
+                                    $loan->quantity = 0;
+                                    $loan->status = 'returned';
+                                    $loan->loan_end_date = now();
+                                }
+                                $loan->save();
+
+                                if ($reversed > 0) {
+                                    $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
+                                    if ($product) {
+                                        $product->increment('stock_quantity', $reversed);
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // Undo returns (stock was restocked / loan reduced on approve)
-                    if (in_array($action, ['return', 'exchange_out'], true)) {
-                        $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
-                        if ($product) {
-                            if ((int) $product->stock_quantity < $qty) {
-                                throw new \Exception(__('pages.cancel_blocked_insufficient_stock_to_reverse'));
+                        // Undo returns (stock was restocked / loan reduced on approve)
+                        if (in_array($action, ['return', 'exchange_out'], true)) {
+                            $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
+                            if ($product) {
+                                if ((int) $product->stock_quantity < $qty) {
+                                    throw new \Exception(__('pages.cancel_blocked_insufficient_stock_to_reverse'));
+                                }
+                                $product->stock_quantity = (int) $product->stock_quantity - $qty;
+                                $product->save();
                             }
-                            $product->stock_quantity = (int) $product->stock_quantity - $qty;
-                            $product->save();
-                        }
 
-                        $loan = EmployeeLoan::lockForUpdate()->firstOrNew([
-                            'employee_id' => $application->employee_id,
-                            'uniform_product_id' => $item->uniform_product_id,
-                        ]);
-                        $loan->quantity = (int) ($loan->quantity ?? 0) + $qty;
-                        $loan->status = 'in_use';
-                        $loan->loan_end_date = null;
-                        if (! $loan->loan_start_date) {
-                            $loan->loan_start_date = now();
+                            $loan = EmployeeLoan::lockForUpdate()->firstOrNew([
+                                'employee_id' => $application->employee_id,
+                                'uniform_product_id' => $item->uniform_product_id,
+                            ]);
+                            $loan->quantity = (int) ($loan->quantity ?? 0) + $qty;
+                            $loan->status = 'in_use';
+                            $loan->loan_end_date = null;
+                            if (! $loan->loan_start_date) {
+                                $loan->loan_start_date = now();
+                            }
+                            $loan->application_id = $application->id;
+                            $loan->save();
                         }
-                        $loan->application_id = $application->id;
-                        $loan->save();
                     }
                 }
 
                 $application->status = 'cancel_approved';
                 $application->approved_at = now();
-                $application->approved_by_admin_user_id = $userId; // users.id
+                $application->approved_by_admin_user_id = $userId;
                 $application->save();
             });
         } catch (\Exception $e) {
             Log::error('Cancel approval failed', [
-                'application_id' => $application->id,
+                'application_id' => $applicationId,
                 'error' => $e->getMessage(),
             ]);
 
@@ -472,10 +482,10 @@ class ApplicationApprovalController extends Controller
         }
 
         try {
-            \App\Services\NotificationService::notifyCancelApproved($application->fresh());
+            \App\Services\NotificationService::notifyCancelApproved(Application::findOrFail($applicationId));
         } catch (\Exception $e) {
             Log::error('Cancel approved notification failed', [
-                'application_id' => $application->id,
+                'application_id' => $applicationId,
                 'error' => $e->getMessage(),
             ]);
         }

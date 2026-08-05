@@ -45,6 +45,16 @@
                     />
 
                     <div>
+                        <label class="ui-label">{{ __('pages.onoe_code') }}</label>
+                        <div class="ui-field-icon">
+                            <i data-lucide="hash"></i>
+                            <input type="text" name="onoe_code" value="{{ old('onoe_code', $institution->onoe_code) }}" class="ui-input font-mono"
+                                   placeholder="{{ __('pages.onoe_code_placeholder') }}">
+                        </div>
+                        @error('onoe_code')<p class="ui-error">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div>
                         <label class="ui-label">{{ __('pages.notification_email') }} <span class="text-red-500">*</span></label>
                         <div class="ui-field-icon">
                             <i data-lucide="mail"></i>

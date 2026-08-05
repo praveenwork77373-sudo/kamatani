@@ -58,6 +58,8 @@ class LoanInventoryService
             ->where('employee_id', $employeeId)
             ->where('status', 'in_use')
             ->where('quantity', '>', 0)
+            ->selectRaw('uniform_product_id, SUM(quantity) as quantity')
+            ->groupBy('uniform_product_id')
             ->pluck('quantity', 'uniform_product_id')
             ->map(fn ($q) => (int) $q)
             ->all();

@@ -35,12 +35,26 @@
 
             <div class="p-6 space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <x-master-code-field
-                        type="institution"
-                        name="code"
-                        :value="old('code')"
-                        :label="__('pages.institution_code')"
-                    />
+                    <div>
+                        <label class="ui-label">{{ __('pages.institution_code') }} <span class="text-[12px] font-normal text-slate-500">({{ __('pages.optional_auto_if_blank') }})</span></label>
+                        <div class="ui-field-icon">
+                            <i data-lucide="hash"></i>
+                            <input type="text" name="code" value="{{ old('code') }}" class="ui-input font-mono"
+                                   placeholder="{{ __('pages.institution_code_client_placeholder') }}">
+                        </div>
+                        <p class="ui-hint">{{ __('pages.institution_code_hint') }}</p>
+                        @error('code')<p class="ui-error">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div>
+                        <label class="ui-label">{{ __('pages.onoe_code') }}</label>
+                        <div class="ui-field-icon">
+                            <i data-lucide="hash"></i>
+                            <input type="text" name="onoe_code" value="{{ old('onoe_code') }}" class="ui-input font-mono"
+                                   placeholder="{{ __('pages.onoe_code_placeholder') }}">
+                        </div>
+                        @error('onoe_code')<p class="ui-error">{{ $message }}</p>@enderror
+                    </div>
 
                     <div>
                         <label class="ui-label">{{ __('pages.notification_email') }} <span class="text-red-500">*</span></label>

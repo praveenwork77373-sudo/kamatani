@@ -14,6 +14,7 @@ class MedicalInstitution extends Model
     protected $fillable = [
         'name',
         'code',
+        'onoe_code',
         'notification_email',
         'billing_closing_day',
         'sales_person_name',

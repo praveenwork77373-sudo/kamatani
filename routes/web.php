@@ -52,6 +52,10 @@ Route::middleware('auth')->group(function () {
         ->name('notifications.read');
     Route::get('/api/notifications/unread-count', [\App\Http\Controllers\NotificationController::class, 'unreadCount'])->name('api.notifications.unread_count');
     Route::get('/api/master-code/check', [\App\Http\Controllers\Api\MasterCodeController::class, 'check'])->name('api.master_code.check');
+    Route::get('/api/institution/{institution}/departments-job-types', [InstitutionLookupController::class, 'departmentsJobTypes'])
+        ->name('api.institution.departments_job_types');
+    Route::get('/api/departments', [InstitutionLookupController::class, 'departments'])
+        ->name('api.departments');
 });
 
 // 医療機関側（病院ポータル）
@@ -67,18 +71,6 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::get('/api/employees-by-department', [ApplicationController::class, 'getEmployeesByDepartment'])->name('api.employees_by_department');
     Route::get('/api/employees/search', [ApplicationController::class, 'searchEmployees'])->name('api.employees.search');
     Route::get('/api/employees/{employee}/loans', [ApplicationController::class, 'getEmployeeLoans'])->name('api.employees.loans');
-    Route::get('/api/institution/{institution}/departments-job-types', [InstitutionLookupController::class, 'departmentsJobTypes'])
-        ->name('api.institution.departments_job_types');
-    Route::get('/api/departments', function(\Illuminate\Http\Request $request) {
-        $institutionId = $request->input('medical_institution_id');
-        if (!$institutionId) {
-            return response()->json([]);
-        }
-        $departments = \App\Models\Department::where('medical_institution_id', $institutionId)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-        return response()->json($departments);
-    })->name('api.departments');
 
     // 医療機関側 マスタ管理（全体管理者のみ）
     Route::prefix('customer/masters')->name('customer.masters.')->middleware('can:manage-masters')->group(function () {
