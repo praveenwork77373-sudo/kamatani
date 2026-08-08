@@ -21,7 +21,6 @@
                     <th>{{ __('pages.code') }}</th>
                     <th>{{ __('pages.name') }}</th>
                     <th class="hidden sm:table-cell">{{ __('pages.size_scheme') }}</th>
-                    <th class="hidden md:table-cell text-right">{{ __('pages.sort_order') }}</th>
                     <th>{{ __('pages.status') }}</th>
                     <th class="ui-table__actions">{{ __('common.actions') }}</th>
                 </tr>
@@ -32,7 +31,6 @@
                         <td class="font-mono">{{ $category->code }}</td>
                         <td>{{ $category->name }}</td>
                         <td class="hidden sm:table-cell">{{ __('pages.size_scheme_'.$category->size_scheme) }}</td>
-                        <td class="hidden md:table-cell text-right">{{ $category->sort_order }}</td>
                         <td>
                             @if($category->is_active)
                                 <span class="ui-status-pill ui-status-pill--success">{{ __('pages.active') }}</span>
@@ -59,7 +57,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">{{ __('pages.no_categories') }}</td></tr>
+                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">{{ __('pages.no_categories') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

@@ -18,3 +18,14 @@ Artisan::command('inspire', function () {
 |
 */
 Schedule::command('db:backup --scheduled')->everyMinute()->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| Monthly billing (病院ごとの締め日)
+|--------------------------------------------------------------------------
+|
+| Runs daily; generates/updates snapshots for institutions whose
+| billing_closing_day matches today's day-of-month.
+|
+*/
+Schedule::command('billing:generate-closing-day')->dailyAt('01:00')->withoutOverlapping();

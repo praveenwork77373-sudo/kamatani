@@ -24,13 +24,11 @@ class UniformCategory extends Model
         'name',
         'size_scheme',
         'employee_size_field',
-        'sort_order',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'sort_order' => 'integer',
     ];
 
     protected static function booted(): void
@@ -51,7 +49,7 @@ class UniformCategory extends Model
 
     public function scopeOrdered(Builder $query): Builder
     {
-        return $query->orderBy('sort_order')->orderBy('name');
+        return $query->orderByDesc('created_at')->orderByDesc('id');
     }
 
     public function usesShoeSizes(): bool

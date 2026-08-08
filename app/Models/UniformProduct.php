@@ -39,6 +39,7 @@ class UniformProduct extends Model
     public function contractPlans()
     {
         return $this->belongsToMany(ContractPlan::class, 'contract_plan_uniform_product')
+            ->withPivot('slot_category')
             ->withTimestamps();
     }
 
@@ -50,5 +51,23 @@ class UniformProduct extends Model
     public function categoryLabel(): string
     {
         return UniformCategory::labelFor($this->category);
+    }
+
+    /**
+     * Client rule: products without a real size are hidden from applications.
+     * One-size items should use size "F".
+     */
+    public function hasUsableSize(): bool
+    {
+        $size = trim((string) ($this->size ?? ''));
+
+        return $size !== '' && $size !== '-';
+    }
+
+    public function scopeWithUsableSize($query)
+    {
+        return $query->whereNotNull('size')
+            ->where('size', '!=', '')
+            ->where('size', '!=', '-');
     }
 }

@@ -232,55 +232,24 @@ class BillingController extends Controller
 
         $institution = MedicalInstitution::findOrFail($data['medical_institution_id']);
 
-        $hasConfirmedPlans = CustomerContractPlan::query()
-            ->where('medical_institution_id', $institution->id)
-            ->where('status', 'confirmed')
-            ->exists();
-
-        if (! $hasConfirmedPlans) {
+        try {
+            $result = app(\App\Services\BillingGenerationService::class)->generateForInstitution(
+                $institution,
+                $data['target_date'],
+                $request->user()->id
+            );
+        } catch (\RuntimeException $e) {
             return back()->withErrors([
-                'medical_institution_id' => '本登録済みの顧客契約プランがありません。先に契約プランを本登録してください。',
+                'medical_institution_id' => $e->getMessage(),
             ])->withInput();
         }
 
-        $billingData = app(PlanBillingService::class)->build($institution, $data['target_date']);
-
-        $existing = BillingSnapshot::query()
-            ->where('medical_institution_id', $institution->id)
-            ->whereDate('target_date', $data['target_date'])
-            ->whereNull('department_id')
-            ->orderByDesc('id')
-            ->first();
-
-        if ($existing) {
-            $existing->update([
-                'data' => $billingData,
-                'generated_by_admin_user_id' => $request->user()->id,
-            ]);
-            $snapshot = $existing->fresh();
-
-            // Drop older duplicates for the same institution + closing date
-            BillingSnapshot::query()
-                ->where('medical_institution_id', $institution->id)
-                ->whereDate('target_date', $data['target_date'])
-                ->whereNull('department_id')
-                ->where('id', '!=', $snapshot->id)
-                ->delete();
-
-            $status = '請求データを更新しました。';
-        } else {
-            $snapshot = BillingSnapshot::create([
-                'medical_institution_id' => $institution->id,
-                'department_id' => null,
-                'target_date' => $data['target_date'],
-                'data' => $billingData,
-                'generated_by_admin_user_id' => $request->user()->id,
-            ]);
-            $status = '請求データを生成しました。';
-        }
+        $status = $result['created']
+            ? __('pages.billing_generated')
+            : __('pages.billing_updated');
 
         return redirect()
-            ->route('admin.billing.show', $snapshot)
+            ->route('admin.billing.show', $result['snapshot'])
             ->with('status', $status);
     }
 

@@ -15,10 +15,10 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 /**
  * Best-fit import of client ベースデータ Excel into the current schema.
  *
- * Mapping notes (intentionally lossy — see plan):
- * - Per-category / その他2 / その他3 point caps are summed into one rentable_points total.
- * - Male/female rows for the same plan code are merged (union products, max total points).
- * - 対帳合先 unit price is ignored (column is empty in the source file).
+ * Mapping notes:
+ * - Per-category caps (上衣/下衣/その他/その他2/その他3) are stored separately and enforced at apply time.
+ * - Male/female rows for the same plan code are merged (union products, max per-category caps / prices).
+ * - 対帳合先 unit price is stored on the plan for registration; not used in billing.
  * - Plan codes are stored as {customer_code}-{plan_code} to avoid cross-hospital collisions.
  */
 class BaseDataImportService
@@ -278,7 +278,7 @@ class BaseDataImportService
      */
     private function importPlans(array $rows, array $leaseMap): void
     {
-        /** @var array<string, array{name: string, customer: string, plan_code: string, points: int, price: float, product_refs: array<string, true>}> $grouped */
+        /** @var array<string, array{name: string, customer: string, plan_code: string, caps: array<string, int>, points: int, price: float, partner_price: ?float, product_refs: array<string, string>}> $grouped */
         $grouped = [];
 
         foreach (array_slice($rows, 1) as $row) {
@@ -295,96 +295,137 @@ class BaseDataImportService
             }
 
             $key = $customer.'|'.$planCode;
-            $points = $this->sumPointCaps($row);
+            $caps = $this->pointCapsByCategory($row);
+            $points = array_sum($caps);
             $price = (float) preg_replace('/[^\d.]/', '', (string) ($row[26] ?? '0'));
+            $partnerRaw = preg_replace('/[^\d.]/', '', (string) ($row[27] ?? ''));
+            $partnerPrice = ($partnerRaw !== '' && is_numeric($partnerRaw)) ? (float) $partnerRaw : null;
 
-            $refs = $this->collectProductRefs($row);
+            $refs = $this->collectProductRefsByCategory($row);
 
             if (! isset($grouped[$key])) {
                 $grouped[$key] = [
                     'name' => $planName,
                     'customer' => $customer,
                     'plan_code' => $planCode,
+                    'caps' => $caps,
                     'points' => $points,
                     'price' => $price,
+                    'partner_price' => $partnerPrice,
                     'product_refs' => $refs,
                 ];
             } else {
-                // Merge gender variants: keep max points/price, union products
-                $grouped[$key]['points'] = max($grouped[$key]['points'], $points);
+                // Merge gender variants: max per-category caps/prices, union products (prefer first slot)
+                foreach ($caps as $cat => $cap) {
+                    $grouped[$key]['caps'][$cat] = max($grouped[$key]['caps'][$cat] ?? 0, $cap);
+                }
+                $grouped[$key]['points'] = array_sum($grouped[$key]['caps']);
                 $grouped[$key]['price'] = max($grouped[$key]['price'], $price);
-                $grouped[$key]['product_refs'] = $grouped[$key]['product_refs'] + $refs;
+                if ($partnerPrice !== null) {
+                    $grouped[$key]['partner_price'] = max((float) ($grouped[$key]['partner_price'] ?? 0), $partnerPrice);
+                }
+                foreach ($refs as $ref => $slot) {
+                    if (! isset($grouped[$key]['product_refs'][$ref])) {
+                        $grouped[$key]['product_refs'][$ref] = $slot;
+                    }
+                }
             }
         }
 
         foreach ($grouped as $group) {
             $uniqueCode = $group['customer'].'-'.$group['plan_code'];
-            $productIds = $this->resolveProductIds(array_keys($group['product_refs']));
+            $sync = $this->resolveProductSync(array_keys($group['product_refs']), $group['product_refs']);
 
             $plan = ContractPlan::updateOrCreate(
                 ['code' => $uniqueCode],
                 [
                     'name' => $group['name'],
                     'rentable_points' => $group['points'],
+                    'rentable_points_top' => $group['caps']['top'] ?? 0,
+                    'rentable_points_bottom' => $group['caps']['bottom'] ?? 0,
+                    'rentable_points_other' => $group['caps']['other'] ?? 0,
+                    'rentable_points_other2' => $group['caps']['other2'] ?? 0,
+                    'rentable_points_other3' => $group['caps']['other3'] ?? 0,
                     'unit_price_ex_tax' => $group['price'],
+                    'partner_unit_price_ex_tax' => $group['partner_price'],
                     'job_type_label' => $group['name'],
-                    'notes' => 'Imported from 260805 base data (best-fit). Source plan '.$group['plan_code'].'. Category slot caps flattened to total points.',
+                    'notes' => 'Imported from 260805 base data. Source plan '.$group['plan_code'].'.',
                     'is_active' => true,
                 ]
             );
-            $plan->uniformProducts()->sync($productIds);
+            $plan->uniformProducts()->sync($sync);
             $this->stats['plans']++;
 
             $lease = $leaseMap[$group['customer']];
-            CustomerContractPlan::updateOrCreate(
-                [
+            $ccpAttributes = [
+                'start_date' => $lease['start']?->toDateString(),
+                'end_date' => $lease['end']?->toDateString(),
+                'status' => ($lease['start'] && $lease['end']) ? 'confirmed' : 'draft',
+                'confirmed_at' => ($lease['start'] && $lease['end']) ? now() : null,
+                'notes' => 'Imported from 260805 base data',
+            ];
+
+            $existingLink = CustomerContractPlan::query()
+                ->where('medical_institution_id', $lease['institution']->id)
+                ->where('contract_plan_id', $plan->id)
+                ->first();
+
+            if ($existingLink) {
+                // Preserve manually maintained contract_count on re-import
+                $existingLink->update($ccpAttributes);
+            } else {
+                CustomerContractPlan::create(array_merge($ccpAttributes, [
                     'medical_institution_id' => $lease['institution']->id,
                     'contract_plan_id' => $plan->id,
-                ],
-                [
                     'contract_count' => 0,
-                    'start_date' => $lease['start']?->toDateString(),
-                    'end_date' => $lease['end']?->toDateString(),
-                    'status' => 'confirmed',
-                    'confirmed_at' => now(),
-                    'notes' => 'Imported from 260805 base data',
-                ]
-            );
+                ]));
+            }
             $this->stats['plan_links']++;
         }
     }
 
     /**
-     * Sum 上衣/下衣/その他/その他2/その他3 caps into one rentable_points value.
-     * Deliberately does NOT enforce per-slot limits at runtime (deferred).
-     *
      * @param  array<int, mixed>  $row
+     * @return array{top: int, bottom: int, other: int, other2: int, other3: int}
      */
-    private function sumPointCaps(array $row): int
+    private function pointCapsByCategory(array $row): array
     {
-        $total = 0;
-        foreach ([8, 13, 17, 21, 25] as $idx) {
+        $map = [
+            'top' => 8,
+            'bottom' => 13,
+            'other' => 17,
+            'other2' => 21,
+            'other3' => 25,
+        ];
+        $caps = [];
+        foreach ($map as $category => $idx) {
             $raw = $this->str($row[$idx] ?? null);
-            if ($raw !== '' && is_numeric($raw)) {
-                $total += (int) $raw;
-            }
+            $caps[$category] = ($raw !== '' && is_numeric($raw)) ? (int) $raw : 0;
         }
 
-        return $total;
+        return $caps;
     }
 
     /**
      * @param  array<int, mixed>  $row
-     * @return array<string, true>
+     * @return array<string, string> productRef => slot_category
      */
-    private function collectProductRefs(array $row): array
+    private function collectProductRefsByCategory(array $row): array
     {
+        $slots = [
+            'top' => [5, 6, 7],
+            'bottom' => [9, 10, 11, 12],
+            'other' => [14, 15, 16],
+            'other2' => [18, 19, 20],
+            'other3' => [22, 23, 24],
+        ];
         $refs = [];
-        // Top 1-3, bottom 1-4, other 1-3, other2 1-3, other3 1-3
-        foreach ([5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24] as $idx) {
-            $ref = $this->normalizeProductRef($this->str($row[$idx] ?? null));
-            if ($ref !== '') {
-                $refs[$ref] = true;
+        foreach ($slots as $category => $indexes) {
+            foreach ($indexes as $idx) {
+                $ref = $this->normalizeProductRef($this->str($row[$idx] ?? null));
+                if ($ref !== '' && ! isset($refs[$ref])) {
+                    $refs[$ref] = $category;
+                }
             }
         }
 
@@ -393,45 +434,53 @@ class BaseDataImportService
 
     /**
      * @param  list<string>  $refs
-     * @return list<int>
+     * @param  array<string, string>  $refCategories
+     * @return array<int, array{slot_category: string}>
      */
-    private function resolveProductIds(array $refs): array
+    private function resolveProductSync(array $refs, array $refCategories): array
     {
-        $ids = [];
+        $sync = [];
 
         foreach ($refs as $ref) {
+            $slot = $refCategories[$ref] ?? 'other';
             $matched = UniformProduct::query()
                 ->where(function ($q) use ($ref) {
                     $q->where('product_code', $ref)
                         ->orWhere('product_code', 'like', $ref.'-%');
                 })
-                ->pluck('id')
-                ->all();
+                ->get();
 
-            if ($matched === []) {
-                // Create incomplete stub so plan links are not dropped
+            if ($matched->isEmpty()) {
                 $stub = UniformProduct::create([
                     'product_code' => $ref,
                     'name' => $ref.' (import stub)',
                     'maker_id' => null,
                     'maker_product_code' => null,
                     'color_name' => null,
-                    'category' => 'other',
+                    'category' => $slot,
                     'gender' => 'unisex',
                     'size' => '-',
                     'stock_quantity' => 0,
                 ]);
-                $matched = [$stub->id];
+                $matched = collect([$stub]);
                 $this->stats['stub_products']++;
                 $this->warn("Created stub product for plan ref missing from 商品マスタ: {$ref}");
             }
 
-            foreach ($matched as $id) {
-                $ids[$id] = true;
+            foreach ($matched as $product) {
+                // Align product category with Excel slot when still generic / stub
+                if (in_array($product->category, ['other', 'other2', 'other3'], true)
+                    || $product->category === $slot
+                    || str_contains((string) $product->name, 'import stub')) {
+                    if ($product->category !== $slot) {
+                        $product->update(['category' => $slot]);
+                    }
+                }
+                $sync[(int) $product->id] = ['slot_category' => $slot];
             }
         }
 
-        return array_map('intval', array_keys($ids));
+        return $sync;
     }
 
     private function normalizeProductRef(string $raw): string

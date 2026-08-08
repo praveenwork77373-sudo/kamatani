@@ -93,10 +93,12 @@
             <i data-lucide="shirt" class="nav-ico"></i>
             <span>{{ __('menu.uniform_products') }}</span>
         </a>
+        {{-- Recommended / designated uniforms: hidden for now (routes kept for later re-enable)
         <a href="{{ route('admin.uniform-recommendations.index') }}" class="{{ request()->is('admin/uniform-recommendations*') ? 'nav-link is-active' : 'nav-link' }}">
             <i data-lucide="sparkles" class="nav-ico"></i>
             <span>{{ __('menu.uniform_recommendations') }}</span>
         </a>
+        --}}
     @endif
 
     @if($adminRole === 'system_admin')

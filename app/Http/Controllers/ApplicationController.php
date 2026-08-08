@@ -30,11 +30,15 @@ class ApplicationController extends Controller
             abort(403);
         }
 
+        if ($customer->isMisconfiguredDepartmentAdmin()) {
+            abort(403, __('pages.department_admin_missing_department'));
+        }
+
         $query = Application::with(['employee', 'department'])
             ->where('medical_institution_id', $customer->medical_institution_id)
             ->orderByDesc('created_at');
 
-        if ($customer->role === 'department_admin' && $customer->department_id) {
+        if ($customer->isDepartmentAdmin() && $customer->department_id) {
             $query->where('department_id', $customer->department_id);
         }
 
@@ -64,11 +68,15 @@ class ApplicationController extends Controller
             abort(403);
         }
 
+        if ($customer->isMisconfiguredDepartmentAdmin()) {
+            abort(403, __('pages.department_admin_missing_department'));
+        }
+
         $query = Employee::where('medical_institution_id', $customer->medical_institution_id)
             ->where('status', 'employed')
             ->orderBy('staff_no');
 
-        if ($customer->role === 'department_admin' && $customer->department_id) {
+        if ($customer->isDepartmentAdmin() && $customer->department_id) {
             $query->inDepartment((int) $customer->department_id);
         }
 
@@ -80,7 +88,7 @@ class ApplicationController extends Controller
 
         $departments = Department::where('medical_institution_id', $customer->medical_institution_id)->get();
         $jobTypes = JobType::where('medical_institution_id', $customer->medical_institution_id)->get();
-        $uniforms = UniformProduct::orderBy('product_code')->get();
+        $uniforms = UniformProduct::query()->withUsableSize()->orderBy('product_code')->get();
 
         $categories = UniformCategory::activeOrdered();
         $letterCodes = UniformCategory::codesWithScheme(UniformCategory::SIZE_LETTER);
@@ -254,12 +262,16 @@ class ApplicationController extends Controller
 
             $products = $eligibility->eligibleProducts($employee, now(), $gender ?: null);
 
-            return response()->json($products->map(function ($product) {
+            return response()->json($products->map(function ($product) use ($eligibility, $employee) {
+                $limitCategory = $eligibility->limitCategoryForProduct($employee, (int) $product->id);
+
                 return [
                     'id' => $product->id,
                     'product_code' => $product->product_code,
                     'name' => $product->name,
                     'category' => $product->category,
+                    'limit_category' => $limitCategory,
+                    'slot_category' => $product->pivot?->slot_category,
                     'category_label' => UniformCategory::labelFor($product->category),
                     'size_scheme' => UniformCategory::sizeSchemeFor($product->category),
                     'employee_size_field' => UniformCategory::findByCode($product->category)?->employee_size_field,
@@ -288,7 +300,7 @@ class ApplicationController extends Controller
             return response()->json([]);
         }
 
-        $query = UniformProduct::query()->whereIn('id', $planProductIds);
+        $query = UniformProduct::query()->whereIn('id', $planProductIds)->withUsableSize();
 
         if ($gender) {
             $query->where(function ($q) use ($gender) {
@@ -468,6 +480,7 @@ class ApplicationController extends Controller
                 'plan_names' => $planLabel,
                 'has_active_plan' => $activePlans->isNotEmpty(),
                 'rentable_limit' => $eligibility->rentableLimit($emp),
+                'rentable_limits_by_category' => $eligibility->categoryCaps($emp),
             ];
         }));
     }
@@ -488,12 +501,14 @@ class ApplicationController extends Controller
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
+        $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
+
         $loans = EmployeeLoan::with('uniformProduct')
             ->where('employee_id', $employee->id)
             ->where('status', 'in_use')
             ->where('quantity', '>', 0)
             ->get()
-            ->map(function ($loan) {
+            ->map(function ($loan) use ($eligibility, $employee) {
                 return [
                     'loan_id' => $loan->id,
                     'uniform_product_id' => $loan->uniform_product_id,
@@ -502,6 +517,7 @@ class ApplicationController extends Controller
                     'product_name' => $loan->uniformProduct?->name,
                     'size' => $loan->uniformProduct?->size,
                     'category' => $loan->uniformProduct?->category,
+                    'limit_category' => $eligibility->limitCategoryForProduct($employee, (int) $loan->uniform_product_id),
                 ];
             });
 
@@ -519,9 +535,9 @@ class ApplicationController extends Controller
         }
 
         $data = $request->validate([
-            'application_mode' => ['required', 'in:individual,departmental'],
-            'employee_id' => ['required_if:application_mode,individual', 'nullable', 'exists:employees,id'],
-            'department_id' => ['required_if:application_mode,departmental', 'nullable', 'exists:departments,id'],
+            'application_mode' => ['required', 'in:individual'],
+            'employee_id' => ['required', 'exists:employees,id'],
+            'department_id' => ['nullable', 'exists:departments,id'],
             'type' => ['required', 'in:new_loan,resize,return,exchange,transfer'],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
@@ -536,21 +552,23 @@ class ApplicationController extends Controller
             'memo1' => ['nullable', 'string', 'max:500'],
             'memo2' => ['nullable', 'string', 'max:500'],
         ], [
-            'employee_id.required_if' => '職員を選択してください。',
-            'department_id.required_if' => '部署を選択してください。',
+            'employee_id.required' => __('pages.select_employee_required'),
+            'application_mode.in' => __('pages.individual_applications_only'),
         ]);
+
+        $data['application_mode'] = 'individual';
 
         // Loan-period types still need an end date (異動 = same-employee partial change, like exchange)
         if (in_array($data['type'], ['new_loan', 'exchange', 'resize', 'transfer'], true) && empty($data['end_date'])) {
             return redirect()->back()->withInput()->withErrors([
-                'end_date' => '貸出終了日を入力してください。',
+                'end_date' => __('pages.loan_end_date_required'),
             ]);
         }
 
         // Individual apps: prefer applying dept for affiliated staff, else primary
-        if ($data['application_mode'] === 'individual' && empty($data['department_id']) && ! empty($data['employee_id'])) {
+        if (empty($data['department_id']) && ! empty($data['employee_id'])) {
             $emp = Employee::find($data['employee_id']);
-            if ($customer->role === 'department_admin' && $customer->department_id
+            if ($customer->isDepartmentAdmin() && $customer->department_id
                 && $emp && $emp->isAffiliatedWithDepartment((int) $customer->department_id)) {
                 $data['department_id'] = $customer->department_id;
             } else {
@@ -558,9 +576,28 @@ class ApplicationController extends Controller
             }
         }
 
+        // Department admins may only tag applications to their own department
+        if ($customer->isDepartmentAdmin()) {
+            if (! $customer->department_id) {
+                abort(403, __('pages.department_admin_missing_department'));
+            }
+            $data['department_id'] = (int) $customer->department_id;
+        }
+
         if (empty($data['department_id'])) {
             return redirect()->back()->withInput()->withErrors([
-                'department_id' => '部署を選択してください。',
+                'department_id' => __('pages.select_department_required'),
+            ]);
+        }
+
+        // Ensure department belongs to this institution
+        $deptOk = \App\Models\Department::query()
+            ->where('id', $data['department_id'])
+            ->where('medical_institution_id', $customer->medical_institution_id)
+            ->exists();
+        if (! $deptOk) {
+            return redirect()->back()->withInput()->withErrors([
+                'department_id' => __('pages.flash_0add709231'),
             ]);
         }
 
@@ -590,6 +627,27 @@ class ApplicationController extends Controller
             return redirect()->back()->withInput()->with('error', __('pages.flash_8fc8780f3f'));
         }
 
+        // Resize / exchange / partial change: new loan qty cannot exceed selected change qty
+        if (in_array($data['type'], ['exchange', 'resize', 'transfer'], true)) {
+            $returnQty = (int) array_sum(array_map(
+                fn ($row) => (int) ($row['quantity'] ?? 0),
+                $data['return_items'] ?? []
+            ));
+            $newQty = (int) array_sum(array_map(
+                fn ($row) => (int) ($row['quantity'] ?? 0),
+                $data['items'] ?? []
+            ));
+            if ($returnQty <= 0) {
+                return redirect()->back()->withInput()->with('error', __('pages.select_change_items'));
+            }
+            if ($newQty > $returnQty) {
+                return redirect()->back()->withInput()->with('error', __('pages.new_qty_exceeds_change_qty'));
+            }
+            if (in_array($data['type'], ['exchange', 'resize'], true) && $newQty <= 0) {
+                return redirect()->back()->withInput()->with('error', __('pages.select_at_least_one_uniform'));
+            }
+        }
+
         if ($data['application_mode'] === 'departmental' && $data['type'] === 'transfer') {
             return redirect()->back()->withInput()->with('error', __('pages.flash_1f76c65a74'));
         }
@@ -609,11 +667,7 @@ class ApplicationController extends Controller
             return redirect()->back()->withInput()->with('error', __('pages.flash_8e7dad2ab5'));
         }
 
-        if ($data['application_mode'] === 'individual') {
-            return $this->storeIndividual($request, $data, $customer);
-        } else {
-            return $this->storeDepartmental($request, $data, $customer);
-        }
+        return $this->storeIndividual($request, $data, $customer);
     }
 
     private function itemActionForType(string $type): string
@@ -635,9 +689,13 @@ class ApplicationController extends Controller
             return redirect()->back()->withInput()->with('error', __('pages.flash_a344f2a6e6'));
         }
 
-        if ($customer->role === 'department_admin' && $customer->department_id
-            && ! $employee->isAffiliatedWithDepartment((int) $customer->department_id)) {
-            return redirect()->back()->with('error', __('pages.flash_c744c00190'));
+        if ($customer->isDepartmentAdmin()) {
+            if (! $customer->department_id) {
+                abort(403, __('pages.department_admin_missing_department'));
+            }
+            if (! $employee->isAffiliatedWithDepartment((int) $customer->department_id)) {
+                return redirect()->back()->with('error', __('pages.flash_c744c00190'));
+            }
         }
 
         $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
@@ -659,6 +717,7 @@ class ApplicationController extends Controller
         }
 
         // 旧品（返却／異動変更）は当該職員の貸与中データと数量一致必須
+        $returnItemsForLimit = [];
         if (in_array($data['type'], ['return', 'transfer', 'exchange', 'resize'], true)) {
             $returnError = $loanInventory->returnItemsValidationError(
                 (int) $employee->id,
@@ -667,30 +726,49 @@ class ApplicationController extends Controller
             if ($returnError) {
                 return redirect()->back()->withInput()->with('error', __($returnError));
             }
+            $returnItemsForLimit = $data['return_items'] ?? [];
+        } elseif ($data['type'] === 'new_loan' && ! empty($data['return_items'])) {
+            // new_loan must not credit forged returns against the rentable cap
+            return redirect()->back()->withInput()->with('error', __('pages.new_loan_cannot_include_returns'));
         }
 
-        // 上限チェック（プラン貸与ポイント）— 異動の新品側も含む
-        $totalQuantity = array_sum(array_column($data['items'], 'quantity'));
-        $returnQuantity = array_sum(array_column($data['return_items'], 'quantity'));
-        $currentLoans = EmployeeLoan::where('employee_id', $employee->id)
-            ->where('status', 'in_use')
-            ->sum('quantity');
+        // 上限チェック（カテゴリ別 or 合計）— 異動の新品側も含む
+        if (in_array($data['type'], ['new_loan', 'exchange', 'resize', 'transfer'], true)) {
+            $violation = $eligibility->loanLimitViolation(
+                $employee,
+                $data['items'] ?? [],
+                $returnItemsForLimit,
+                null,
+                true
+            );
+            if ($violation) {
+                $messageKey = ($violation['mode'] ?? '') === 'category'
+                    ? 'pages.rentable_category_limit_hard_block'
+                    : 'pages.rentable_limit_hard_block';
 
-        $exceedsLimit = false;
-        $rentableLimit = $eligibility->rentableLimit($employee);
-        if ($rentableLimit !== null && $rentableLimit > 0 && in_array($data['type'], ['new_loan', 'exchange', 'resize', 'transfer'], true)) {
-            $projected = $currentLoans - $returnQuantity + $totalQuantity;
-            if ($projected > $rentableLimit) {
-                $exceedsLimit = true;
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', __($messageKey, [
+                        'category' => isset($violation['category'])
+                            ? UniformCategory::labelFor($violation['category'])
+                            : '',
+                        'limit' => $violation['limit'],
+                        'projected' => $violation['projected'],
+                    ]));
             }
         }
 
-        // 在庫チェック（新品側のみ）
+        // 在庫チェック（新品側のみ）— aggregate by product; special approval for stock only
         $insufficientStock = false;
         if (! empty($data['items']) && $data['type'] !== 'return') {
+            $requestedByProduct = [];
             foreach ($data['items'] as $item) {
-                $product = UniformProduct::find($item['uniform_product_id']);
-                if ($product && $product->stock_quantity < $item['quantity']) {
+                $pid = (int) $item['uniform_product_id'];
+                $requestedByProduct[$pid] = ($requestedByProduct[$pid] ?? 0) + (int) $item['quantity'];
+            }
+            foreach ($requestedByProduct as $productId => $qty) {
+                $product = UniformProduct::find($productId);
+                if ($product && $product->stock_quantity < $qty) {
                     $insufficientStock = true;
                     break;
                 }
@@ -698,13 +776,16 @@ class ApplicationController extends Controller
         }
 
         $status = 'pending';
-        if (($exceedsLimit || $insufficientStock)) {
+        if ($insufficientStock) {
             if (empty($data['special_approval_reason']) || trim($data['special_approval_reason']) === '') {
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', __('pages.flash_06242c53fc'));
+                    ->with('error', __('pages.stock_special_approval_required'));
             }
             $status = 'waiting_special_approval';
+        } else {
+            // Clear leftover reason when stock is sufficient (prevents accept stock waiver)
+            $data['special_approval_reason'] = null;
         }
 
         DB::transaction(function () use ($data, $request, $customer, $employee, $status) {
@@ -724,14 +805,16 @@ class ApplicationController extends Controller
                 'memo2' => $data['memo2'] ?? null,
             ]);
 
-            // 旧品（返却／交換・異動アウト）
-            foreach ($data['return_items'] as $item) {
-                ApplicationItem::create([
-                    'application_id' => $application->id,
-                    'uniform_product_id' => $item['uniform_product_id'],
-                    'quantity' => $item['quantity'],
-                    'action' => in_array($data['type'], ['exchange', 'resize', 'transfer'], true) ? 'exchange_out' : 'return',
-                ]);
+            // 旧品（返却／交換・異動アウト）— never for new_loan
+            if (in_array($data['type'], ['return', 'transfer', 'exchange', 'resize'], true)) {
+                foreach ($data['return_items'] ?? [] as $item) {
+                    ApplicationItem::create([
+                        'application_id' => $application->id,
+                        'uniform_product_id' => $item['uniform_product_id'],
+                        'quantity' => $item['quantity'],
+                        'action' => in_array($data['type'], ['exchange', 'resize', 'transfer'], true) ? 'exchange_out' : 'return',
+                    ]);
+                }
             }
 
             // 新品
@@ -829,18 +912,25 @@ class ApplicationController extends Controller
                     }
                 }
 
-                $totalQuantity = array_sum(array_column($data['items'], 'quantity'));
-                $returnQuantity = array_sum(array_column($data['return_items'] ?? [], 'quantity'));
-                $currentLoans = EmployeeLoan::where('employee_id', $employee->id)
-                    ->where('status', 'in_use')
-                    ->sum('quantity');
-
-                $exceedsLimit = false;
-                $rentableLimit = $eligibility->rentableLimit($employee);
-                if ($rentableLimit !== null && $rentableLimit > 0 && in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
-                    $projected = $currentLoans - $returnQuantity + $totalQuantity;
-                    if ($projected > $rentableLimit) {
-                        $exceedsLimit = true;
+                if (in_array($data['type'], ['new_loan', 'exchange', 'resize'], true)) {
+                    $violation = $eligibility->loanLimitViolation(
+                        $employee,
+                        $data['items'] ?? [],
+                        $data['return_items'] ?? []
+                    );
+                    if ($violation) {
+                        $errors[] = "職員 {$employee->name} ({$employee->staff_no}): "
+                            .(($violation['mode'] ?? '') === 'category'
+                                ? __('pages.rentable_category_limit_hard_block', [
+                                    'category' => UniformCategory::labelFor($violation['category'] ?? ''),
+                                    'limit' => $violation['limit'],
+                                    'projected' => $violation['projected'],
+                                ])
+                                : __('pages.rentable_limit_hard_block', [
+                                    'limit' => $violation['limit'],
+                                    'projected' => $violation['projected'],
+                                ]));
+                        continue;
                     }
                 }
 
@@ -856,9 +946,9 @@ class ApplicationController extends Controller
                 }
 
                 $status = 'pending';
-                if ($exceedsLimit || $insufficientStock) {
+                if ($insufficientStock) {
                     if (empty($data['special_approval_reason']) || trim($data['special_approval_reason']) === '') {
-                        $errors[] = "職員 {$employee->name} ({$employee->staff_no}): 契約上限または在庫を超えています。特別承認理由を入力してください。";
+                        $errors[] = "職員 {$employee->name} ({$employee->staff_no}): 在庫不足のため特別承認理由を入力してください。";
                         continue;
                     }
                     $status = 'waiting_special_approval';

@@ -28,12 +28,6 @@
     <p class="ui-hint mt-1">{{ __('pages.employee_size_field_hint') }}</p>
     @error('employee_size_field')<p class="ui-error">{{ $message }}</p>@enderror
 </div>
-<div>
-    <label class="ui-label" for="sort_order">{{ __('pages.sort_order') }}</label>
-    <input id="sort_order" type="number" min="0" max="9999" name="sort_order"
-           value="{{ old('sort_order', $category->sort_order ?? 100) }}" class="ui-input">
-    @error('sort_order')<p class="ui-error">{{ $message }}</p>@enderror
-</div>
 <label class="inline-flex items-center gap-2 text-[14px] text-slate-700">
     <input type="checkbox" name="is_active" value="1" class="ui-check" {{ old('is_active', $category->is_active ?? true) ? 'checked' : '' }}>
     有効

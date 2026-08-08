@@ -18,6 +18,17 @@
     <div class="bg-white border rounded-xl p-4"><p class="text-xs text-slate-500">{{ __('pages.status') }}</p><p class="text-2xl font-bold">{{ $plan->is_active ? __('pages.active') : __('pages.inactive') }}</p></div>
 </div>
 
+@if($plan->hasCategoryCaps() || $plan->partner_unit_price_ex_tax !== null)
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+    <div class="bg-white border rounded-xl p-3"><p class="text-[11px] text-slate-500">{{ __('pages.cap_top') }}</p><p class="text-lg font-bold">{{ $plan->rentable_points_top }}</p></div>
+    <div class="bg-white border rounded-xl p-3"><p class="text-[11px] text-slate-500">{{ __('pages.cap_bottom') }}</p><p class="text-lg font-bold">{{ $plan->rentable_points_bottom }}</p></div>
+    <div class="bg-white border rounded-xl p-3"><p class="text-[11px] text-slate-500">{{ __('pages.cap_other') }}</p><p class="text-lg font-bold">{{ $plan->rentable_points_other }}</p></div>
+    <div class="bg-white border rounded-xl p-3"><p class="text-[11px] text-slate-500">{{ __('pages.cap_other2') }}</p><p class="text-lg font-bold">{{ $plan->rentable_points_other2 }}</p></div>
+    <div class="bg-white border rounded-xl p-3"><p class="text-[11px] text-slate-500">{{ __('pages.cap_other3') }}</p><p class="text-lg font-bold">{{ $plan->rentable_points_other3 }}</p></div>
+    <div class="bg-white border rounded-xl p-3"><p class="text-[11px] text-slate-500">{{ __('pages.partner_unit_price_ex_tax') }}</p><p class="text-lg font-bold">{{ $plan->partner_unit_price_ex_tax !== null ? '¥'.number_format($plan->partner_unit_price_ex_tax) : '—' }}</p></div>
+</div>
+@endif
+
 <div class="bg-white border rounded-xl overflow-hidden">
     <div class="px-4 py-3 border-b font-semibold text-sm">{{ __('pages.applicable_uniforms') }}</div>
     <table class="min-w-full text-sm">

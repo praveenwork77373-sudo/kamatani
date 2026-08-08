@@ -78,30 +78,90 @@
 
             {{-- 申請アイテム --}}
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('pages.application_items') }}</h2>
+                <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                    <h2 class="text-lg font-semibold text-slate-900">{{ __('pages.application_items') }}</h2>
+                    <div class="flex flex-wrap gap-2 text-[12px]">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+                            {{ __('pages.this_app_outbound_qty') }}: {{ $thisAppOutboundQty ?? 0 }}
+                        </span>
+                        @if(($thisAppReturnQty ?? 0) > 0)
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-medium">
+                                {{ __('pages.this_app_return_qty') }}: {{ $thisAppReturnQty }}
+                            </span>
+                        @endif
+                    </div>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-[14px]">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">{{ __('pages.item_action') }}</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">{{ __('pages.product_code') }}</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">{{ __('pages.product_name') }}</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">{{ __('pages.size') }}</th>
                                 <th class="px-4 py-3 text-right font-semibold text-slate-700">{{ __('pages.quantity') }}</th>
+                                <th class="px-4 py-3 text-right font-semibold text-slate-700">{{ __('pages.current_stock') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            @foreach($application->items as $item)
+                            @forelse($application->items as $item)
+                                @php
+                                    $action = $item->action ?: 'loan';
+                                    $actionLabel = match ($action) {
+                                        'exchange_out' => __('pages.item_action_old_return'),
+                                        'return' => __('pages.item_action_return'),
+                                        default => __('pages.item_action_new_loan'),
+                                    };
+                                    $isOutbound = in_array($action, ['loan', 'exchange_in', 'transfer_change'], true);
+                                @endphp
                                 <tr class="hover:bg-slate-50/50">
-                                    <td class="px-4 py-3 text-slate-900">{{ $item->uniformProduct?->product_code ?? '-' }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium {{ $isOutbound ? 'bg-primary-50 text-primary-700' : 'bg-slate-100 text-slate-600' }}">
+                                            {{ $actionLabel }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-900 font-mono text-[13px]">{{ $item->uniformProduct?->product_code ?? '-' }}</td>
                                     <td class="px-4 py-3 text-slate-900">{{ $item->uniformProduct?->name ?? '-' }}</td>
                                     <td class="px-4 py-3 text-slate-600">{{ $item->uniformProduct?->size ?? '-' }}</td>
                                     <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ $item->quantity }}</td>
+                                    <td class="px-4 py-3 text-right text-slate-600">{{ $item->uniformProduct?->stock_quantity ?? '-' }}</td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-4 py-8 text-center text-slate-500">{{ __('pages.no_data') }}</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            @if(($otherPendingApps ?? collect())->isNotEmpty())
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+                    <h2 class="text-lg font-semibold text-slate-900 mb-1">{{ __('pages.other_pending_at_hospital') }}</h2>
+                    <p class="text-[13px] text-slate-500 mb-4">{{ $application->medicalInstitution?->name }}</p>
+                    <ul class="divide-y divide-slate-100 border border-slate-100 rounded-lg overflow-hidden">
+                        @foreach($otherPendingApps as $other)
+                            <li class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
+                                <div class="min-w-0">
+                                    <p class="text-[13px] font-medium text-slate-900 truncate">
+                                        #APP-{{ str_pad($other->id, 4, '0', STR_PAD_LEFT) }}
+                                        · {{ $other->employee?->name ?? '-' }}
+                                    </p>
+                                    <p class="text-[11px] text-slate-500">
+                                        {{ $other->statusLabel() }}
+                                        · {{ $other->items->sum('quantity') }}{{ __('pages.items') }}
+                                        · {{ optional($other->created_at)->format('Y-m-d H:i') }}
+                                    </p>
+                                </div>
+                                <a href="{{ route('admin.applications.show', $other) }}" class="shrink-0 text-[12px] text-primary-600 hover:underline font-medium">
+                                    {{ __('pages.details') }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             @if($application->special_approval_reason)
                 <div class="bg-amber-50 border-l-4 border-amber-500 rounded-lg px-4 py-3">
@@ -201,10 +261,75 @@
         </div>
 
         {{-- アクションサイドバー --}}
-        <div class="lg:col-span-1">
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 sticky top-6">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ __('common.actions') }}</h2>
-                <div class="space-y-3">
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 sticky top-6 space-y-5">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900 mb-3">{{ __('pages.approval_glance_title') }}</h2>
+                    <dl class="space-y-2.5 text-[13px]">
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-slate-500">{{ __('pages.hospital_pending_apps') }}</dt>
+                            <dd class="font-semibold text-amber-700">{{ $hospitalPendingApps ?? 0 }}</dd>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-slate-500">{{ __('pages.hospital_pending_other') }}</dt>
+                            <dd class="font-semibold text-slate-900">{{ $hospitalPendingOtherApps ?? 0 }}</dd>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-slate-500">{{ __('pages.hospital_pending_outbound_qty') }}</dt>
+                            <dd class="font-semibold text-slate-900">{{ $hospitalPendingItemQty ?? 0 }}</dd>
+                        </div>
+                        <div class="border-t border-slate-100 pt-2.5 flex items-center justify-between gap-2">
+                            <dt class="text-slate-500">{{ __('pages.this_app_outbound_qty') }}</dt>
+                            <dd class="font-semibold text-primary-700">{{ $thisAppOutboundQty ?? 0 }}</dd>
+                        </div>
+                        @if(($thisAppReturnQty ?? 0) > 0)
+                            <div class="flex items-center justify-between gap-2">
+                                <dt class="text-slate-500">{{ __('pages.this_app_return_qty') }}</dt>
+                                <dd class="font-semibold text-slate-900">{{ $thisAppReturnQty }}</dd>
+                            </div>
+                        @endif
+                    </dl>
+                </div>
+
+                <div>
+                    <h3 class="text-[13px] font-semibold text-slate-800 mb-2">{{ __('pages.ordered_items_glance') }}</h3>
+                    <ul class="max-h-56 overflow-y-auto space-y-2 border border-slate-100 rounded-lg p-2 bg-slate-50">
+                        @forelse($application->items as $item)
+                            @php
+                                $action = $item->action ?: 'loan';
+                                $isOutbound = in_array($action, ['loan', 'exchange_in', 'transfer_change'], true);
+                            @endphp
+                            <li class="rounded-md bg-white border border-slate-100 px-2.5 py-2">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <p class="text-[12px] font-medium text-slate-900 truncate">{{ $item->uniformProduct?->name ?? '-' }}</p>
+                                        <p class="text-[11px] text-slate-500 truncate">
+                                            {{ $item->uniformProduct?->product_code ?? '-' }}
+                                            · {{ $item->uniformProduct?->size ?? '-' }}
+                                        </p>
+                                    </div>
+                                    <span class="shrink-0 text-[13px] font-bold text-slate-900">×{{ $item->quantity }}</span>
+                                </div>
+                                <p class="text-[10px] mt-1 {{ $isOutbound ? 'text-primary-600' : 'text-slate-500' }}">
+                                    @if($action === 'exchange_out')
+                                        {{ __('pages.item_action_old_return') }}
+                                    @elseif($action === 'return')
+                                        {{ __('pages.item_action_return') }}
+                                    @else
+                                        {{ __('pages.item_action_new_loan') }}
+                                    @endif
+                                    · {{ __('pages.current_stock') }} {{ $item->uniformProduct?->stock_quantity ?? '-' }}
+                                </p>
+                            </li>
+                        @empty
+                            <li class="text-[12px] text-slate-500 px-1 py-2">{{ __('pages.no_data') }}</li>
+                        @endforelse
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900 mb-3">{{ __('common.actions') }}</h2>
+                    <div class="space-y-3">
                     @if(in_array($application->status, ['pending', 'waiting_special_approval']))
                         <form method="POST" action="{{ route('admin.applications.approve', $application) }}" class="inline-block w-full">
                             @csrf
@@ -246,6 +371,7 @@
                             {{ __('pages.cancel_rejected') }}
                         </button>
                     @endif
+                    </div>
                 </div>
             </div>
         </div>

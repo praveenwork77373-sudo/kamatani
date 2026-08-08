@@ -7,20 +7,20 @@
 
     <form method="POST" action="{{ route('applications.store') }}" id="application-form">
         @csrf
-        <input type="hidden" name="application_mode" id="application-mode" value="{{ old('application_mode', request('mode', 'individual')) }}">
+        <input type="hidden" name="application_mode" id="application-mode" value="individual">
         <input type="hidden" name="employee_id" id="selected-employee-id" value="{{ old('employee_id') }}">
 
         {{-- Header --}}
-        <div class="mb-6 flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.new_application') }}</h1>
-                <p class="text-[14px] text-slate-600 mt-1.5">{{ __('pages.application_description') }}</p>
+        <div class="mb-4 sm:mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.new_application') }}</h1>
+                <p class="text-[13px] sm:text-[14px] text-slate-600 mt-1 sm:mt-1.5">{{ __('pages.application_description') }}</p>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('applications.index') }}" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[14px] font-medium transition-all">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <a href="{{ route('applications.index') }}" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] sm:text-[14px] font-medium transition-all text-center">
                     {{ __('pages.cancel') }}
                 </a>
-                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center gap-2">
+                <button type="submit" class="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[13px] sm:text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
                     <i data-lucide="send" class="w-4 h-4"></i>
                     {{ __('pages.submit_application') }}
                 </button>
@@ -38,7 +38,7 @@
                     </h2>
                 </div>
 
-                <div class="p-6 space-y-6 max-w-4xl">
+                <div class="p-4 sm:p-6 space-y-5 sm:space-y-6 max-w-4xl">
                     {{-- Application Type --}}
                     <div>
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
@@ -62,24 +62,9 @@
                         @enderror
                     </div>
 
-                    {{-- Application Category --}}
-                    <div>
-                        <label class="block text-slate-700 text-[14px] font-semibold mb-3 flex items-center gap-2">
-                            <i data-lucide="list-bullets" class="w-4 h-4 text-slate-500"></i>
-                            {{ __('pages.application_category') }}
-                        </label>
-                        <div class="flex gap-4">
-                            <label class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all application-category-option {{ old('application_mode', request('mode', 'individual')) === 'individual' ? 'border-primary-500 bg-primary-50' : 'border-slate-300 bg-white' }}" data-category="individual">
-                                <input type="radio" name="application_mode_radio" value="individual" {{ old('application_mode', request('mode', 'individual')) === 'individual' ? 'checked' : '' }} class="text-primary-600">
-                                <i data-lucide="user" class="w-4 h-4 text-primary-600"></i>
-                                <span class="text-[14px] font-medium text-slate-900">{{ __('pages.individual_label') }}</span>
-                            </label>
-                            <label class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all application-category-option {{ old('application_mode', request('mode')) === 'departmental' ? 'border-primary-500 bg-primary-50' : 'border-slate-300 bg-white' }}" data-category="departmental">
-                                <input type="radio" name="application_mode_radio" value="departmental" {{ old('application_mode', request('mode')) === 'departmental' ? 'checked' : '' }} class="text-primary-600">
-                                <i data-lucide="users" class="w-4 h-4 text-primary-600"></i>
-                                <span class="text-[14px] font-medium text-slate-900">{{ __('pages.department_batch') }}</span>
-                            </label>
-                        </div>
+                    {{-- Individual applications only (client confirmed) --}}
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] text-slate-600">
+                        {{ __('pages.individual_applications_only_hint') }}
                     </div>
 
                     {{-- Department Selection (for both modes) --}}
@@ -277,6 +262,7 @@
                             <div id="contract-limit-progress" class="h-full bg-gradient-to-r from-primary-500 via-blue-600 to-indigo-600 transition-all duration-300 rounded-full" style="width: 0%"></div>
                         </div>
                         <p class="text-[12px] text-slate-500 mt-1.5" id="contract-limit-text"></p>
+                        <p class="text-[11px] text-slate-500 mt-1 hidden" id="category-limit-breakdown"></p>
                     </div>
 
                     {{-- Application memos (SPEC / PDF) --}}
@@ -353,24 +339,24 @@
 
             {{-- 2) Product Selection (below application info) --}}
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-blue-50">
-                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <div class="p-4 sm:p-6 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-blue-50">
+                    <h2 class="text-base sm:text-lg font-semibold text-slate-900 flex items-center gap-2">
                         <i data-lucide="shopping-cart" class="w-5 h-5 text-primary-600"></i>
                         {{ __('pages.product_selection') }}
                     </h2>
-                    <p class="text-[13px] text-slate-600 mt-1">{{ __('pages.ui_913298c989') }}</p>
+                    <p class="text-[12px] sm:text-[13px] text-slate-600 mt-1">{{ __('pages.ui_913298c989') }}</p>
                 </div>
 
-                <div class="p-6">
+                <div class="p-4 sm:p-6">
                     {{-- Category Tabs --}}
-                    <div class="flex flex-wrap gap-2 mb-6 border-b-2 border-slate-200">
+                    <div class="flex flex-wrap gap-1 sm:gap-2 mb-4 sm:mb-6 border-b-2 border-slate-200 -mx-1 px-1 overflow-x-auto">
                         @foreach(($categories ?? []) as $idx => $cat)
                             <button type="button"
-                                    class="category-tab px-5 py-3 text-[14px] font-semibold border-b-3 transition-all flex items-center gap-2 rounded-t-lg {{ $idx === 0 ? 'active text-primary-600 bg-primary-50 border-primary-600' : 'text-slate-600 border-transparent hover:text-primary-600 hover:border-primary-500 hover:bg-slate-50' }}"
+                                    class="category-tab px-3 sm:px-5 py-2 sm:py-3 text-[12px] sm:text-[14px] font-semibold border-b-3 transition-all flex items-center gap-1.5 sm:gap-2 rounded-t-lg whitespace-nowrap {{ $idx === 0 ? 'active text-primary-600 bg-primary-50 border-primary-600' : 'text-slate-600 border-transparent hover:text-primary-600 hover:border-primary-500 hover:bg-slate-50' }}"
                                     data-category="{{ $cat->code }}"
                                     data-size-scheme="{{ $cat->size_scheme }}"
                                     data-employee-size-field="{{ $cat->employee_size_field }}">
-                                <i data-lucide="tag" class="w-5 h-5"></i>
+                                <i data-lucide="tag" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                                 {{ $cat->name }}
                             </button>
                         @endforeach
@@ -397,10 +383,43 @@
 
 @push('scripts')
 
+    <style>
+        /* Keep qty input compact but readable; hide native spinners that inflate width */
+        .size-quantity-input {
+            width: 2.75rem;
+            min-width: 2.75rem;
+            max-width: 3rem;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        .size-quantity-input::-webkit-outer-spin-button,
+        .size-quantity-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .return-loan-qty {
+            width: 3rem;
+            min-width: 3rem;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        .return-loan-qty::-webkit-outer-spin-button,
+        .return-loan-qty::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+
     <script>
         window.__i18nAppCreate = {
             stock: @json(__('pages.stock')),
             onLoan: @json(__('pages.on_loan')),
+            size_not_match: @json(__('pages.size_not_match')),
+            registered_size_hint: @json(__('pages.registered_size_hint')),
+            new_qty_exceeds_change_qty: @json(__('pages.new_qty_exceeds_change_qty')),
+            select_change_items_first: @json(__('pages.select_change_items')),
+            rentable_limit_hard_block_short: @json(__('pages.rentable_limit_hard_block_short')),
+            out_of_stock: @json(__('pages.out_of_stock')),
         };
     </script>
 <script>
@@ -450,6 +469,112 @@ document.addEventListener('DOMContentLoaded', () => {
     const contractLimitProgress = document.getElementById('contract-limit-progress');
     const selectedItemsCount = document.getElementById('selected-items-count');
     const contractLimitText = document.getElementById('contract-limit-text');
+    const categoryLimitBreakdownEl = document.getElementById('category-limit-breakdown');
+    let categoryLimits = null; // { top, bottom, other, other2, other3 } or null
+    const categoryLimitLabels = {
+        top: @json(__('pages.cap_top')),
+        bottom: @json(__('pages.cap_bottom')),
+        other: @json(__('pages.cap_other')),
+        other2: @json(__('pages.cap_other2')),
+        other3: @json(__('pages.cap_other3')),
+    };
+
+    function normalizeLimitCategory(category) {
+        if (category === 'top' || category === 'bottom' || category === 'other2' || category === 'other3') {
+            return category;
+        }
+        return 'other';
+    }
+
+    function productLimitCategory(productOrItem) {
+        return normalizeLimitCategory(
+            productOrItem?.limit_category
+            || productOrItem?.slot_category
+            || productOrItem?.category
+        );
+    }
+
+    function selectedQtyByCategory() {
+        const qty = { top: 0, bottom: 0, other: 0, other2: 0, other3: 0 };
+        // Current in-use loans (from loaded loans list) minus selected returns
+        if (typeof returnItems !== 'undefined' && currentLoansList) {
+            // loans already reflected via heldLoansByCategory if set
+        }
+        if (window.__heldLoansByCategory) {
+            Object.keys(window.__heldLoansByCategory).forEach((cat) => {
+                qty[cat] = (qty[cat] || 0) + (window.__heldLoansByCategory[cat] || 0);
+            });
+        }
+        if (typeof returnItems !== 'undefined') {
+            returnItems.forEach((item) => {
+                const cat = productLimitCategory(item);
+                qty[cat] = Math.max(0, (qty[cat] || 0) - (item.quantity || 0));
+            });
+        }
+        selectedItems.forEach((item) => {
+            let category = item.limit_category || item.category;
+            if (!category && item.product_id) {
+                const product = allUniforms.find(u => String(u.id) === String(item.product_id))
+                    || allUniforms.find(u => (u.sizes_with_ids || []).some(s => String(s.product_id) === String(item.product_id)));
+                category = product?.limit_category || product?.category;
+            }
+            const cat = normalizeLimitCategory(category);
+            qty[cat] += item.quantity || 0;
+        });
+        return qty;
+    }
+
+    function exceedsAnyCategoryLimit(projectedByCategory = null) {
+        if (!categoryLimits) return false;
+        const projected = projectedByCategory || selectedQtyByCategory();
+        return Object.keys(categoryLimits).some((cat) => {
+            return (projected[cat] || 0) > (categoryLimits[cat] || 0);
+        });
+    }
+
+    function heldLoanQtyTotal() {
+        let total = 0;
+        if (window.__heldLoansByCategory) {
+            Object.keys(window.__heldLoansByCategory).forEach((cat) => {
+                total += window.__heldLoansByCategory[cat] || 0;
+            });
+        }
+        return total;
+    }
+
+    function projectedTotalQty(extraAdd = 0) {
+        return Math.max(0, heldLoanQtyTotal() - selectedReturnQtyTotal()) + selectedNewQtyTotal() + extraAdd;
+    }
+
+    function wouldExceedLimitIfAdd(category, addQty = 1) {
+        if (categoryLimits) {
+            const cat = normalizeLimitCategory(category);
+            const qty = selectedQtyByCategory();
+            return ((qty[cat] || 0) + addQty) > (categoryLimits[cat] || 0);
+        }
+        if (!contractLimit || contractLimit <= 0) {
+            return false;
+        }
+        // Total plan points: include currently held loans (minus returns) + new items
+        return projectedTotalQty(addQty) > contractLimit;
+    }
+
+    function toastPlanLimit() {
+        const msg = window.__i18nAppCreate?.rentable_limit_hard_block_short
+            || @json(__('pages.rentable_limit_hard_block_short'));
+        if (window.showToast) window.showToast(msg, 'error');
+        else alert(msg);
+    }
+
+    function resolveItemCategory(item, fallbackCategory = 'other') {
+        let category = item?.limit_category || item?.category || fallbackCategory;
+        if ((!category || category === 'other') && item?.product_id) {
+            const product = allUniforms.find(u => String(u.id) === String(item.product_id))
+                || allUniforms.find(u => (u.sizes_with_ids || []).some(s => String(s.product_id) === String(item.product_id)));
+            category = product?.limit_category || product?.category || category;
+        }
+        return normalizeLimitCategory(category);
+    }
 
     let allUniforms = @json($uniformsJson);
     let filteredUniforms = [];
@@ -460,6 +585,88 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentLoansPanel = document.getElementById('current-loans-panel');
     const currentLoansList = document.getElementById('current-loans-list');
     const applicationTypeSelect = document.getElementById('application-type-select');
+
+    function selectedReturnQtyTotal() {
+        let total = 0;
+        returnItems.forEach((item) => { total += item.quantity || 0; });
+        return total;
+    }
+
+    function selectedNewQtyTotal() {
+        let total = 0;
+        selectedItems.forEach((item) => { total += item.quantity || 0; });
+        return total;
+    }
+
+    function needsReturnQtyCap() {
+        const t = applicationTypeSelect?.value || '';
+        return ['resize', 'exchange', 'transfer'].includes(t);
+    }
+
+    function wouldExceedReturnQtyIfAdd(addQty = 1) {
+        if (!needsReturnQtyCap()) return false;
+        const returnQty = selectedReturnQtyTotal();
+        if (returnQty <= 0) return true;
+        return (selectedNewQtyTotal() + addQty) > returnQty;
+    }
+
+    function toastReturnQtyCap() {
+        const msg = selectedReturnQtyTotal() <= 0
+            ? (window.__i18nAppCreate?.select_change_items_first || @json(__('pages.select_change_items')))
+            : (window.__i18nAppCreate?.new_qty_exceeds_change_qty || @json(__('pages.new_qty_exceeds_change_qty')));
+        if (window.showToast) window.showToast(msg, 'error');
+        else alert(msg);
+    }
+
+    function clampSelectedItemsToReturnQty() {
+        if (!needsReturnQtyCap()) return;
+        const allowed = selectedReturnQtyTotal();
+        if (selectedNewQtyTotal() <= allowed) return;
+
+        const entries = Array.from(selectedItems.entries());
+        for (let i = entries.length - 1; i >= 0 && selectedNewQtyTotal() > allowed; i--) {
+            const [key, item] = entries[i];
+            const over = selectedNewQtyTotal() - allowed;
+            const reduceBy = Math.min(item.quantity || 0, over);
+            item.quantity = (item.quantity || 0) - reduceBy;
+            if (item.quantity <= 0) {
+                selectedItems.delete(key);
+            } else {
+                selectedItems.set(key, item);
+            }
+            if (typeof updateQuantityDisplay === 'function') {
+                updateQuantityDisplay(key);
+            }
+        }
+        if (typeof updateContractLimit === 'function') updateContractLimit();
+        if (typeof updateFormFields === 'function') updateFormFields();
+        if (typeof loadProducts === 'function') loadProducts();
+    }
+
+    function isOverPlanLimit() {
+        if (categoryLimits) return exceedsAnyCategoryLimit();
+        return contractLimit > 0 && projectedTotalQty() > contractLimit;
+    }
+
+    function clampSelectedItemsToPlanLimit() {
+        if (!isOverPlanLimit()) return;
+        const entries = Array.from(selectedItems.entries());
+        for (let i = entries.length - 1; i >= 0 && isOverPlanLimit(); i--) {
+            const [key, item] = entries[i];
+            item.quantity = Math.max(0, (item.quantity || 0) - 1);
+            if (item.quantity <= 0) {
+                selectedItems.delete(key);
+            } else {
+                selectedItems.set(key, item);
+            }
+            if (typeof updateQuantityDisplay === 'function') {
+                updateQuantityDisplay(key);
+            }
+        }
+        if (typeof updateContractLimit === 'function') updateContractLimit();
+        if (typeof updateFormFields === 'function') updateFormFields();
+        if (typeof loadProducts === 'function') loadProducts();
+    }
     let currentCategory = document.querySelector('.category-tab.active')?.dataset.category
         || document.querySelector('.category-tab')?.dataset.category
         || '';
@@ -580,6 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         data-employee-body-type="${emp.body_type || '-'}"
                         data-employee-plans="${planLabel || @json(__('pages.unassigned'))}"
                         data-employee-rentable-limit="${emp.rentable_limit ?? ''}"
+                        data-employee-rentable-limits-by-category='${JSON.stringify(emp.rentable_limits_by_category || null).replace(/'/g, "&#39;")}'
                         data-employee-dept="${emp.department_id}"
                         data-employee-job="${emp.job_type_id}"
                         data-employee-gender="${emp.gender || ''}">
@@ -725,15 +933,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Dashboard deep-link ?mode= (after listeners attached)
-    (function applyUrlMode() {
-        const urlMode = new URLSearchParams(window.location.search).get('mode');
-        if (urlMode !== 'departmental' && urlMode !== 'individual') return;
-        const modeOpt = document.querySelector('.application-category-option[data-category="' + urlMode + '"]');
-        if (!modeOpt) return;
-        const modeRadio = modeOpt.querySelector('input[type="radio"]');
-        if (modeRadio) modeRadio.checked = true;
-        modeOpt.click();
+    // Dashboard deep-link ?mode= ignored — individual only
+    (function initIndividualMode() {
+        applicationModeInput.value = 'individual';
+        if (employeeSearchField) {
+            employeeSearchField.classList.remove('hidden');
+        }
+        if (departmentSelect) {
+            departmentSelect.required = false;
+        }
+        const deptMark = document.getElementById('department-required-mark');
+        if (deptMark) deptMark.classList.add('hidden');
+        loadEmployeesForSelect(departmentSelect?.value || '');
     })();
 
     // Department selection handler
@@ -742,37 +953,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const mode = applicationModeInput.value;
         
             if (mode === 'individual') {
-            // For individual mode, show employee search field and filter by department
+            // Individual mode: products only after employee + plan — department only narrows the employee list
             if (departmentId) {
                 employeeSearchField.classList.remove('hidden');
-                // Load employees for the selected department
                 await loadEmployeesForSelect(departmentId);
-                // If employee is already selected, filter by employee's department, job type, and gender
-                if (selectedEmployeeId.value && selectedEmployeeInfo.gender) {
-                    const jobId = selectedEmployeeInfo.job_type_id;
-                    const gender = selectedEmployeeInfo.gender;
-                    await filterUniformsByEmployee(departmentId, jobId, gender);
-                } else {
-                    // Filter uniforms by department when department is selected
-                    await filterUniformsByDepartment(departmentId);
-                }
             } else {
-                // Hide employee search if no department selected
-                employeeSearchField.classList.add('hidden');
-                resetEmployeeSelect();
-                
-                // If employee is selected but no department, filter by gender only
-                if (selectedEmployeeId.value && selectedEmployeeInfo.gender) {
-                    filteredUniforms = allUniforms.filter(u => 
-                        u.gender === 'unisex' || u.gender === selectedEmployeeInfo.gender || !u.gender
-                    );
-                } else {
-                    // Show all uniforms when no department selected
-                    filteredUniforms = allUniforms;
-                }
-                loadProducts();
+                employeeSearchField.classList.remove('hidden');
+                await loadEmployeesForSelect('');
             }
-            // Clear selected employee if department changes
             selectedEmployeeCard.classList.add('hidden');
             selectedEmployeeId.value = '';
             resetEmployeeSelect();
@@ -783,7 +971,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 gender: null,
                 medical_institution_id: null
             };
-            // Reload products to clear size filtering
+            filteredUniforms = [];
+            employeePlanFilterActive = false;
             loadProducts();
         } else {
             // For departmental mode, show all employees in department
@@ -796,21 +985,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const gender = selectedEmployeeInfo.gender;
                     await filterUniformsByEmployee(departmentId, jobId, gender);
                 } else {
-                    // Filter uniforms by department
+                    // Filter uniforms by department plan products (no full-catalog fallback)
                     await filterUniformsByDepartment(departmentId);
                 }
             } else {
                 departmentEmployeesList.classList.add('hidden');
-                
-                // If employee is selected but no department, filter by gender only
-                if (selectedEmployeeId.value && selectedEmployeeInfo.gender) {
-                    filteredUniforms = allUniforms.filter(u => 
-                        u.gender === 'unisex' || u.gender === selectedEmployeeInfo.gender || !u.gender
-                    );
-                } else {
-                    // Show all uniforms when no department selected
-                    filteredUniforms = allUniforms;
-                }
+                filteredUniforms = [];
+                employeePlanFilterActive = false;
                 loadProducts();
             }
         }
@@ -922,7 +1103,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Filter uniforms by department considering ALL employees' sizes, genders, and job types
     async function filterUniformsByDepartmentForAllEmployees(departmentId) {
         if (!departmentId || departmentEmployeesData.length === 0) {
-            filteredUniforms = allUniforms;
+            filteredUniforms = [];
+            employeePlanFilterActive = false;
             loadProducts();
             return;
         }
@@ -933,7 +1115,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (!response.ok) {
                 console.error('API response not OK:', response.status, response.statusText);
-                filteredUniforms = allUniforms;
+                filteredUniforms = [];
+                employeePlanFilterActive = true;
                 loadProducts();
                 return;
             }
@@ -941,7 +1124,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const uniforms = await response.json();
             
             if (!Array.isArray(uniforms) || uniforms.length === 0) {
-                filteredUniforms = allUniforms;
+                filteredUniforms = [];
+                employeePlanFilterActive = true;
                 loadProducts();
                 return;
             }
@@ -1033,7 +1217,8 @@ document.addEventListener('DOMContentLoaded', () => {
             loadProducts();
         } catch (error) {
             console.error('Uniform fetch error:', error);
-            filteredUniforms = allUniforms;
+            filteredUniforms = [];
+            employeePlanFilterActive = true;
             loadProducts();
         }
     }
@@ -1106,6 +1291,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (contractLimitEl) contractLimitEl.textContent = String(contractLimit);
             }
         }
+        categoryLimits = null;
+        if (data.employeeRentableLimitsByCategory) {
+            try {
+                const parsedCaps = typeof data.employeeRentableLimitsByCategory === 'string'
+                    ? JSON.parse(data.employeeRentableLimitsByCategory)
+                    : data.employeeRentableLimitsByCategory;
+                if (parsedCaps && typeof parsedCaps === 'object') {
+                    categoryLimits = parsedCaps;
+                }
+            } catch (e) {
+                categoryLimits = null;
+            }
+        }
+        // Always load held loans for limit projection (new_loan included)
+        if (data.employeeId) {
+            loadEmployeeLoans(data.employeeId);
+        }
         
         // Store employee sizes for filtering (handle "-" as null)
         selectedEmployeeSizes = {
@@ -1122,25 +1324,11 @@ document.addEventListener('DOMContentLoaded', () => {
             medical_institution_id: null // Will be set from department if needed
         };
         
-        // When employee is selected, filter products by employee's department, job type, and gender
-        const deptId = departmentSelect ? departmentSelect.value : null;
+        // Products come only from the employee's confirmed contract plan
+        const deptId = departmentSelect ? departmentSelect.value : (selectedEmployeeInfo.department_id || null);
         const jobId = selectedEmployeeInfo.job_type_id;
         const gender = selectedEmployeeInfo.gender;
-        
-        if (deptId) {
-            // Filter by department, job type, and gender
-            filterUniformsByEmployee(deptId, jobId, gender);
-        } else {
-            // If no department selected, still filter by gender
-            if (gender) {
-                filteredUniforms = allUniforms.filter(u => 
-                    u.gender === 'unisex' || u.gender === gender || !u.gender
-                );
-            } else {
-                filteredUniforms = allUniforms;
-            }
-            loadProducts();
-        }
+        filterUniformsByEmployee(deptId, jobId, gender);
 
         if (typeof syncTypeDependentUi === 'function') {
             syncTypeDependentUi();
@@ -1250,145 +1438,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             } catch (error) {
                 console.error('Plan uniform fetch error:', error);
+                filteredUniforms = [];
+                employeePlanFilterActive = true;
+                productsContainer.innerHTML = uniformPlaceholderHtml(`
+                        <p class="text-[14px]">${@json(__('pages.js_plan_no_products'))}</p>
+                `);
+                return;
             }
         }
 
-        // If no department, show all uniforms filtered by gender
-        if (!deptId) {
-            filteredUniforms = allUniforms.filter(u => 
-                !gender || u.gender === 'unisex' || u.gender === gender || !u.gender
-            );
-            loadProducts();
-            return;
-        }
-
-        try {
-            // Build API URL — products come from confirmed Contract Plans (not dept/job recommendations)
-            let apiUrl = `{{ route('api.uniforms_by_plan') }}?department_id=${deptId}`;
-            if (jobId) {
-                apiUrl += `&job_type_id=${jobId}`;
-            }
-            if (gender) {
-                apiUrl += `&gender=${gender}`;
-            }
-            
-            const response = await fetch(apiUrl);
-            const uniforms = await response.json();
-            
-            // Group uniforms by base product_code (extract base code by removing size suffix)
-            const grouped = {};
-            uniforms.forEach(u => {
-                // Extract base product code by removing size suffix
-                let baseKey = u.product_code || u.id;
-                if (u.product_code && u.size) {
-                    const lastDashPos = u.product_code.lastIndexOf('-');
-                    if (lastDashPos !== -1) {
-                        const suffix = u.product_code.substring(lastDashPos + 1);
-                        // Check if suffix matches the size (S, M, L, XL, XXL, or numeric)
-                        if (suffix === u.size || ['S', 'M', 'L', 'XL', 'XXL'].includes(suffix) || !isNaN(suffix)) {
-                            baseKey = u.product_code.substring(0, lastDashPos);
-                        }
-                    }
-                }
-                
-                if (!grouped[baseKey]) {
-                    grouped[baseKey] = {
-                        id: u.id,
-                        name: u.name,
-                        product_code: baseKey, // Use base product code
-                        category: u.category,
-                        gender: u.gender,
-                        sizes: [],
-                        sizes_with_ids: [],
-                        available_sizes: [],
-                        stock_quantity: 0,
-                        image_path: u.image_path || ''
-                    };
-                }
-                if (u.size) {
-                    // Add size with product ID
-                    const existingSize = grouped[baseKey].sizes_with_ids.find(s => s.size === u.size);
-                    if (!existingSize) {
-                        grouped[baseKey].sizes_with_ids.push({
-                            size: u.size,
-                            product_id: u.id,
-                            stock_quantity: u.stock_quantity || 0,
-                            available: (u.stock_quantity || 0) > 0
-                        });
-                        grouped[baseKey].sizes.push(u.size);
-                    } else {
-                        // Update stock if this product has more stock
-                        existingSize.stock_quantity += (u.stock_quantity || 0);
-                        existingSize.available = existingSize.stock_quantity > 0;
-                    }
-                    // Add to available_sizes if in stock
-                    if ((u.stock_quantity || 0) > 0 && !grouped[baseKey].available_sizes.includes(u.size)) {
-                        grouped[baseKey].available_sizes.push(u.size);
-                    }
-                }
-                grouped[baseKey].stock_quantity += (u.stock_quantity || 0);
-            });
-            
-            // Convert grouped object to array and sort sizes
-            filteredUniforms = Object.values(grouped).map(u => ({
-                ...u,
-                sizes: u.sizes.sort((a, b) => {
-                    // Sort letter sizes (S, M, L, XL, XXL)
-                    const sizeOrder = { 'S': 1, 'M': 2, 'L': 3, 'XL': 4, 'XXL': 5 };
-                    if (sizeOrder[a] && sizeOrder[b]) {
-                        return sizeOrder[a] - sizeOrder[b];
-                    }
-                    // Sort numeric sizes (for shoes)
-                    const numA = parseFloat(a);
-                    const numB = parseFloat(b);
-                    if (!isNaN(numA) && !isNaN(numB)) {
-                        return numA - numB;
-                    }
-                    return a.localeCompare(b);
-                }),
-                sizes_with_ids: u.sizes_with_ids.sort((a, b) => {
-                    const sizeOrder = { 'S': 1, 'M': 2, 'L': 3, 'XL': 4, 'XXL': 5 };
-                    if (sizeOrder[a.size] && sizeOrder[b.size]) {
-                        return sizeOrder[a.size] - sizeOrder[b.size];
-                    }
-                    if (u.category === 'shoe') {
-                        return parseFloat(a.size) - parseFloat(b.size);
-                    }
-                    return a.size.localeCompare(b.size);
-                }),
-                available_sizes: u.available_sizes.sort((a, b) => {
-                    const sizeOrder = { 'S': 1, 'M': 2, 'L': 3, 'XL': 4, 'XXL': 5 };
-                    if (sizeOrder[a] && sizeOrder[b]) {
-                        return sizeOrder[a] - sizeOrder[b];
-                    }
-                    const numA = parseFloat(a);
-                    const numB = parseFloat(b);
-                    if (!isNaN(numA) && !isNaN(numB)) {
-                        return numA - numB;
-                    }
-                    return a.localeCompare(b);
-                })
-            }));
-            
-            // Additional gender filter if needed
-            if (gender) {
-                filteredUniforms = filteredUniforms.filter(u => 
-                    u.gender === 'unisex' || u.gender === gender || !u.gender
-                );
-            }
-            
-            loadProducts();
-        } catch (error) {
-            console.error('Uniform fetch error:', error);
-            filteredUniforms = allUniforms;
-            loadProducts();
-        }
+        // No employee selected — keep catalog empty until a plan-backed employee is chosen
+        filteredUniforms = [];
+        employeePlanFilterActive = false;
+        loadProducts();
     }
     
-    // Filter uniforms by department (for departmental mode and individual mode)
+    // Filter uniforms by department (plan products only — never reopen full catalog)
     async function filterUniformsByDepartment(departmentId) {
         if (!departmentId) {
-            filteredUniforms = allUniforms;
+            filteredUniforms = [];
+            employeePlanFilterActive = false;
             loadProducts();
             return;
         }
@@ -1399,7 +1468,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (!response.ok) {
                 console.error('API response not OK:', response.status, response.statusText);
-                filteredUniforms = allUniforms;
+                filteredUniforms = [];
+                employeePlanFilterActive = true;
                 loadProducts();
                 return;
             }
@@ -1409,15 +1479,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check if uniforms is an array
             if (!Array.isArray(uniforms)) {
                 console.error('API did not return an array:', uniforms);
-                filteredUniforms = allUniforms;
+                filteredUniforms = [];
+                employeePlanFilterActive = true;
                 loadProducts();
                 return;
             }
             
-            // If no uniforms returned, show all uniforms
+            // Empty plan catalog — show nothing (do not fall back to all products)
             if (uniforms.length === 0) {
-                console.warn('No uniforms returned from API, showing all uniforms');
-                filteredUniforms = allUniforms;
+                filteredUniforms = [];
+                employeePlanFilterActive = true;
                 loadProducts();
                 return;
             }
@@ -1486,11 +1557,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     return a.size.localeCompare(b.size);
                 })
             }));
+            employeePlanFilterActive = true;
             
             loadProducts();
         } catch (error) {
             console.error('Department filter error:', error);
-            filteredUniforms = allUniforms;
+            filteredUniforms = [];
+            employeePlanFilterActive = true;
             loadProducts();
         }
     }
@@ -1535,11 +1608,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load products
     function loadProducts() {
-        // Get products to display (filtered or all)
-        // When an employee plan filter ran, never fall back to the unfiltered catalog
-        let productsToShow = filteredUniforms.length > 0
-            ? filteredUniforms
-            : (employeePlanFilterActive ? [] : allUniforms);
+        // Catalog is plan-gated: only show products after an employee plan filter ran
+        // (or temporary department fetch). Never dump the full unfiltered catalog.
+        let productsToShow = [];
+        if (filteredUniforms.length > 0) {
+            productsToShow = filteredUniforms.slice();
+        } else if (employeePlanFilterActive) {
+            productsToShow = [];
+        } else if (selectedEmployeeId?.value) {
+            // Employee selected but plan filter not ready / failed → show nothing
+            productsToShow = [];
+        } else {
+            // No employee yet — do not browse the full catalog
+            productsContainer.innerHTML = uniformPlaceholderHtml(`
+                    <p class="text-[14px]">${@json(__('pages.select_employee_for_products'))}</p>
+            `);
+            return;
+        }
         
         // Apply gender filter if employee is selected (individual mode) or departmental mode
         const isDepartmentalMode = applicationModeInput.value === 'departmental';
@@ -1554,16 +1639,10 @@ document.addEventListener('DOMContentLoaded', () => {
                        departmentEmployeesAggregated.genders.size === 0;
             });
         } else if (selectedEmployeeId.value && selectedEmployeeInfo.gender) {
-            // Individual mode: filter by selected employee's gender
-            if (filteredUniforms.length === 0) {
-                productsToShow = allUniforms.filter(u => 
-                    u.gender === 'unisex' || u.gender === selectedEmployeeInfo.gender || !u.gender
-                );
-            } else {
-                productsToShow = productsToShow.filter(u => 
-                    u.gender === 'unisex' || u.gender === selectedEmployeeInfo.gender || !u.gender
-                );
-            }
+            // Individual mode: filter plan products by gender only (never reopen full catalog)
+            productsToShow = productsToShow.filter(u => 
+                u.gender === 'unisex' || u.gender === selectedEmployeeInfo.gender || !u.gender
+            );
         }
         
         // Filter by category
@@ -1577,7 +1656,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // E-shop card grid layout
-        let html = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-4">';
+        let html = '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">';
         productsToShow.forEach(product => {
             // Use product_code as base key, size will be selected separately
             const productKey = product.product_code || product.id;
@@ -1684,14 +1763,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return {
                     ...sizeData,
                     matchesEmployeeSize: matchesEmployeeSize,
-                    disabled: (selectedEmployeeId.value || isDepartmentalMode) && !matchesEmployeeSize,
+                    // Employee size is reference only — do not block other sizes
+                    disabled: false,
                     employeeCount: employeeCountForSize // Number of employees who need this size
                 };
             });
             
             html += `
-                <div class="group border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 ${isSelected ? 'ring-2 ring-primary-500 shadow-md' : 'hover:border-primary-300'}">
-                    <div class="relative h-48 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
+                <div class="group border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 min-w-0 ${isSelected ? 'ring-2 ring-primary-500 shadow-md' : 'hover:border-primary-300'}">
+                    <div class="relative h-40 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
                         ${product.image_path ? 
                             `<img src="${product.image_path}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">` :
                             `<div class="w-full h-full uniform-placeholder">
@@ -1705,10 +1785,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         ` : ''}
                     </div>
                     
-                    <div class="p-3 space-y-4">
-                        <div>
-                            <h3 class="font-semibold text-slate-900 text-[16px] mb-1.5 line-clamp-2 leading-tight">${product.name}</h3>
-                            <p class="text-[12px] text-slate-500 font-mono">${product.product_code}</p>
+                    <div class="p-3 sm:p-4 space-y-3 sm:space-y-4 min-w-0 overflow-hidden">
+                        <div class="min-w-0">
+                            <h3 class="font-semibold text-slate-900 text-[14px] sm:text-[15px] mb-1 line-clamp-2 leading-tight break-words">${product.name}</h3>
+                            <p class="text-[11px] sm:text-[12px] text-slate-500 font-mono truncate">${product.product_code}</p>
                         </div>
                         
                         ${/* Size Selection - Multiple sizes with checkboxes for tops/bottoms, inputs for shoes */''}
@@ -1719,7 +1799,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </label>
                             ${productSizeScheme(product) === 'shoe' ? 
                                 /* Shoe size - Multiple number inputs in a grid */
-                                `<div class="space-y-2 max-h-32 overflow-y-auto">
+                                `<div class="space-y-2 max-h-56 overflow-y-auto overflow-x-hidden pr-0.5">
                                     ${sizesData.map(sizeData => {
                                         const itemKey = `${productKey}_${sizeData.size}`;
                                         
@@ -1744,12 +1824,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                         const isAvailable = sizeData.available && sizeData.stock_quantity > 0;
                                         const notAlreadySelected = !selectedItems.has(itemKey);
                                         
-                                        // Check contract limit before auto-checking
-                                        let currentTotal = 0;
-                                        selectedItems.forEach(item => {
-                                            currentTotal += item.quantity;
-                                        });
-                                        const wouldExceedLimit = (currentTotal + 1) > contractLimit;
+                                        const wouldExceedLimit = wouldExceedLimitIfAdd(product.category, 1);
+                                        const wouldExceedReturn = wouldExceedReturnQtyIfAdd(1);
                                         
                                         const shouldAutoCheck = departmentSelected && 
                                                                  selectedEmployeeId.value && 
@@ -1758,7 +1834,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                                                  sizeMatches && 
                                                                  isAvailable && 
                                                                  notAlreadySelected && 
-                                                                 !wouldExceedLimit;
+                                                                 !wouldExceedLimit &&
+                                                                 !wouldExceedReturn;
                                         
                                         const selectedItem = selectedItems.get(itemKey) || { quantity: shouldAutoCheck ? 1 : 0, size: sizeData.size };
                                         
@@ -1770,45 +1847,48 @@ document.addEventListener('DOMContentLoaded', () => {
                                                 product_code: product.product_code || product.id,
                                                 product_image: product.image_path,
                                                 size: sizeData.size,
+                                                category: product.category,
                                                 quantity: 1
                                             });
                                         }
                                         
                                         return `
-                                            <div class="flex items-center gap-2 p-2 rounded-lg border transition-all ${selectedItem.quantity > 0 || shouldAutoCheck ? 'bg-primary-50 border-primary-400' : sizeData.disabled ? 'border-slate-200 bg-slate-50 opacity-50' : sizeData.matchesEmployeeSize ? 'border-slate-200 hover:border-primary-300' : 'border-slate-200 bg-slate-50 opacity-50'}">
-                                                <label class="flex-1 text-[13px] font-medium ${sizeData.disabled ? 'text-slate-400' : sizeData.matchesEmployeeSize ? 'text-slate-700' : 'text-slate-400'} flex items-center justify-between">
-                                                    <span>
-                                                        ${sizeData.size}
-                                                        ${sizeData.disabled ? ' ({{ __('pages.size_not_match') }})' : ''}
-                                                        ${isDepartmentalMode && sizeData.employeeCount > 0 ? ` <span class="text-[11px] text-primary-600 font-semibold">(${sizeData.employeeCount})</span>` : ''}
-                                                    </span>
-                                                    ${sizeData.product_id ? `<span class="text-[11px] text-slate-500 ml-2">${window.__i18nAppCreate.stock}: ${sizeData.stock_quantity || 0}</span>` : ''}
-                                                </label>
-                                                <div class="flex items-center gap-1">
-                                                    <button type="button" class="size-quantity-btn minus w-8 h-8 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all" 
+                                            <div class="size-row grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center p-2 rounded-lg border min-w-0 overflow-hidden transition-all ${selectedItem.quantity > 0 || shouldAutoCheck ? 'bg-primary-50 border-primary-400' : 'border-slate-200 hover:border-primary-300'} ${!isAvailable ? 'opacity-60' : ''}">
+                                                <div class="min-w-0">
+                                                    <div class="text-[12px] sm:text-[13px] font-medium leading-snug break-words text-slate-700">
+                                                        <span class="font-semibold">${sizeData.size}</span>
+                                                        ${sizeMatches ? ` <span class="text-[10px] sm:text-[11px] font-normal text-primary-600">(${window.__i18nAppCreate.registered_size_hint || '{{ __('pages.registered_size_hint') }}'})</span>` : ''}
+                                                        ${isDepartmentalMode && sizeData.employeeCount > 0 ? ` <span class="text-[10px] sm:text-[11px] text-primary-600 font-semibold">(${sizeData.employeeCount})</span>` : ''}
+                                                    </div>
+                                                    ${sizeData.product_id ? `<div class="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">${window.__i18nAppCreate.stock}: ${sizeData.stock_quantity || 0}</div>` : ''}
+                                                </div>
+                                                <div class="flex items-center gap-1 shrink-0">
+                                                    <button type="button" class="size-quantity-btn minus w-7 h-7 shrink-0 rounded border border-slate-300 bg-white hover:bg-slate-50 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all" 
                                                             data-product-key="${productKey}" 
                                                             data-size="${sizeData.size}" 
                                                             data-product-id="${sizeData.product_id || product.id}"
                                                             data-product-name="${product.name}"
                                                             data-product-code="${product.product_code || product.id}"
                                                             data-product-image="${product.image_path}"
-                                                            ${selectedItem.quantity <= 0 && !shouldAutoCheck || sizeData.disabled ? 'disabled' : ''}>
+                                                            data-product-category="${product.category || 'other'}"
+                                                            ${selectedItem.quantity <= 0 && !shouldAutoCheck || !isAvailable ? 'disabled' : ''}>
                                                         <i data-lucide="minus" class="w-3 h-3 pointer-events-none"></i>
                                                     </button>
-                                                    <input type="number" min="0" step="0.5" value="${selectedItem.quantity || (shouldAutoCheck ? 1 : 0)}" 
-                                                           class="size-quantity-input w-12 px-1 py-1 text-center text-[12px] border border-slate-300 rounded-lg font-medium bg-white text-slate-900 ${sizeData.disabled ? 'opacity-50' : ''}" 
+                                                    <input type="number" min="0" step="0.5" inputmode="numeric" value="${selectedItem.quantity || (shouldAutoCheck ? 1 : 0)}" 
+                                                           class="size-quantity-input px-0.5 py-1 text-center text-[13px] border border-slate-300 rounded font-medium bg-white text-slate-900 ${!isAvailable ? 'opacity-50' : ''}" 
                                                            data-product-key="${productKey}" 
                                                            data-size="${sizeData.size}"
-                                                           ${sizeData.disabled ? 'readonly' : ''}
+                                                           ${!isAvailable ? 'readonly' : ''}
                                                            onchange="updateShoeQuantity('${productKey}', '${sizeData.size}', this.value, '${sizeData.product_id || product.id}', '${product.name}', '${product.product_code || product.id}', '${product.image_path}')">
-                                                    <button type="button" class="size-quantity-btn plus w-8 h-8 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 flex items-center justify-center transition-all ${sizeData.disabled ? 'opacity-50 cursor-not-allowed' : ''}" 
+                                                    <button type="button" class="size-quantity-btn plus w-7 h-7 shrink-0 rounded border border-slate-300 bg-white hover:bg-slate-50 flex items-center justify-center transition-all ${!isAvailable ? 'opacity-50 cursor-not-allowed' : ''}" 
                                                             data-product-key="${productKey}" 
                                                             data-size="${sizeData.size}"
                                                             data-product-id="${sizeData.product_id || product.id}"
                                                             data-product-name="${product.name}"
                                                             data-product-code="${product.product_code || product.id}"
                                                             data-product-image="${product.image_path}"
-                                                            ${sizeData.disabled ? 'disabled' : ''}>
+                                                            data-product-category="${product.category || 'other'}"
+                                                            ${!isAvailable ? 'disabled' : ''}>
                                                         <i data-lucide="plus" class="w-3 h-3 pointer-events-none"></i>
                                                     </button>
                                                 </div>
@@ -1817,7 +1897,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     }).join('')}
                                 </div>` :
                                 /* Top/Bottom size - Checkboxes with quantity controls */
-                                `<div class="space-y-2 max-h-32 overflow-y-auto">
+                                `<div class="space-y-2 max-h-56 overflow-y-auto overflow-x-hidden pr-0.5">
                                     ${sizesData.map(sizeData => {
                                         const itemKey = `${productKey}_${sizeData.size}`;
                                         
@@ -1839,17 +1919,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                             
                                             defaultQuantity = sizeData.employeeCount || 0;
                                             
-                                            let currentTotal = 0;
-                                            selectedItems.forEach(item => {
-                                                currentTotal += item.quantity;
-                                            });
-                                            const wouldExceedLimit = (currentTotal + defaultQuantity) > contractLimit;
+                                            const wouldExceedLimit = wouldExceedLimitIfAdd(product.category, defaultQuantity);
+                                            const wouldExceedReturn = wouldExceedReturnQtyIfAdd(defaultQuantity);
                                             
                                             shouldAutoCheck = genderMatches && 
                                                              sizeMatches && 
                                                              isAvailable && 
                                                              notAlreadySelected && 
                                                              !wouldExceedLimit &&
+                                                             !wouldExceedReturn &&
                                                              defaultQuantity > 0;
                                         } else if (selectedEmployeeId.value && departmentSelected) {
                                             // Individual mode
@@ -1866,18 +1944,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                             
                                             defaultQuantity = 1;
                                             
-                                            let currentTotal = 0;
-                                            selectedItems.forEach(item => {
-                                                currentTotal += item.quantity;
-                                            });
-                                            const wouldExceedLimit = (currentTotal + 1) > contractLimit;
+                                            const wouldExceedLimit = wouldExceedLimitIfAdd(product.category, 1);
+                                            const wouldExceedReturn = wouldExceedReturnQtyIfAdd(1);
                                             
                                             shouldAutoCheck = departmentMatches && 
                                                              genderMatches && 
                                                              sizeMatches && 
                                                              isAvailable && 
                                                              notAlreadySelected && 
-                                                             !wouldExceedLimit;
+                                                             !wouldExceedLimit &&
+                                                             !wouldExceedReturn;
                                         }
                                         
                                         const selectedItem = selectedItems.get(itemKey) || { quantity: shouldAutoCheck ? defaultQuantity : 0, size: sizeData.size };
@@ -1890,53 +1966,64 @@ document.addEventListener('DOMContentLoaded', () => {
                                                 product_code: product.product_code || product.id,
                                                 product_image: product.image_path,
                                                 size: sizeData.size,
+                                                category: product.category,
                                                 quantity: defaultQuantity
                                             });
                                         }
+
+                                        const isAvailableRow = sizeData.available && sizeData.stock_quantity > 0;
+                                        const statusNote = !isAvailableRow
+                                            ? (window.__i18nAppCreate.out_of_stock || '{{ __('pages.out_of_stock') }}')
+                                            : (sizeData.matchesEmployeeSize
+                                                ? (window.__i18nAppCreate.registered_size_hint || '{{ __('pages.registered_size_hint') }}')
+                                                : '');
                                         
                                         return `
-                                            <div class="flex items-center gap-2 p-2 rounded-lg border transition-all ${selectedItem.quantity > 0 || shouldAutoCheck ? 'bg-primary-50 border-primary-400' : sizeData.disabled ? 'border-slate-200 bg-slate-50 opacity-50' : sizeData.matchesEmployeeSize ? 'border-slate-200 hover:border-primary-300' : 'border-slate-200 bg-slate-50 opacity-50'} ${!sizeData.available ? 'opacity-60' : ''}">
+                                            <div class="size-row grid grid-cols-[auto_minmax(0,1fr)_auto] gap-1.5 sm:gap-2 items-center p-2 rounded-lg border min-w-0 overflow-hidden transition-all ${selectedItem.quantity > 0 || shouldAutoCheck ? 'bg-primary-50 border-primary-400' : 'border-slate-200 hover:border-primary-300'} ${!isAvailableRow ? 'opacity-60' : ''}">
                                                 <input type="checkbox" 
-                                                       class="size-checkbox w-4 h-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500" 
+                                                       class="size-checkbox w-4 h-4 shrink-0 text-primary-600 border-slate-300 rounded focus:ring-primary-500" 
                                                        data-product-key="${productKey}" 
                                                        data-size="${sizeData.size}"
                                                        data-product-id="${sizeData.product_id || product.id}"
                                                        data-product-name="${product.name}"
                                                        data-product-code="${product.product_code || product.id}"
                                                        data-product-image="${product.image_path}"
+                                                       data-product-category="${product.category || 'other'}"
                                                        ${selectedItem.quantity > 0 || shouldAutoCheck ? 'checked' : ''}
-                                                       ${!sizeData.available || sizeData.disabled ? 'disabled' : ''}>
-                                                <label class="flex-1 text-[13px] font-medium ${!sizeData.available || sizeData.disabled ? 'text-slate-400' : sizeData.matchesEmployeeSize ? 'text-slate-700' : 'text-slate-400'} ${sizeData.disabled ? '' : 'cursor-pointer'} flex items-center justify-between">
-                                                    <span>
-                                                        ${sizeData.size}
-                                                        ${!sizeData.available ? ' ({{ __('pages.out_of_stock') }})' : sizeData.disabled ? ' ({{ __('pages.size_not_match') }})' : ''}
-                                                        ${isDepartmentalMode && sizeData.employeeCount > 0 ? ` <span class="text-[11px] text-primary-600 font-semibold">(${sizeData.employeeCount})</span>` : ''}
-                                                    </span>
-                                                    ${sizeData.product_id ? `<span class="text-[11px] text-slate-500 ml-2">${window.__i18nAppCreate.stock}: ${sizeData.stock_quantity || 0}</span>` : ''}
+                                                       ${!isAvailableRow ? 'disabled' : ''}>
+                                                <label class="min-w-0 ${!isAvailableRow ? 'text-slate-400' : 'text-slate-700 cursor-pointer'}">
+                                                    <div class="text-[12px] sm:text-[13px] font-medium leading-snug break-words">
+                                                        <span class="font-semibold">${sizeData.size}</span>
+                                                        ${statusNote ? ` <span class="text-[10px] sm:text-[11px] font-normal ${sizeData.matchesEmployeeSize && isAvailableRow ? 'text-primary-600' : ''}">(${statusNote})</span>` : ''}
+                                                        ${isDepartmentalMode && sizeData.employeeCount > 0 ? ` <span class="text-[10px] sm:text-[11px] text-primary-600 font-semibold">(${sizeData.employeeCount})</span>` : ''}
+                                                    </div>
+                                                    ${sizeData.product_id ? `<div class="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">${window.__i18nAppCreate.stock}: ${sizeData.stock_quantity || 0}</div>` : ''}
                                                 </label>
-                                                <div class="flex items-center gap-1 ${selectedItem.quantity > 0 || shouldAutoCheck ? '' : 'hidden'} size-quantity-control">
-                                                    <button type="button" class="size-quantity-btn minus w-8 h-8 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all" 
+                                                <div class="flex items-center gap-1 shrink-0 ${selectedItem.quantity > 0 || shouldAutoCheck ? '' : 'hidden'} size-quantity-control">
+                                                    <button type="button" class="size-quantity-btn minus w-7 h-7 shrink-0 rounded border border-slate-300 bg-white hover:bg-slate-50 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-all" 
                                                             data-product-key="${productKey}" 
                                                             data-size="${sizeData.size}"
                                                             data-product-id="${sizeData.product_id || product.id}"
                                                             data-product-name="${product.name}"
                                                             data-product-code="${product.product_code || product.id}"
                                                             data-product-image="${product.image_path}"
+                                                            data-product-category="${product.category || 'other'}"
                                                             ${selectedItem.quantity <= 0 && !shouldAutoCheck ? 'disabled' : ''}>
                                                         <i data-lucide="minus" class="w-3 h-3 pointer-events-none"></i>
                                                     </button>
-                                                    <input type="number" min="0" value="${selectedItem.quantity || (shouldAutoCheck ? defaultQuantity : 0)}" 
-                                                           class="size-quantity-input w-12 px-1 py-1 text-center text-[12px] border border-slate-300 rounded-lg font-medium bg-white text-slate-900" 
+                                                    <input type="number" min="0" inputmode="numeric" value="${selectedItem.quantity || (shouldAutoCheck ? defaultQuantity : 0)}" 
+                                                           class="size-quantity-input px-0.5 py-1 text-center text-[13px] border border-slate-300 rounded font-medium bg-white text-slate-900" 
                                                            data-product-key="${productKey}" 
                                                            data-size="${sizeData.size}"
                                                            readonly>
-                                                    <button type="button" class="size-quantity-btn plus w-8 h-8 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 flex items-center justify-center transition-all" 
+                                                    <button type="button" class="size-quantity-btn plus w-7 h-7 shrink-0 rounded border border-slate-300 bg-white hover:bg-slate-50 flex items-center justify-center transition-all" 
                                                             data-product-key="${productKey}" 
                                                             data-size="${sizeData.size}"
                                                             data-product-id="${sizeData.product_id || product.id}"
                                                             data-product-name="${product.name}"
                                                             data-product-code="${product.product_code || product.id}"
-                                                            data-product-image="${product.image_path}">
+                                                            data-product-image="${product.image_path}"
+                                                            data-product-category="${product.category || 'other'}">
                                                         <i data-lucide="plus" class="w-3 h-3 pointer-events-none"></i>
                                                     </button>
                                                 </div>
@@ -1948,12 +2035,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         
                         ${/* Stock Info */''}
-                        <div class="flex items-center justify-between pt-3 border-t-2 border-slate-200">
-                            <div class="flex items-center gap-2 text-[13px] text-slate-600 font-medium">
+                        <div class="flex items-center justify-between gap-3 pt-3 border-t-2 border-slate-200 min-w-0">
+                            <div class="flex items-center gap-2 text-[13px] text-slate-600 font-medium shrink-0">
                                 <i data-lucide="package" class="w-4 h-4 text-primary-600"></i>
                                 <span>{{ __('pages.stock') }}:</span>
                             </div>
-                            <span class="text-[14px] font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-lg">${product.stock_quantity}{{ __('pages.items') }}</span>
+                            <span class="text-[13px] font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg whitespace-nowrap">${product.stock_quantity}{{ __('pages.items') }}</span>
                         </div>
                     </div>
                 </div>
@@ -1974,10 +2061,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const size = this.dataset.size;
                 const productId = this.dataset.productId;
                 const itemKey = `${productKey}_${size}`;
-                const quantityControl = this.closest('.border').querySelector(`.size-quantity-control[data-product-key="${productKey}"][data-size="${size}"]`) || 
-                                       this.parentElement.querySelector('.size-quantity-control');
+                const quantityControl = this.closest('.size-row')?.querySelector('.size-quantity-control');
                 
                 if (this.checked) {
+                    const already = selectedItems.get(itemKey)?.quantity || 0;
+                    const needAdd = already > 0 ? 0 : 1;
+                    if (needAdd > 0 && wouldExceedReturnQtyIfAdd(needAdd)) {
+                        this.checked = false;
+                        toastReturnQtyCap();
+                        return;
+                    }
+                    if (needAdd > 0 && wouldExceedLimitIfAdd(this.dataset.productCategory || 'other', needAdd)) {
+                        this.checked = false;
+                        toastPlanLimit();
+                        return;
+                    }
                     // Add item with quantity 1
                     if (!selectedItems.has(itemKey)) {
                         selectedItems.set(itemKey, {
@@ -1985,6 +2083,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             product_key: productKey,
                             size: size,
                             quantity: 1,
+                            category: this.dataset.productCategory || 'other',
                             name: this.dataset.productName,
                             code: this.dataset.productCode,
                             image: this.dataset.productImage
@@ -1994,6 +2093,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (item.quantity === 0) {
                             item.quantity = 1;
                         }
+                        if (!item.category) item.category = this.dataset.productCategory || 'other';
                     }
                     // Show quantity control
                     if (quantityControl) {
@@ -2017,7 +2117,38 @@ document.addEventListener('DOMContentLoaded', () => {
         // Handle shoe size quantity input changes (editable inputs)
         window.updateShoeQuantity = function(productKey, size, quantity, productId, productName, productCode, productImage) {
             const itemKey = `${productKey}_${size}`;
-            const qty = parseFloat(quantity) || 0;
+            let qty = parseFloat(quantity) || 0;
+            const existing = selectedItems.get(itemKey)?.quantity || 0;
+            const delta = qty - existing;
+
+            if (delta > 0 && wouldExceedReturnQtyIfAdd(delta)) {
+                toastReturnQtyCap();
+                const maxAllowed = Math.max(0, selectedReturnQtyTotal() - (selectedNewQtyTotal() - existing));
+                qty = Math.min(existing, maxAllowed);
+                const input = document.querySelector(`.size-quantity-input[data-product-key="${productKey}"][data-size="${size}"]`);
+                if (input) input.value = qty;
+                if (qty <= 0) {
+                    selectedItems.delete(itemKey);
+                    updateQuantityDisplay(itemKey);
+                    updateContractLimit();
+                    updateFormFields();
+                    return;
+                }
+            }
+
+            if (delta > 0) {
+                const product = allUniforms.find(u => (u.sizes_with_ids || []).some(s => String(s.product_id) === String(productId)))
+                    || allUniforms.find(u => String(u.product_code || u.id) === String(productKey));
+                if (wouldExceedLimitIfAdd(product?.category || 'other', delta)) {
+                    toastPlanLimit();
+                    const input = document.querySelector(`.size-quantity-input[data-product-key="${productKey}"][data-size="${size}"]`);
+                    if (input) input.value = existing;
+                    updateQuantityDisplay(itemKey);
+                    updateContractLimit();
+                    updateFormFields();
+                    return;
+                }
+            }
             
             if (qty > 0) {
                 // Add or update item
@@ -2036,7 +2167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 // Show quantity controls
-                const sizeRow = document.querySelector(`input[data-product-key="${productKey}"][data-size="${size}"]`)?.closest('.border');
+                const sizeRow = document.querySelector(`.size-quantity-input[data-product-key="${productKey}"][data-size="${size}"]`)?.closest('.size-row');
                 if (sizeRow) {
                     const quantityControl = sizeRow.querySelector('.size-quantity-control');
                     if (quantityControl) {
@@ -2048,7 +2179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedItems.delete(itemKey);
                 
                 // Hide quantity controls
-                const sizeRow = document.querySelector(`input[data-product-key="${productKey}"][data-size="${size}"]`)?.closest('.border');
+                const sizeRow = document.querySelector(`.size-quantity-input[data-product-key="${productKey}"][data-size="${size}"]`)?.closest('.size-row');
                 if (sizeRow) {
                     const quantityControl = sizeRow.querySelector('.size-quantity-control');
                     if (quantityControl) {
@@ -2100,6 +2231,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (increment) {
+            if (wouldExceedReturnQtyIfAdd(1)) {
+                toastReturnQtyCap();
+                return;
+            }
+            if (wouldExceedLimitIfAdd(resolveItemCategory(item), 1)) {
+                toastPlanLimit();
+                return;
+            }
             item.quantity = (item.quantity || 0) + 1;
         } else {
             item.quantity = Math.max(0, (item.quantity || 0) - 1);
@@ -2113,7 +2252,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const checkbox = document.querySelector(`.size-checkbox[data-product-key="${productKey}"][data-size="${size}"]`);
             if (checkbox) {
                 checkbox.checked = false;
-                const quantityControl = checkbox.parentElement.querySelector('.size-quantity-control');
+                const quantityControl = checkbox.closest('.size-row')?.querySelector('.size-quantity-control');
                 if (quantityControl) {
                     quantityControl.classList.add('hidden');
                 }
@@ -2151,7 +2290,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkbox = document.querySelector(`.size-checkbox[data-product-key="${productKey}"][data-size="${size}"]`);
         if (checkbox) {
             checkbox.checked = quantity > 0;
-            const quantityControl = checkbox.parentElement.querySelector('.size-quantity-control');
+            const quantityControl = checkbox.closest('.size-row')?.querySelector('.size-quantity-control');
             if (quantityControl) {
                 if (quantity > 0) {
                     quantityControl.classList.remove('hidden');
@@ -2162,9 +2301,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Update product card selected state
-        const productCard = document.querySelector(`[data-product-key="${productKey}"]`)?.closest('.border') || 
-                           document.querySelector(`.size-checkbox[data-product-key="${productKey}"]`)?.closest('.border') ||
-                           document.querySelector(`.size-quantity-btn[data-product-key="${productKey}"]`)?.closest('.border');
+        const productCard = document.querySelector(`.size-checkbox[data-product-key="${productKey}"]`)?.closest('.group') ||
+                           document.querySelector(`.size-quantity-btn[data-product-key="${productKey}"]`)?.closest('.group');
         if (productCard) {
             const hasAnySelected = Array.from(selectedItems.keys()).some(key => key.startsWith(`${productKey}_`));
             if (hasAnySelected) {
@@ -2212,19 +2350,61 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Check if exceeds contract limit
-        if (total > contractLimit) {
+        // Check if exceeds contract limit (total or per-category)
+        // Progress uses projected holdings: currently held − returns + newly selected
+        const byCategory = selectedQtyByCategory();
+        const projectedTotal = categoryLimits
+            ? Object.values(byCategory).reduce((sum, n) => sum + (n || 0), 0)
+            : projectedTotalQty();
+        if (categoryLimits) {
+            exceedsLimit = exceedsAnyCategoryLimit(byCategory);
+        } else if (contractLimit > 0 && projectedTotal > contractLimit) {
             exceedsLimit = true;
         }
         
-        selectedItemsCount.textContent = total;
-        const percentage = Math.min(100, (total / contractLimit) * 100);
+        selectedItemsCount.textContent = projectedTotal;
+        const percentage = Math.min(100, (projectedTotal / Math.max(contractLimit, 1)) * 100);
         contractLimitProgress.style.width = percentage + '%';
+
+        if (categoryLimitBreakdownEl) {
+            if (categoryLimits) {
+                const parts = Object.keys(categoryLimitLabels).map((cat) => {
+                    const used = byCategory[cat] || 0;
+                    const limit = categoryLimits[cat] || 0;
+                    if (limit <= 0 && used <= 0) return null;
+                    return `${categoryLimitLabels[cat]} ${used}/${limit}`;
+                }).filter(Boolean);
+                categoryLimitBreakdownEl.textContent = parts.join(' · ');
+                categoryLimitBreakdownEl.classList.toggle('hidden', parts.length === 0);
+            } else {
+                const held = heldLoanQtyTotal();
+                const room = Math.max(0, contractLimit - projectedTotal);
+                categoryLimitBreakdownEl.textContent = @json(__('pages.plan_limit_projection_hint'))
+                    .replace(':held', String(held))
+                    .replace(':new', String(total))
+                    .replace(':projected', String(projectedTotal))
+                    .replace(':limit', String(contractLimit))
+                    .replace(':room', String(room));
+                categoryLimitBreakdownEl.classList.remove('hidden');
+            }
+        }
         
-        // Show/hide special approval button based on conditions
+        // Show/hide special approval for stock only; over-limit is hard-blocked
         const specialApprovalButtonContainer = document.getElementById('special-approval-button-container');
         
-        if (exceedsLimit || insufficientStock) {
+        if (exceedsLimit) {
+            if (specialApprovalButtonContainer) {
+                specialApprovalButtonContainer.classList.add('hidden');
+            }
+            const saOpt = document.getElementById('special-approval-optional-label');
+            if (saOpt) {
+                saOpt.textContent = '({{ __('pages.optional') }})';
+                saOpt.classList.remove('text-amber-800', 'font-semibold');
+            }
+            contractLimitText.textContent = '{{ __('pages.rentable_limit_hard_block_short') }}';
+            contractLimitText.classList.remove('text-slate-500', 'text-amber-600');
+            contractLimitText.classList.add('text-red-600', 'font-medium');
+        } else if (insufficientStock) {
             if (specialApprovalButtonContainer) {
                 specialApprovalButtonContainer.classList.remove('hidden');
             }
@@ -2233,21 +2413,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 saOpt.textContent = '({{ __('pages.required') }})';
                 saOpt.classList.add('text-amber-800', 'font-semibold');
             }
-            if (total > contractLimit) {
-                contractLimitText.textContent = '{{ __('pages.contract_limit_reached') }}';
-                contractLimitText.classList.remove('text-slate-500');
-                contractLimitText.classList.add('text-amber-600', 'font-medium');
-            } else if (insufficientStock) {
-                contractLimitText.textContent = '{{ __('pages.special_approval_required') }}';
-                contractLimitText.classList.remove('text-slate-500');
-                contractLimitText.classList.add('text-amber-600', 'font-medium');
-            }
+            contractLimitText.textContent = '{{ __('pages.special_approval_required') }}';
+            contractLimitText.classList.remove('text-slate-500', 'text-red-600');
+            contractLimitText.classList.add('text-amber-600', 'font-medium');
             
-            // Auto-open special approval modal when needed
             const specialApprovalModal = document.getElementById('special-approval-modal');
             const specialApprovalHiddenInput = document.getElementById('special_approval_reason');
             if (specialApprovalModal && specialApprovalHiddenInput && !specialApprovalHiddenInput.value) {
-                // Only open if modal is not already open and no reason is set
                 setTimeout(() => {
                     if (specialApprovalModal.classList.contains('hidden')) {
                         specialApprovalModal.classList.remove('hidden');
@@ -2273,7 +2445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 specialApprovalReason.value = '';
             }
             contractLimitText.textContent = '';
-            contractLimitText.classList.remove('text-amber-600', 'font-medium');
+            contractLimitText.classList.remove('text-amber-600', 'text-red-600', 'font-medium');
             contractLimitText.classList.add('text-slate-500');
         }
     }
@@ -2390,25 +2562,40 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (!res.ok) throw new Error('load failed');
             const loans = await res.json();
+            window.__heldLoansByCategory = { top: 0, bottom: 0, other: 0, other2: 0, other3: 0 };
+            if (Array.isArray(loans)) {
+                loans.forEach((loan) => {
+                    const cat = normalizeLimitCategory(loan.limit_category || loan.category);
+                    window.__heldLoansByCategory[cat] = (window.__heldLoansByCategory[cat] || 0) + (loan.quantity || 0);
+                });
+            }
+            if (typeof updateContractLimit === 'function') {
+                updateContractLimit();
+            }
+            clampSelectedItemsToPlanLimit();
             if (!Array.isArray(loans) || loans.length === 0) {
-                currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">{{ __('pages.no_active_loans') }}</p>';
+                if (currentLoansList) {
+                    currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">{{ __('pages.no_active_loans') }}</p>';
+                }
                 returnItems.clear();
                 updateFormFields();
                 return;
             }
+            if (!currentLoansList) return;
             currentLoansList.innerHTML = loans.map(loan => {
                 const checked = returnItems.has(String(loan.uniform_product_id)) ? 'checked' : '';
                 const qty = returnItems.get(String(loan.uniform_product_id))?.quantity || 1;
                 return `
-                    <label class="flex items-center gap-3 p-2 rounded-lg bg-white border border-slate-200 hover:border-primary-300 cursor-pointer">
-                        <input type="checkbox" class="return-loan-check text-primary-600" data-product-id="${loan.uniform_product_id}"
-                               data-max="${loan.quantity}" data-name="${loan.product_name || ''}" data-size="${loan.size || ''}" ${checked}>
+                    <label class="flex items-center gap-2 sm:gap-3 p-2 rounded-lg bg-white border border-slate-200 hover:border-primary-300 cursor-pointer min-w-0">
+                        <input type="checkbox" class="return-loan-check text-primary-600 shrink-0" data-product-id="${loan.uniform_product_id}"
+                               data-max="${loan.quantity}" data-name="${loan.product_name || ''}" data-size="${loan.size || ''}"
+                               data-category="${loan.category || 'other'}" data-limit-category="${loan.limit_category || loan.category || 'other'}" ${checked}>
                         <div class="flex-1 min-w-0">
-                            <div class="text-[13px] font-medium text-slate-900 truncate">${loan.product_name || ''} (${loan.size || '-'})</div>
-                            <div class="text-[11px] text-slate-500">${loan.product_code || ''} · ${window.__i18nAppCreate.onLoan} ${loan.quantity}</div>
+                            <div class="text-[12px] sm:text-[13px] font-medium text-slate-900 truncate">${loan.product_name || ''} (${loan.size || '-'})</div>
+                            <div class="text-[10px] sm:text-[11px] text-slate-500 truncate">${loan.product_code || ''} · ${window.__i18nAppCreate.onLoan} ${loan.quantity}</div>
                         </div>
                         <input type="number" min="1" max="${loan.quantity}" value="${Math.min(qty, loan.quantity)}"
-                               class="return-loan-qty w-16 px-2 py-1 border border-slate-300 rounded text-[13px]"
+                               class="return-loan-qty px-1 py-1 border border-slate-300 rounded text-[12px] text-center"
                                data-product-id="${loan.uniform_product_id}">
                     </label>
                 `;
@@ -2443,9 +2630,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 max,
                 name: cb.dataset.name || '',
                 size: cb.dataset.size || '',
+                category: cb.dataset.category || 'other',
+                limit_category: cb.dataset.limitCategory || cb.dataset.category || 'other',
             });
         });
+        clampSelectedItemsToReturnQty();
         updateFormFields();
+        if (typeof updateContractLimit === 'function') {
+            updateContractLimit();
+        }
     }
 
     if (applicationTypeSelect) {
@@ -2605,8 +2798,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (contractLimitProgress) contractLimitProgress.style.width = '0%';
         if (selectedItemsCount) selectedItemsCount.textContent = '0';
         
-        // Reset products display
-        filteredUniforms = allUniforms;
+        // Reset products display — wait for employee + plan again
+        filteredUniforms = [];
+        employeePlanFilterActive = false;
         currentCategory = document.querySelector('.category-tab')?.dataset.category || '';
         
         // Reset category tabs to show first tab as active
@@ -2685,6 +2879,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return false;
         }
+
+        if (['resize', 'exchange', 'transfer'].includes(appType)) {
+            if (selectedReturnQtyTotal() <= 0) {
+                e.preventDefault();
+                toastReturnQtyCap();
+                return false;
+            }
+            if (selectedNewQtyTotal() > selectedReturnQtyTotal()) {
+                e.preventDefault();
+                toastReturnQtyCap();
+                return false;
+            }
+            if (appType !== 'transfer' && selectedNewQtyTotal() <= 0) {
+                e.preventDefault();
+                if (window.showToast) window.showToast('{{ __('pages.select_uniform') }}', 'error');
+                return false;
+            }
+        }
         
         // Validate end_date is after start_date when both present
         const startDateInput = document.getElementById('start-date-input');
@@ -2720,27 +2932,50 @@ document.addEventListener('DOMContentLoaded', () => {
         const specialApprovalModal = document.getElementById('special-approval-modal');
         const specialApprovalButtonContainer = document.getElementById('special-approval-button-container');
         
-        // Check if special approval is required (exceeds limit or insufficient stock)
+        // Check if special approval is required (stock shortage only; over-limit is hard-blocked)
         let totalQuantity = 0;
         selectedItems.forEach((item) => {
             totalQuantity += item.quantity || 0;
         });
         
-        const exceedsLimit = totalQuantity > contractLimit;
+        const exceedsLimit = categoryLimits
+            ? exceedsAnyCategoryLimit()
+            : (contractLimit > 0 && projectedTotalQty() > contractLimit);
+        if (exceedsLimit) {
+            e.preventDefault();
+            if (window.showToast) {
+                window.showToast('{{ __('pages.rentable_limit_hard_block_short') }}', 'error');
+            }
+            return false;
+        }
+
+        // Match updateContractLimit stock logic (grouped products use sizes_with_ids)
         let insufficientStock = false;
         selectedItems.forEach((item) => {
-            const product = allUniforms.find(u => 
-                (u.product_code || u.id) === item.product_key && u.size === item.size
-            );
-            if (product && item.quantity > (product.stock_quantity || 0)) {
+            const productId = item.product_id;
+            let stockQty = null;
+            for (const product of allUniforms) {
+                if (product.sizes_with_ids) {
+                    const sizeInfo = product.sizes_with_ids.find(s =>
+                        String(s.product_id) === String(productId) || (s.size === item.size && (product.product_code || product.id) === item.product_key)
+                    );
+                    if (sizeInfo) {
+                        stockQty = sizeInfo.stock_quantity || 0;
+                        break;
+                    }
+                } else if (String(product.id) === String(productId)) {
+                    stockQty = product.stock_quantity || 0;
+                    break;
+                }
+            }
+            if (stockQty !== null && (item.quantity || 0) > stockQty) {
                 insufficientStock = true;
             }
         });
-        
-        if ((exceedsLimit || insufficientStock) && (!specialApprovalHiddenInput || !specialApprovalHiddenInput.value)) {
-            // Prevent form submission and show modal
+
+        if (insufficientStock && (!specialApprovalHiddenInput || !specialApprovalHiddenInput.value)) {
             e.preventDefault();
-            
+
             if (specialApprovalModal) {
                 specialApprovalModal.classList.remove('hidden');
                 specialApprovalModal.classList.add('flex');
@@ -2749,18 +2984,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => specialApprovalTextarea.focus(), 100);
                 }
             }
-            
             if (window.showToast) {
-                @if(app()->getLocale() === 'ja')
-                    window.showToast(@json(__('pages.enter_special_approval_reason')), 'warning');
-                @else
-                    window.showToast('Please enter special approval reason.', 'warning');
-                @endif
+                window.showToast('{{ __('pages.enter_special_approval_reason') }}', 'error');
             }
-            
             return false;
         }
-        
+
         // If special approval reason is provided or not needed, allow form submission
         // Mark form as submitting successfully (will be reset after redirect)
         sessionStorage.setItem('applicationSubmitted', 'true');

@@ -45,15 +45,7 @@ class CustomerContractPlanController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
-            'contract_plan_id' => ['required', 'exists:contract_plans,id'],
-            'contract_count' => ['required', 'integer', 'min:0'],
-            'start_date' => ['nullable', 'date'],
-            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-            'status' => ['required', 'in:draft,confirmed'],
-            'notes' => ['nullable', 'string'],
-        ]);
+        $data = $this->validatedCcp($request);
 
         if ($data['status'] === 'confirmed') {
             $data['confirmed_at'] = now();
@@ -81,15 +73,7 @@ class CustomerContractPlanController extends Controller
 
     public function update(Request $request, CustomerContractPlan $customerContractPlan): RedirectResponse
     {
-        $data = $request->validate([
-            'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
-            'contract_plan_id' => ['required', 'exists:contract_plans,id'],
-            'contract_count' => ['required', 'integer', 'min:0'],
-            'start_date' => ['nullable', 'date'],
-            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-            'status' => ['required', 'in:draft,confirmed'],
-            'notes' => ['nullable', 'string'],
-        ]);
+        $data = $this->validatedCcp($request);
 
         $wasConfirmed = $customerContractPlan->status === 'confirmed';
         if ($data['status'] === 'confirmed' && !$wasConfirmed) {
@@ -113,6 +97,10 @@ class CustomerContractPlanController extends Controller
 
     public function confirm(Request $request, CustomerContractPlan $customerContractPlan): RedirectResponse
     {
+        if (! $customerContractPlan->start_date || ! $customerContractPlan->end_date) {
+            return back()->with('error', __('pages.ccp_confirm_requires_dates'));
+        }
+
         $customerContractPlan->update([
             'status' => 'confirmed',
             'confirmed_at' => now(),
@@ -122,6 +110,25 @@ class CustomerContractPlanController extends Controller
         $this->sendConfirmedMail($customerContractPlan->fresh(['contractPlan', 'medicalInstitution']));
 
         return back()->with('status', __('pages.flash_6a1fab4274'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedCcp(Request $request): array
+    {
+        $status = $request->input('status');
+        $dateRequired = $status === 'confirmed' ? 'required' : 'nullable';
+
+        return $request->validate([
+            'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
+            'contract_plan_id' => ['required', 'exists:contract_plans,id'],
+            'contract_count' => ['required', 'integer', 'min:0'],
+            'start_date' => [$dateRequired, 'date'],
+            'end_date' => [$dateRequired, 'date', 'after_or_equal:start_date'],
+            'status' => ['required', 'in:draft,confirmed'],
+            'notes' => ['nullable', 'string'],
+        ]);
     }
 
     private function sendConfirmedMail(CustomerContractPlan $customerContractPlan): void

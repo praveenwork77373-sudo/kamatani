@@ -2,8 +2,9 @@
 
 **Goal:** Test the full product from an empty business DB (no mock hospital/products).  
 **Seeded by default:** Kamatani admin logins only.  
-**Local URL:** `http://127.0.0.1:8000`  
-**Official billing model (confirmed):** plan unit price (ex-tax) × **number of people on that plan** as of closing day — **not** × number of uniforms / SKUs, **not** × 契約口数.
+**Local URL:** `http://127.0.0.1:8000`
+
+**Official billing model (confirmed):** plan unit price (ex-tax) × **number of people on that plan** as of closing day — **not** × number of uniforms / SKUs, **not** × 契約口数. Tax is calculated **outside** this system.
 
 ```bash
 php artisan migrate:fresh --seed
@@ -12,7 +13,17 @@ php artisan serve --host=127.0.0.1 --port=8000
 # php artisan queue:work
 ```
 
-See also: `PRODUCTION.md` (go-live checklist), `README.md` (setup).
+**Automated tests (always run after changes):**
+
+```bash
+php artisan test
+# Focused suites:
+php artisan test --filter=EndToEndFlowTest
+php artisan test --filter=ExcelClientRulesTest
+php artisan test --filter=ClientBillingAndApplyRulesTest
+```
+
+See also: `PRODUCTION.md` (go-live), `README.md` (setup), `LOAN_REGISTRATION_GUIDE.md` (loan lifecycle).
 
 ---
 
@@ -20,27 +31,37 @@ See also: `PRODUCTION.md` (go-live checklist), `README.md` (setup).
 
 ```text
 [Kamatani setup]
-  Institution (+ hospital admin login, 締め日)
-  → Maker → Uniform products
-  → Contract plan (単価税抜 + linked products + rentable points)
-  → Customer contract plan (hospital ↔ plan, 契約数＝参考枠) → 本登録 (confirmed)
+  Institution (+ hospital admin login, 締め日, 得意先コード, オノエコード)
+  → Maker → Uniform products (size required for apply; use "F" for one-size)
+  → Contract plan
+      · 対顧客単価（税抜）＝請求に使用
+      · 対帳合先単価＝登録枠のみ（請求未使用）
+      · カテゴリ別貸与上限: 上衣 / 下衣 / その他 / その他2 / その他3
+      · linked products (+ slot_category from Excel import)
+  → Customer contract plan (hospital ↔ plan, 契約数＝参考枠)
+      · start_date + end_date required when 本登録
+      → Confirm (confirmed)
 
 [Hospital]
-  Staff (+ hire/resign dates, 主部署 + 兼務) → Assign confirmed plan
-  → Apply uniform (申請 / 特別承認待ち)
-      types: 新規貸与 / サイズ変更 / 返却 / 交換 / 異動（部分変更＝同一職員の旧品返却＋新品）
-      ※ 異動 is NOT person-to-person handoff (no 移管先)
+  Staff (+ hire/resign, 主部署 + 兼務) → Assign confirmed plan
+  → Apply uniform — **individual only** (per employee)
+      types: 新規貸与 / サイズ変更 / 返却 / 交換 / 異動（同一職員の旧品＋新品）
+      · Over category/total rentable cap → **hard block** (no special approval)
+      · Stock shortage → 特別承認待ち (reason required)
+      · Products without usable size (empty / "-") → hidden from catalog
 
 [Kamatani ops]
   Accept (受付) → status 対応中
-  → PDFs: application detail OR bulk OR 受注一覧 (対応中/完了 only)
+      · Re-checks rentable caps (incl. other pending apps)
+      · Special approval only for stock (clamps stock ≥ 0)
+  → PDFs / 受注一覧
   → Ship (出荷登録) → status 完了
 
 [Kamatani accounting]
-  Billing → Generate as-of 締め日 (system_admin / accounting only)
-  → Official amount = 割当人数 × 契約プラン単価（税抜）
-  → 契約口数 shown as reference capacity only
-  → Excel export (請求明細 + 個人明細)
+  Billing
+      · Auto-generate on hospital 締め日 (daily schedule 01:00) and/or manual Generate
+      · Official amount = 割当人数 × 契約プラン単価（税抜）
+      · Excel shows 契約口数 + 割当 + 請求金額 + 得意先/オノエコード
 ```
 
 Statuses (applications):
@@ -48,7 +69,7 @@ Statuses (applications):
 | Status (JA) | Meaning |
 |-------------|---------|
 | 申請 | Submitted by hospital |
-| 特別承認待ち | Over rentable points / stock — waiting ops special approval |
+| 特別承認待ち | **Stock shortage only** — waiting ops special approval |
 | 対応中 | Accepted; internal PDFs / warehouse work |
 | 完了 | Shipped / done |
 | キャンセル申請中 | Hospital requested cancel (ops must approve) |
@@ -93,17 +114,23 @@ Create when you add an institution (manager email/password on the form).
 | Side | Who | Responsibility |
 |------|-----|----------------|
 | **Kamatani** | Admin portal | Institutions, makers, products, plans, CCP, accept apps, PDFs, ship, billing export |
-| **Hospital** | `/login` | Staff, assign plans, apply, cancel request |
+| **Hospital** | `/login` | Staff, assign plans, **per-employee** apply, cancel request |
 
-**Important rules (from SPEC):**
+**Important rules (client-confirmed):**
 
-- Contract plans belong to the **hospital**, then are assigned to **employees** — not to departments.
-- Products apply only if linked under the employee’s assigned plan.
+- Contract **plan master** is reusable; each hospital has one or more **Customer Contract Plans** (CCP) with 契約口数.
+- Kamatani sets hospital↔plan CCP; **hospital admin** assigns plans to staff (not Kamatani for day-to-day assignment).
+- Applications are **individual only** (no department batch).
+- Rentable caps are **per category** (上衣／下衣／その他／その他2／その他3). Over-limit use is **not allowed** (hard block).
+- Special approval is for **stock shortage only**.
+- Billing = 割当人数 × 単価（税抜）. Show 契約口数 + 割当 + 金額. No payment status in-app. Tax external.
+- **得意先コード** may show on hospital UI; **オノエコード** is store + Excel/export only (not customer display).
+- Products without size are hidden; one-size → register size **`F`**.
+- Confirmed CCP requires **start and end dates** (no open-ended).
+- Staff may have **multiple departments (兼務)**; department admins see affiliates (primary **or** concurrent).
 - Hospital cannot set desired delivery date; use hire date / return-to-work date.
 - Cleaning needs no application.
-- Immediate cancel/delete is not allowed; cancel request → Kamatani approval.
-- Billing is data/export only (no invoice payment / ERP inside the app).
-- Staff may have **multiple departments (兼務)**; department admins see affiliates (primary **or** concurrent).
+- Cancel request → Kamatani approval (no immediate delete).
 
 ---
 
@@ -116,9 +143,14 @@ On create/edit for institution, department, job type, maker, contract plan, and 
 | Leave code **empty** | Unique code auto-generated on save (`MI-`, `DEP-`, `JOB-`, `SUP-`, `PLN-`, `EMP-` prefixes) |
 | Type a code, then **blur** (leave the field) | Live check: available (green) or already taken (amber — clear or change) |
 
-**Pass if:** Empty save creates a code; duplicate manual code shows warning and server rejects if forced.
+**Institution codes (client):**
 
-**Note (staff create):** Hospital employee create may still auto-assign `EMP-…` even if a manual staff no is typed (server generator). Prefer empty for auto, or edit after create if you need a fixed number.
+| Field | Meaning | Hospital UI | Billing Excel |
+|-------|---------|-------------|---------------|
+| `code` | 得意先コード (e.g. `30170300`) | Show (OK / better) | Yes |
+| `onoe_code` | オノエコード (e.g. `91703`) | **Do not show** | Yes (Kamatani / core) |
+
+**Pass if:** Empty save creates a code; duplicate manual code shows warning and server rejects if forced.
 
 ---
 
@@ -145,15 +177,16 @@ Stay as **system admin** (or use plan manager where noted).
 
 Fill at least:
 - Institution name  
-- **Code** — optional (auto if empty)  
+- **得意先コード** — optional (auto if empty)  
+- **オノエコード** — optional (export only; not shown to hospital)  
 - Notification email  
-- **締め日** (billing closing day, e.g. `1`) — drives default billing as-of date  
+- **締め日** (billing closing day, e.g. `1`) — drives auto + manual billing as-of date  
 - Sales person (optional)  
 - **Manager name / email / password** ← hospital institution admin  
 
-Price for billing lives on **Contract Plan → 単価（税抜）**, not on the hospital.
+Price for billing lives on **Contract Plan → 対顧客単価（税抜）**, not on the hospital.
 
-**Pass if:** Institution appears; you can log in at `/login` with the manager.
+**Pass if:** Institution appears; you can log in at `/login` with the manager; hospital sidebar/dashboard shows 得意先コード, **not** オノエ.
 
 Optional: Institutions → **Welcome email** (+ history). Locally with `MAIL_MAILER=log`, check `storage/logs`. Prefer running `queue:work` because mailables are queued.
 
@@ -181,34 +214,45 @@ Create at least **2 departments** if you will test 兼務 (e.g. 内科 + 外科)
 
 ### 4. Uniform products
 
-**Menu:** Uniform products → New — maker, product code/name/category/gender/sizes + stock.  
-Link products on **Contract Plan** (next) — not on the product screen as the application filter.
+**Menu:** Uniform products → New — maker, product code/name/category/gender/sizes + stock.
 
-**Pass if:** Products listed with stock.
+| Size rule | Behavior |
+|-----------|----------|
+| Empty or `-` | Hidden from apply catalog |
+| `F` | Allowed (one-size / fre size) |
+| Letter / shoe sizes | Normal |
+
+Categories include: 上衣 / 下衣 / 靴 / その他 / **その他2** / **その他3**.
+
+**Pass if:** Products with size show on apply; stubs without size do not.
 
 ---
 
 ### 5. Contract plan (plan master)
 
 **Menu:** Contract plans → New  
-- Code / name / rentable points / **unit price ex-tax**  
-- Check 適用可能ユニフォーム (products allowed for this plan)
+- Code / name  
+- **カテゴリ別貸与上限** (上衣・下衣・その他・その他2・その他3) — enforced separately on apply  
+- **対顧客単価（税抜）** — used in billing  
+- **対帳合先単価（税抜）** — optional registration field only (not billed)  
+- Check 適用可能ユニフォーム  
 
-**Pass if:** Plan shows linked products and unit price.
+**Pass if:** Plan shows category caps, customer unit price, partner price (if set), linked products. Saving the plan **preserves** Excel `slot_category` on pivots.
 
 ---
 
 ### 6. Customer contract plan (hospital ↔ plan)
 
 **Menu:** Customer contract plans → New  
-- Hospital, plan, **契約数** (contracted slots = **reference capacity**, not invoice multiplier), start/end  
-- Confirm → **本登録** (status `confirmed`)
+- Hospital, plan, **契約数** (contracted slots = **reference capacity**, not invoice multiplier)  
+- **start_date + end_date required** when status = confirmed  
+- Confirm → **本登録**
 
 Provisional (仮登録) plans cannot be assigned for applications / billing until confirmed.
 
-**Pass if:** Status confirmed. Form helper text: 請求 = 割当人数 × 単価.
+**Pass if:** Status confirmed with both dates. Form helper: 請求 = 割当人数 × 単価.
 
-**Ops note (SPEC):** Hospital does not increase plans/slots in the app. They contact Kamatani; admin adds/updates CCP.
+**Ops note:** Hospital does not increase plans/slots in the app. They contact Kamatani; admin updates CCP.
 
 ---
 
@@ -222,17 +266,14 @@ Login: hospital manager from step 1 → `/login`
 - Staff no (optional / auto)  
 - Hire date / resign date (used by billing as-of logic)  
 - Sizes, **主部署**, **兼務** rows (部署 + 職種) + optional per-position plans  
-- **Assign confirmed CCP** (employee-wide and/or per affiliation; required before apply)
+- **Assign confirmed CCP** (required before apply)
 
-Staff may belong to **multiple departments**. Department admins see / can apply for anyone whose primary **or** concurrent post is in their department.
-
-**CSV:** Export is multi-row (`職種`, `主所属` Y/N + plan codes). Older single-row CSV still imports.
-
-**Pass if:** Apply search by staff no shows plan name and plan products; list shows `主: … · 兼務: …`; dept-B admin can see a staff whose primary is dept-A but has 兼務 in B.
+**Pass if:** Apply search shows plan name and plan products; category limit breakdown appears when caps are set.
 
 ### 8. (Optional) Department admin
 
-Create under hospital masters; test affiliation visibility (not only primary isolation).
+Create under hospital masters; test affiliation visibility.  
+**Pass if:** Department admin **without** department assigned gets 403 (not institution-wide access).
 
 ---
 
@@ -240,29 +281,30 @@ Create under hospital masters; test affiliation visibility (not only primary iso
 
 | Step | Who | Login | UI | Action | Pass if |
 |------|-----|-------|----|--------|---------|
-| 9 | Hospital | institution admin | Applications → New | 新規貸与, plan products only, hire/return date, delivery, submit | Status **申請** |
-| 9b | Hospital | same | Dashboard → 部門一括 | Opens `?mode=departmental` | Mode switches to departmental; apps stamp selected dept |
-| 10 | Ops | `operations-admin@…` | Admin Applications | **受付** | **対応中**; can issue **5 PDFs** (order / delivery notice / ship sales / ship warehouse / work) |
-| 10b | Ops | same | **受注一覧** | Multi-select bulk PDF | Same 5 docs for 対応中/完了 |
-| 11 | Ops | same | App detail | **出荷登録（完了）** | **完了**; detail shows 新品/旧品区分 |
-| 12 | Accounting | `accounting-admin@…` | Billing → Generate | Hospital + as-of (default = 締め日) → export | Official ≈ **割当人数 × 単価（税抜）**; 口数 reference only |
+| 9 | Hospital | institution admin | Applications → New | **Individual** 新規貸与, plan products only, dates, delivery, submit | Status **申請** |
+| 9x | Hospital | same | Try over category cap | Add more than 上衣 (or other) cap | **Hard blocked** — cannot submit even with special-approval reason |
+| 10 | Ops | `operations-admin@…` | Admin Applications | **受付** | **対応中**; PDFs issue |
+| 10b | Ops | same | **受注一覧** | Multi-select bulk PDF | Same docs for 対応中/完了 |
+| 11 | Ops | same | App detail | **出荷登録（完了）** | **完了** |
+| 12 | Accounting | `accounting-admin@…` | Billing → Generate **or** wait for auto on 締め日 | Hospital + as-of → export | Official ≈ **割当人数 × 単価（税抜）**; Excel has 契約口数 / 割当 / 金額 / codes |
 
 ### Billing check detail (step 12)
 
-Engine: `PlanBillingService`
+Engine: `PlanBillingService` + `BillingGenerationService` (auto on closing day)
 
 ```text
 As-of date = institution 締め日 (or override)
 Include staff only if:
-  - employed as of that date (join/retire + status history)
+  - employed as of that date (join/retire + status)
   - has active employee↔plan assignment
   - hospital CCP is confirmed and within start/end
 Official amount = people_on_plan × plan.unit_price_ex_tax
-  (NOT × uniform piece count; NOT × contracted slot capacity)
-契約口数 (contracted slots) = reference capacity only, not the invoice total
+  (NOT × uniform pieces; NOT × 契約口数; NOT × partner_unit_price)
+契約口数 = reference capacity only
+消費税 = external (UI/Excel show ex-tax only)
 ```
 
-Excel sheets roughly match client samples (Koyama style): summary + person detail.
+Schedule: `billing:generate-closing-day` daily at 01:00 (`routes/console.php`).
 
 ---
 
@@ -275,7 +317,7 @@ Excel sheets roughly match client samples (Koyama style): summary + person detai
 | sales | sales-admin | CCP read, billing **view** | Apps accept, CCP/plan write buttons, billing generate |
 | accounting | accounting-admin | Billing generate + export | Apps accept, plan masters |
 | contract_plan_manager | plan-manager | Makers, plans, CCP write | Billing, accept apps, products |
-| institution_admin | (step 1) | Apps, employees, masters, view contract plans | Accept/ship/billing |
+| institution_admin | (step 1) | Apps, employees, masters, view contract plans, 得意先コード | Accept/ship/billing, オノエコード |
 | department_admin | (step 8) | Affiliated apps/employees (主 or 兼務) | Institution masters / contract setup |
 
 ---
@@ -284,41 +326,53 @@ Excel sheets roughly match client samples (Koyama style): summary + person detai
 
 | # | Feature | Pass if |
 |---|---------|---------|
-| 13 | Special approval over rentable points | Status 特別承認待ち; reason **required** in UI; ops can accept |
+| 13 | Over rentable / category cap | **Hard block**; special approval does **not** bypass |
+| 13b | Stock shortage | Status 特別承認待ち; reason required; accept clamps stock at ≥ 0 |
+| 13c | Second pending app that would exceed cap | Blocked (pending qty counts toward limit) |
+| 13d | Forged `return_items` on `new_loan` | Rejected |
 | 14 | Cancel before ship | Ops approve cancel |
 | 15 | Cancel after complete | Button disabled |
-| 16 | Staff without plan | Apply blocked / empty catalog message |
-| 17 | Outside-plan product | Not selectable on apply |
+| 16 | Staff without plan | Apply blocked / empty catalog |
+| 17 | Outside-plan product | Not selectable |
+| 17b | Product size `-` / empty | Hidden from apply; size `F` visible |
 | 18 | Join date after as-of | Excluded from bill |
 | 19 | Resign on/before as-of | Excluded from bill |
-| 20 | Unconfirmed CCP | Not billable / not assignable for apply |
-| 21 | 異動（部分変更） | Same employee: **return_items** (旧品) + **items** (新品); no 移管先; show lists 旧品/新品 |
-| 22 | Bulk PDF / 受注一覧 | Multi-select issue works for 対応中/完了 |
-| 23–24 | Hospital / admin employee CSV | Export/import works (multi-row 兼務 + plan fields; legacy single-row OK) |
+| 20 | Unconfirmed CCP / missing dates | Not billable / confirm rejected |
+| 21 | 異動（部分変更） | Same employee: `return_items` + `items`; no 移管先 |
+| 22 | Bulk PDF / 受注一覧 | Multi-select for 対応中/完了 |
+| 23–24 | Employee CSV | Multi-row 兼務 + plan fields |
 | 25 | Plan manager path | Plans OK; no billing |
-| 26 | Per-position / concurrent plan | Assignments saved; dept admin edit does not wipe other 兼務 |
+| 26 | Concurrent plan / 兼務 | Assignments saved |
 | 27 | Auto code | Code assigned; duplicate warns |
 | 28 | List pagination | 10/20/30/50 (default 10) |
-| 29 | Welcome email | Send + history (log driver OK locally; queue worker recommended) |
-| 30 | Recommended uniforms | Admin CRUD; apply shows hints only (plan still gates eligibility) |
-| 31 | Admin users / notifications | `receives_app_notifications` on admin user form; app emails respect flag |
-| 32 | DB backups | system_admin menu create/download (PRODUCTION checklist) |
-| 33 | Lockout | 5 fails → 15 min lock + mail (config: `AUTH_LOCKOUT_*`) |
+| 29 | Welcome email | Send + history |
+| 30 | Recommended uniforms | Admin CRUD; plan still gates eligibility |
+| 31 | Admin users / notifications | `receives_app_notifications` respected |
+| 32 | DB backups | system_admin |
+| 33 | Lockout | 5 fails → 15 min lock + mail |
+| 34 | Re-import base data | Preserves CCP `contract_count`; keeps category caps + `slot_category` |
+| 35 | Edit contract plan after import | `slot_category` not wiped |
 
 ---
 
 ## Phase 6 — What NOT to expect
 
 - Seeded hospital users from `DatabaseSeeder` alone (create manager on institution form)  
-- Invoice / payment / ERP import (export only)  
+- **Department batch apply** (disabled — individual only)  
+- Over-limit loan via special approval (hard block)  
+- Invoice / payment status / ERP import  
 - Billing from loan piece counts or product SKUs  
 - Billing = 契約口数 × 単価 (口数 is reference only)  
-- Matsuda-style item + piece-tier billing (`K-JJ-5` etc.) — **not** implemented; official model is plan × assigned headcount  
-- Hospital increasing contract slots themselves (Kamatani updates CCP)  
+- Billing using 対帳合先単価  
+- In-app consumption tax calculation  
+- Matsuda-style item + piece-tier billing — **not** implemented  
+- Hospital increasing contract slots themselves  
 - Desired delivery date from hospital  
 - Cleaning application  
 - Immediate delete of an application from hospital side  
-- Person-to-person 移管 (removed; use 異動 = same-employee partial change)  
+- Person-to-person 移管 (use 異動 = same-employee partial change)  
+- Open-ended CCP (no end date) when confirmed  
+- Gender split for same plan code — **still 確認中 with client (Excel Q2)**  
 
 ---
 
@@ -326,13 +380,30 @@ Excel sheets roughly match client samples (Koyama style): summary + person detai
 
 | Flow | Form / UI | Backend expects | OK if |
 |------|-----------|-----------------|-------|
-| Individual apply | `employee_id`, `items[]`, dates, delivery | `ApplicationController@store` → individual | App created for selected staff |
-| Departmental apply | `application_mode=departmental`, `department_id` | `storeDepartmental`; apps use **selected** dept | All affiliated employed staff with plan |
-| 異動 | loan checkboxes → `return_items[]`; cart → `items[]` | `exchange_out` + `loan`; `transfer_to=null` | Detail shows 旧品 + 新品 |
-| Special approval | reason when over points/stock | `waiting_special_approval` | Ops 受付 works |
-| Billing | Generate as-of | `assigned_count × unit_price` | Matches headcount, not 口数 |
+| Individual apply | `application_mode=individual`, `employee_id`, `items[]` | `ApplicationController@store` | App for selected staff |
+| Departmental mode | — | Rejected (`in:individual` only) | Validation error |
+| Category / total cap | Progress + category breakdown | `loanLimitViolation` (+ pending apps) | Hard block over cap |
+| Stock shortage | Special approval reason | `waiting_special_approval` | Ops accept clamps stock ≥ 0 |
+| 異動 | `return_items[]` + `items[]` | `exchange_out` + `loan` | Detail shows 旧品 + 新品 |
+| Billing | Generate / auto closing day | `assigned_count × unit_price` | Matches headcount; codes on Excel |
 
-Automated coverage: `php artisan test` (application lifecycle, multi-affiliation, billing basis, auth lockout).
+---
+
+## Automated test map
+
+| Test class | Covers |
+|------------|--------|
+| `EndToEndFlowTest` | Apply → accept → bill; forged returns; pending double-submit; special-approval stock clamp; slot_category preserve |
+| `ExcelClientRulesTest` | Category caps; hide unsized; partner price not billed; CCP dates; import category caps |
+| `ClientBillingAndApplyRulesTest` | Hard-block over limit; individual-only; closing-day auto generate |
+| `PlanBillingBasisTest` | Headcount × unit price; end-date exclude; dedupe; regenerate |
+| `LoanLifecycleGuardTest` | Delete/retire guards; return qty; cancel inventory |
+| `ApplicationLifecycleFixTest` | Return/transfer/cancel lifecycle |
+| `BaseDataImportTest` | 260805 import + institution codes |
+
+```bash
+php artisan test
+```
 
 ---
 
@@ -343,13 +414,12 @@ Automated coverage: `php artisan test` (application lifecycle, multi-affiliation
 | `202601.こやまクリニック_請求金額・人数/` | Monthly plan × headcount billing (closest to implemented model) |
 | `202607在宅ほくと_請求集計/` | Same model + site breakdown |
 | `2603.松田病院_明細/` | Item + piece-tier layout (reference only; not app billing engine) |
-| `260805.ベースデータ.xlsx` | Latest client base master data (hospitals, plans, products, suppliers) |
+| `260805.ベースデータ.xlsx` | Latest client base master data |
 | `マスタ資料_テーブル一覧確認用.xlsx` | Earlier master table sketch |
-| `受注伝票_20260626_1396466.xlsx` | Order / shipping form sample (PDF targets) |
-| `ユニフォーム管理システム_仕様書_改定版_20260731 (2).docx` | Official JP spec |
+| `受注伝票_20260626_1396466.xlsx` | Order / shipping form sample |
 | `Uniform_Management_System_Specification_20260731_EN.md` | English translation of the spec |
 
-Load the latest base data (best-fit; category slot caps flattened to one `rentable_points`):
+Load base data (stores **per-category caps** + `slot_category`; does **not** wipe existing `contract_count` on re-import):
 
 ```bash
 php artisan masters:import-base-data --dry-run
@@ -370,8 +440,8 @@ php artisan migrate:fresh --seed
 ## One-line flow
 
 ```text
-Admin: Institution(+hospital login, 締め日) → Maker → Products → (Unit prices) → Plan(単価) → Confirm CCP
-Hospital: Staff(+兼務) + assign plan → Apply (申請)
-Ops: Accept + PDFs / 受注一覧 (対応中) → Ship (完了)
-Accounting: Billing Excel (割当人数 × 単価税抜; 口数=参考)
+Admin: Institution(+hospital login, 締め日, codes) → Maker → Products(size/F) → Plan(category caps + 単価 + partner field) → Confirm CCP(dates)
+Hospital: Staff(+兼務) + assign plan → Individual apply (hard-block over category cap)
+Ops: Accept + PDFs → Ship (完了)
+Accounting: Billing Excel / auto 締め日 (割当人数 × 単価税抜; 口数=参考; tax external)
 ```

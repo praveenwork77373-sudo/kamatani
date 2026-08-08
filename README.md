@@ -66,13 +66,27 @@ php artisan storage:link
 
 | ファイル | 内容 |
 |----------|------|
-| `E2E_USER_GUIDE.md` | Fresh-start E2E 手順とシードログイン情報 |
+| `E2E_USER_GUIDE.md` | Fresh-start E2E 手順・シードログイン・クライアント確定ルール・自動テスト対応表 |
+| `TESTING.md` | 自動／手動テストの入口とチェックリスト |
+| `LOAN_REGISTRATION_GUIDE.md` | 貸与登録の流れ（申請→受付→在庫） |
 | `PRODUCTION.md` | 本番チェックリスト・メール／キュー・セキュリティ |
 | `design.md` | 病院／カマタニ UI シェル方針 |
 | `MYSQL_SETUP.md` | MySQL セットアップ手順 |
-| `LOAN_REGISTRATION_GUIDE.md` | 貸与登録の流れ |
 | `LANGUAGE_SETUP.md` | 日本語／英語切り替えの実装 |
 | `adjust.md` | 不具合修正・DBバックアップ等のレポート |
+| `clientdocs/` | 仕様書・請求サンプル・ベースデータ Excel |
+
+## テスト
+
+```bash
+php artisan test
+# 主要スイート例
+php artisan test --filter=EndToEndFlowTest
+php artisan test --filter=ExcelClientRulesTest
+php artisan test --filter=ClientBillingAndApplyRulesTest
+```
+
+手動 E2E は `E2E_USER_GUIDE.md`（Phase 0〜6）に従う。
 
 ## メール（ローカルでもフロー確認可）
 
@@ -81,9 +95,11 @@ php artisan storage:link
 ## 主な機能
 
 - 職員の登録・編集・CSV 入出力（兼務＝複数部署対応）
-- ユニフォーム申請（新規貸与／返却／交換／サイズ変更／異動＝部分変更）
-- 管理者による申請承認と貸与レコード自動作成
-- 契約・請求スナップショット（人数×単価）
+- ユニフォーム申請（**職員ごと個別のみ**：新規貸与／返却／交換／サイズ変更／異動＝部分変更）
+- カテゴリ別貸与上限のハードブロック（特別承認は在庫不足のみ）
+- 管理者による申請受付と貸与レコード自動作成
+- 契約プラン（カテゴリ上限・対顧客単価・対帳合先単価枠）と CCP（開始・終了必須で本登録）
+- 請求スナップショット（割当人数×単価・税抜／締め日自動生成＋手動）
 - ロール別メニューと権限
 - セッションによる言語切り替え（ja / en）
 

@@ -36,12 +36,10 @@ class UniformCategoryController extends Controller
             'code' => ['nullable', 'string', 'max:50'],
             'size_scheme' => ['required', Rule::in([UniformCategory::SIZE_LETTER, UniformCategory::SIZE_SHOE, UniformCategory::SIZE_NONE])],
             'employee_size_field' => ['nullable', Rule::in(['top_size', 'bottom_size', 'shoe_size'])],
-            'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $data['code'] = MasterCodeGenerator::next('uniform_category');
-        $data['sort_order'] = (int) ($data['sort_order'] ?? 100);
         $data['is_active'] = $request->boolean('is_active', true);
         $data['employee_size_field'] = $data['employee_size_field'] ?: null;
 
@@ -67,12 +65,10 @@ class UniformCategoryController extends Controller
             'code' => ['nullable', 'string', 'max:50'],
             'size_scheme' => ['required', Rule::in([UniformCategory::SIZE_LETTER, UniformCategory::SIZE_SHOE, UniformCategory::SIZE_NONE])],
             'employee_size_field' => ['nullable', Rule::in(['top_size', 'bottom_size', 'shoe_size'])],
-            'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         unset($data['code']);
-        $data['sort_order'] = (int) ($data['sort_order'] ?? $uniformCategory->sort_order);
         $data['is_active'] = $request->boolean('is_active');
         $data['employee_size_field'] = $data['employee_size_field'] ?: null;
 

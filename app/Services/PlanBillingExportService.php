@@ -54,26 +54,33 @@ class PlanBillingExportService
 
     private function fillPlanSummarySheet($sheet, array $data, string $ref, string $institutionName): void
     {
-        $sheet->setCellValue('A1', '請求集計（公式：契約プラン単価 × 当該プラン人数）');
+        $institutionCode = $data['institution']['code'] ?? '';
+        $onoeCode = $data['institution']['onoe_code'] ?? '';
+
+        $sheet->setCellValue('A1', '請求集計（公式：割当人数 × 契約プラン単価・税抜）');
         $sheet->setCellValue('A2', '医療機関');
         $sheet->setCellValue('B2', $institutionName);
-        $sheet->setCellValue('A3', '基準日');
+        $sheet->setCellValue('C2', '得意先コード');
+        $sheet->setCellValue('D2', $institutionCode);
+        $sheet->setCellValue('E2', 'オノエコード');
+        $sheet->setCellValue('F2', $onoeCode);
+        $sheet->setCellValue('A3', '基準日（締め日）');
         $sheet->setCellValue('B3', $ref);
-        $sheet->setCellValue('C3', '締め日');
+        $sheet->setCellValue('C3', '締め日（日）');
         $sheet->setCellValue('D3', $data['closing_day'] ?? '');
         $sheet->setCellValue('A4', '請求金額の根拠');
-        $sheet->setCellValue('B4', $data['summary']['billing_basis'] ?? '対象人数（割当）×単価');
+        $sheet->setCellValue('B4', '請求金額＝割当人数×単価（税抜）。契約口数は契約容量（参考）。消費税は本表に含みません。');
 
         $headers = [
-            'A5' => '契約名',
+            'A5' => '契約プラン名',
             'B5' => 'プランコード',
             'C5' => '職種',
             'D5' => '貸与セット枚数',
             'E5' => '勤務体制',
-            'F5' => '契約口数',
-            'G5' => '対象人数（割当）',
+            'F5' => '契約口数（契約数）',
+            'G5' => '割当人数（割り当て数）',
             'H5' => '月額単価（税抜）',
-            'I5' => '請求金額（割当×単価）',
+            'I5' => '請求金額（割当×単価・税抜）',
             'J5' => '契約口数×単価（参考）',
         ];
         foreach ($headers as $cell => $label) {
@@ -98,13 +105,13 @@ class PlanBillingExportService
 
         $sheet->setCellValue("A{$row}", '合計');
         $sheet->setCellValue("F{$row}", $data['summary']['total_contract_slots'] ?? 0);
-        $sheet->setCellValue("G{$row}", $data['summary']['total_targets'] ?? 0);
+        $sheet->setCellValue("G{$row}", $data['summary']['total_assigned'] ?? $data['summary']['total_targets'] ?? 0);
         $sheet->setCellValue("I{$row}", $data['summary']['billing_amount'] ?? 0);
         $sheet->setCellValue("J{$row}", $data['summary']['contract_capacity_amount'] ?? 0);
         $sheet->getStyle("A{$row}:J{$row}")->getFont()->setBold(true);
 
         $noteRow = $row + 2;
-        $sheet->setCellValue("A{$noteRow}", '【公式】請求金額＝契約プラン単価（税抜）×当該プランに割り当てられた在籍人数。ユニフォーム枚数では計算しない。契約口数×単価は参考（契約容量）。');
+        $sheet->setCellValue("A{$noteRow}", '【出力項目】請求金額／締め日時点の契約口数（契約数）／割当人数（割り当て数）を明記。消費税は外部計算。オノエコードは帳票・基幹連携用。');
 
         foreach (range('A', 'J') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
@@ -116,48 +123,56 @@ class PlanBillingExportService
         $sheet->setCellValue('A1', '個人明細（契約プラン割当）');
         $sheet->setCellValue('A2', '医療機関');
         $sheet->setCellValue('B2', $institutionName);
+        $sheet->setCellValue('C2', '得意先コード');
+        $sheet->setCellValue('D2', $data['institution']['code'] ?? '');
+        $sheet->setCellValue('E2', 'オノエコード');
+        $sheet->setCellValue('F2', $data['institution']['onoe_code'] ?? '');
         $sheet->setCellValue('A3', '基準日');
         $sheet->setCellValue('B3', $ref);
 
         $headers = [
             'A5' => '基準日',
             'B5' => '医療機関名',
-            'C5' => '職員番号',
-            'D5' => '個人名',
-            'E5' => '部署',
-            'F5' => '入職日',
-            'G5' => '退職日',
-            'H5' => '契約プラン名',
-            'I5' => '契約プランコード',
-            'J5' => '契約数',
-            'K5' => '契約口数（参考）',
-            'L5' => '契約単価（税抜）',
-            'M5' => '税抜金額',
+            'C5' => '得意先コード',
+            'D5' => 'オノエコード',
+            'E5' => '職員番号',
+            'F5' => '個人名',
+            'G5' => '部署',
+            'H5' => '入職日',
+            'I5' => '退職日',
+            'J5' => '契約プラン名',
+            'K5' => '契約プランコード',
+            'L5' => '割当単位',
+            'M5' => '契約口数（契約数・参考）',
+            'N5' => '契約単価（税抜）',
+            'O5' => '税抜金額',
         ];
         foreach ($headers as $cell => $label) {
             $sheet->setCellValue($cell, $label);
         }
-        $this->styleHeaderRow($sheet, 'A5:M5');
+        $this->styleHeaderRow($sheet, 'A5:O5');
 
         $row = 6;
         foreach ($data['staff_rows'] ?? [] as $staff) {
             $sheet->setCellValue("A{$row}", $staff['reference_date'] ?? $ref);
             $sheet->setCellValue("B{$row}", $staff['hospital_name'] ?? $institutionName);
-            $sheet->setCellValue("C{$row}", $staff['staff_no'] ?? '');
-            $sheet->setCellValue("D{$row}", $staff['person_name'] ?? '');
-            $sheet->setCellValue("E{$row}", $staff['department_name'] ?? '');
-            $sheet->setCellValue("F{$row}", $staff['join_date'] ?? '');
-            $sheet->setCellValue("G{$row}", $staff['retire_date'] ?? '');
-            $sheet->setCellValue("H{$row}", $staff['plan_name'] ?? '');
-            $sheet->setCellValue("I{$row}", $staff['plan_code'] ?? '');
-            $sheet->setCellValue("J{$row}", $staff['billing_units'] ?? $staff['contract_count'] ?? 1);
-            $sheet->setCellValue("K{$row}", $staff['contracted_slots'] ?? '');
-            $sheet->setCellValue("L{$row}", $staff['unit_price_ex_tax'] ?? 0);
-            $sheet->setCellValue("M{$row}", $staff['amount_ex_tax'] ?? 0);
+            $sheet->setCellValue("C{$row}", $staff['hospital_code'] ?? ($data['institution']['code'] ?? ''));
+            $sheet->setCellValue("D{$row}", $staff['onoe_code'] ?? ($data['institution']['onoe_code'] ?? ''));
+            $sheet->setCellValue("E{$row}", $staff['staff_no'] ?? '');
+            $sheet->setCellValue("F{$row}", $staff['person_name'] ?? '');
+            $sheet->setCellValue("G{$row}", $staff['department_name'] ?? '');
+            $sheet->setCellValue("H{$row}", $staff['join_date'] ?? '');
+            $sheet->setCellValue("I{$row}", $staff['retire_date'] ?? '');
+            $sheet->setCellValue("J{$row}", $staff['plan_name'] ?? '');
+            $sheet->setCellValue("K{$row}", $staff['plan_code'] ?? '');
+            $sheet->setCellValue("L{$row}", $staff['billing_units'] ?? $staff['contract_count'] ?? 1);
+            $sheet->setCellValue("M{$row}", $staff['contracted_slots'] ?? '');
+            $sheet->setCellValue("N{$row}", $staff['unit_price_ex_tax'] ?? 0);
+            $sheet->setCellValue("O{$row}", $staff['amount_ex_tax'] ?? 0);
             $row++;
         }
 
-        foreach (range('A', 'M') as $col) {
+        foreach (range('A', 'O') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
     }

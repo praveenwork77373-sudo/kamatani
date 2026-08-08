@@ -11,9 +11,6 @@
     $planSummary = $data['plan_summary'] ?? [];
     $staffRows = $data['staff_rows'] ?? [];
     $billingAmount = (float) ($summary['billing_amount'] ?? $summary['total_amount_ex_tax'] ?? 0);
-    $taxRate = 10;
-    $taxAmount = (int) floor($billingAmount * ($taxRate / 100));
-    $totalInclTax = (int) $billingAmount + $taxAmount;
 
     $invoice = $data['invoice'] ?? [];
     $referenceDate = $data['reference_date'] ?? optional($snapshot->target_date)->format('Y-m-d');
@@ -24,6 +21,8 @@
     $contractSlots = (int) ($summary['total_contract_slots'] ?? collect($planSummary)->sum('contracted_slots'));
     $capacityAmount = (float) ($summary['contract_capacity_amount'] ?? collect($planSummary)->sum('amount_by_contract_slots'));
     $monthLabel = \Carbon\Carbon::parse($billingMonth.'-01')->translatedFormat(app()->getLocale() === 'ja' ? 'Y年n月' : 'F Y');
+    $institutionCode = $data['institution']['code'] ?? $snapshot->medicalInstitution?->code;
+    $onoeCode = $data['institution']['onoe_code'] ?? $snapshot->medicalInstitution?->onoe_code;
 @endphp
 
 <div class="space-y-6 min-w-0 w-full">
@@ -47,6 +46,16 @@
                     <i data-lucide="building" class="w-4 h-4 text-slate-400 shrink-0"></i>
                     {{ $snapshot->medicalInstitution?->name ?? '-' }}
                 </span>
+                @if($institutionCode)
+                    <span class="inline-flex items-center gap-1.5 font-mono text-[12px]">
+                        {{ __('pages.customer_code_label') }}: {{ $institutionCode }}
+                    </span>
+                @endif
+                @if($onoeCode)
+                    <span class="inline-flex items-center gap-1.5 font-mono text-[12px]">
+                        {{ __('pages.onoe_code') }}: {{ $onoeCode }}
+                    </span>
+                @endif
                 <span class="inline-flex items-center gap-1.5">
                     <i data-lucide="calendar" class="w-4 h-4 text-slate-400 shrink-0"></i>
                     {{ __('pages.target_month') }}: {{ $monthLabel }}
@@ -278,13 +287,10 @@
                         <span class="text-slate-600">{{ __('pages.subtotal_excl_tax') }}</span>
                         <span class="font-semibold text-slate-900">¥{{ number_format($billingAmount) }}</span>
                     </div>
-                    <div class="flex items-center justify-between text-[14px]">
-                        <span class="text-slate-600">{{ __('pages.consumption_tax') }} ({{ $taxRate }}%)</span>
-                        <span class="font-semibold text-slate-800">¥{{ number_format($taxAmount) }}</span>
-                    </div>
+                    <p class="text-[12px] text-slate-500">{{ __('pages.billing_tax_external_note') }}</p>
                     <div class="pt-3 border-t border-slate-200 flex items-center justify-between">
-                        <span class="text-[14px] font-semibold text-slate-700">{{ __('pages.total_amount_incl_tax') }}</span>
-                        <span class="text-2xl font-bold text-primary-700">¥{{ number_format($totalInclTax) }}</span>
+                        <span class="text-[14px] font-semibold text-slate-700">{{ __('pages.billing_amount_ex_tax') }}</span>
+                        <span class="text-2xl font-bold text-primary-700">¥{{ number_format($billingAmount) }}</span>
                     </div>
                 </div>
                 <div class="rounded-xl border border-slate-200 p-5 space-y-3 text-[13px]">

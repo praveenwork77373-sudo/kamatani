@@ -31,6 +31,33 @@ class CustomerUser extends Model
     {
         return $this->belongsTo(Department::class);
     }
+
+    public function isInstitutionAdmin(): bool
+    {
+        return $this->role === 'institution_admin';
+    }
+
+    public function isDepartmentAdmin(): bool
+    {
+        return $this->role === 'department_admin';
+    }
+
+    /**
+     * Department admins without department_id must not get institution-wide access.
+     */
+    public function isMisconfiguredDepartmentAdmin(): bool
+    {
+        return $this->isDepartmentAdmin() && ! $this->department_id;
+    }
+
+    public function scopedDepartmentId(): ?int
+    {
+        if (! $this->isDepartmentAdmin()) {
+            return null;
+        }
+
+        return $this->department_id ? (int) $this->department_id : null;
+    }
 }
 
 

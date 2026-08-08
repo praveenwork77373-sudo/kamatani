@@ -32,26 +32,16 @@ class ContractPlanController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:50', 'unique:contract_plans,code'],
-            'rentable_points' => ['required', 'integer', 'min:0'],
-            'unit_price_ex_tax' => ['required', 'numeric', 'min:0'],
-            'job_type_label' => ['nullable', 'string', 'max:255'],
-            'work_style' => ['nullable', 'string', 'max:100'],
-            'notes' => ['nullable', 'string'],
-            'is_active' => ['nullable', 'boolean'],
-            'uniform_product_ids' => ['nullable', 'array'],
-            'uniform_product_ids.*' => ['integer', 'exists:uniform_products,id'],
-        ]);
-
+        $data = $this->validatedPlan($request);
         $data['code'] = MasterCodeGenerator::next('contract_plan');
         $data['is_active'] = $request->boolean('is_active', true);
         $productIds = $data['uniform_product_ids'] ?? [];
         unset($data['uniform_product_ids']);
 
-        $plan = ContractPlan::create($data);
-        $plan->uniformProducts()->sync($productIds);
+        $plan = new ContractPlan($data);
+        $plan->syncRentablePointsTotal();
+        $plan->save();
+        $plan->uniformProducts()->sync($this->productSyncPayload($productIds));
 
         return redirect()->route('admin.contract-plans.index')->with('status', __('pages.flash_100ce5f6c9'));
     }
@@ -76,26 +66,18 @@ class ContractPlanController extends Controller
 
     public function update(Request $request, ContractPlan $contractPlan): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:50', Rule::unique('contract_plans', 'code')->ignore($contractPlan->id)],
-            'rentable_points' => ['required', 'integer', 'min:0'],
-            'unit_price_ex_tax' => ['required', 'numeric', 'min:0'],
-            'job_type_label' => ['nullable', 'string', 'max:255'],
-            'work_style' => ['nullable', 'string', 'max:100'],
-            'notes' => ['nullable', 'string'],
-            'is_active' => ['nullable', 'boolean'],
-            'uniform_product_ids' => ['nullable', 'array'],
-            'uniform_product_ids.*' => ['integer', 'exists:uniform_products,id'],
-        ]);
-
+        $data = $this->validatedPlan($request, $contractPlan);
         unset($data['code']);
         $data['is_active'] = $request->boolean('is_active');
         $productIds = $data['uniform_product_ids'] ?? [];
         unset($data['uniform_product_ids']);
 
-        $contractPlan->update($data);
-        $contractPlan->uniformProducts()->sync($productIds);
+        $contractPlan->fill($data);
+        $contractPlan->syncRentablePointsTotal();
+        $contractPlan->save();
+        $contractPlan->uniformProducts()->sync(
+            $this->productSyncPayload($productIds, $contractPlan)
+        );
 
         return redirect()->route('admin.contract-plans.index')->with('status', __('pages.flash_b24bf7b4f0'));
     }
@@ -105,5 +87,73 @@ class ContractPlanController extends Controller
         $contractPlan->update(['is_active' => false]);
 
         return redirect()->route('admin.contract-plans.index')->with('status', __('pages.flash_970fead912'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedPlan(Request $request, ?ContractPlan $existing = null): array
+    {
+        $codeRule = ['nullable', 'string', 'max:50'];
+        if ($existing) {
+            $codeRule[] = Rule::unique('contract_plans', 'code')->ignore($existing->id);
+        } else {
+            $codeRule[] = 'unique:contract_plans,code';
+        }
+
+        return $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'code' => $codeRule,
+            'rentable_points' => ['nullable', 'integer', 'min:0'],
+            'rentable_points_top' => ['nullable', 'integer', 'min:0'],
+            'rentable_points_bottom' => ['nullable', 'integer', 'min:0'],
+            'rentable_points_other' => ['nullable', 'integer', 'min:0'],
+            'rentable_points_other2' => ['nullable', 'integer', 'min:0'],
+            'rentable_points_other3' => ['nullable', 'integer', 'min:0'],
+            'unit_price_ex_tax' => ['required', 'numeric', 'min:0'],
+            'partner_unit_price_ex_tax' => ['nullable', 'numeric', 'min:0'],
+            'job_type_label' => ['nullable', 'string', 'max:255'],
+            'work_style' => ['nullable', 'string', 'max:100'],
+            'notes' => ['nullable', 'string'],
+            'is_active' => ['nullable', 'boolean'],
+            'uniform_product_ids' => ['nullable', 'array'],
+            'uniform_product_ids.*' => ['integer', 'exists:uniform_products,id'],
+        ]);
+    }
+
+    /**
+     * Preserve Excel slot_category on re-save; default new links from product.category.
+     *
+     * @param  list<int|string>  $productIds
+     * @return array<int, array{slot_category: string}>
+     */
+    private function productSyncPayload(array $productIds, ?ContractPlan $existing = null): array
+    {
+        $existingSlots = [];
+        if ($existing) {
+            $existing->loadMissing('uniformProducts');
+            foreach ($existing->uniformProducts as $product) {
+                $slot = $product->pivot?->slot_category;
+                if ($slot) {
+                    $existingSlots[(int) $product->id] = (string) $slot;
+                }
+            }
+        }
+
+        $products = UniformProduct::query()
+            ->whereIn('id', $productIds)
+            ->get(['id', 'category'])
+            ->keyBy('id');
+
+        $sync = [];
+        foreach ($productIds as $id) {
+            $id = (int) $id;
+            $slot = $existingSlots[$id]
+                ?? app(\App\Services\EmployeePlanEligibilityService::class)
+                    ->normalizeLimitCategory($products->get($id)?->category);
+            $sync[$id] = ['slot_category' => $slot];
+        }
+
+        return $sync;
     }
 }

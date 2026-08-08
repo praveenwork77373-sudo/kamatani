@@ -175,7 +175,19 @@ class EmployeeController extends Controller
         ];
 
         if ($customer->role === 'institution_admin') {
-            $rules['primary_department_id'] = ['required', 'exists:departments,id'];
+            $rules['primary_department_id'] = [
+                'required',
+                Rule::exists('departments', 'id')->where(fn ($q) => $q->where('medical_institution_id', $institutionId)),
+            ];
+            $rules['positions.*.department_id'] = [
+                'nullable',
+                'integer',
+                Rule::exists('departments', 'id')->where(fn ($q) => $q->where('medical_institution_id', $institutionId)),
+            ];
+        }
+
+        if ($customer->isDepartmentAdmin() && ! $customer->department_id) {
+            abort(403, __('pages.department_admin_missing_department'));
         }
 
         $data = $request->validate($rules);
@@ -185,7 +197,7 @@ class EmployeeController extends Controller
         $widePlanIds = $data['customer_contract_plan_ids'] ?? [];
         unset($data['customer_contract_plan_ids'], $data['positions']);
 
-        if ($isCustomer && $customer->role === 'department_admin') {
+        if ($isCustomer && $customer->isDepartmentAdmin()) {
             $data['primary_department_id'] = $customer->department_id;
         }
 
@@ -305,9 +317,26 @@ class EmployeeController extends Controller
             'positions.*.customer_contract_plan_ids.*' => ['integer', 'exists:customer_contract_plans,id'],
         ];
 
-        // 全体管理者のみ部署変更可能
+        // 全体管理者のみ部署変更可能（自医療機関の部署に限定）
         if ($customer->role === 'institution_admin') {
-            $rules['primary_department_id'] = ['required', 'exists:departments,id'];
+            $rules['primary_department_id'] = [
+                'required',
+                Rule::exists('departments', 'id')->where(fn ($q) => $q->where('medical_institution_id', $institutionId)),
+            ];
+            $rules['positions.*.department_id'] = [
+                'nullable',
+                'integer',
+                Rule::exists('departments', 'id')->where(fn ($q) => $q->where('medical_institution_id', $institutionId)),
+            ];
+            $rules['positions.*.job_type_id'] = [
+                'nullable',
+                'integer',
+                Rule::exists('job_types', 'id')->where(fn ($q) => $q->where('medical_institution_id', $institutionId)),
+            ];
+        }
+
+        if ($customer->isDepartmentAdmin() && ! $customer->department_id) {
+            abort(403, __('pages.department_admin_missing_department'));
         }
 
         $data = $request->validate($rules);

@@ -164,6 +164,7 @@
     $isKamataniShell = (bool) ($shellUser?->adminUser);
     $shellCustomer = $shellUser?->customerUser;
     $hospitalName = $shellCustomer?->medicalInstitution?->name;
+    $hospitalCode = $shellCustomer?->medicalInstitution?->code;
 @endphp
 <body class="app-brand min-h-screen text-[15px] antialiased {{ $isKamataniShell ? 'shell-kamatani' : 'shell-hospital' }}">
     <div class="min-h-screen flex">
@@ -183,7 +184,12 @@
                         @if($isKamataniShell)
                             <div class="brand-kamatani"><span>KAMATANI</span></div>
                         @else
-                            <div class="brand-hospital-name" title="{{ $hospitalName }}">{{ $hospitalName ?: __('pages.hospital_fallback') }}</div>
+                            <div class="brand-hospital-name" title="{{ $hospitalName }}{{ $hospitalCode ? ' ('.$hospitalCode.')' : '' }}">
+                                {{ $hospitalName ?: __('pages.hospital_fallback') }}
+                            </div>
+                            @if($hospitalCode)
+                                <div class="text-[11px] text-slate-500 font-mono truncate mt-0.5" title="{{ __('pages.customer_code_label') }}">{{ $hospitalCode }}</div>
+                            @endif
                         @endif
                     </div>
                 </div>

@@ -53,6 +53,7 @@
                             <input type="text" name="onoe_code" value="{{ old('onoe_code') }}" class="ui-input font-mono"
                                    placeholder="{{ __('pages.onoe_code_placeholder') }}">
                         </div>
+                        <p class="ui-hint">{{ __('pages.onoe_code_admin_only_hint') }}</p>
                         @error('onoe_code')<p class="ui-error">{{ $message }}</p>@enderror
                     </div>
 

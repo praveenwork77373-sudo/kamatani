@@ -27,7 +27,11 @@ class ApplicationPolicy
             return false;
         }
 
-        if ($customer->role === 'department_admin' && $customer->department_id) {
+        if ($customer->role === 'department_admin') {
+            if (! $customer->department_id) {
+                return false;
+            }
+
             return (int) $application->department_id === (int) $customer->department_id;
         }
 

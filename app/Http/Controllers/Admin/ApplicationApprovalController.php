@@ -110,10 +110,55 @@ class ApplicationApprovalController extends Controller
             'documents' => fn ($q) => $q->orderByDesc('issued_at'),
         ]);
 
+        $institutionId = (int) $application->medical_institution_id;
+        $pendingStatuses = [
+            Application::STATUS_PENDING,
+            Application::STATUS_WAITING_SPECIAL,
+            Application::STATUS_CANCEL_REQUEST,
+        ];
+
+        $hospitalPendingQuery = Application::query()
+            ->where('medical_institution_id', $institutionId)
+            ->whereIn('status', $pendingStatuses);
+
+        $hospitalPendingApps = (clone $hospitalPendingQuery)->count();
+        $hospitalPendingOtherApps = (clone $hospitalPendingQuery)
+            ->where('id', '!=', $application->id)
+            ->count();
+
+        $hospitalPendingItemQty = (int) DB::table('application_items')
+            ->join('applications', 'applications.id', '=', 'application_items.application_id')
+            ->where('applications.medical_institution_id', $institutionId)
+            ->whereIn('applications.status', $pendingStatuses)
+            ->whereIn('application_items.action', ['loan', 'exchange_in', 'transfer_change'])
+            ->sum('application_items.quantity');
+
+        $thisAppOutboundQty = (int) $application->items
+            ->filter(fn ($i) => in_array($i->action ?: 'loan', ['loan', 'exchange_in', 'transfer_change'], true))
+            ->sum('quantity');
+        $thisAppReturnQty = (int) $application->items
+            ->filter(fn ($i) => in_array($i->action, ['return', 'exchange_out'], true))
+            ->sum('quantity');
+
+        $otherPendingApps = Application::query()
+            ->with(['employee:id,name,staff_no', 'items'])
+            ->where('medical_institution_id', $institutionId)
+            ->whereIn('status', $pendingStatuses)
+            ->where('id', '!=', $application->id)
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get();
+
         return view('admin.applications.show', [
             'application' => $application,
             'latestDocuments' => $application->documents->where('is_latest', true)->keyBy('form_type'),
             'documentHistory' => $application->documents,
+            'hospitalPendingApps' => $hospitalPendingApps,
+            'hospitalPendingOtherApps' => $hospitalPendingOtherApps,
+            'hospitalPendingItemQty' => $hospitalPendingItemQty,
+            'thisAppOutboundQty' => $thisAppOutboundQty,
+            'thisAppReturnQty' => $thisAppReturnQty,
+            'otherPendingApps' => $otherPendingApps,
         ]);
     }
 
@@ -157,7 +202,53 @@ class ApplicationApprovalController extends Controller
                     throw new \Exception('この申請は承認できません。');
                 }
 
-                $hasSpecialApproval = !empty($application->special_approval_reason);
+                $hasSpecialApproval = $application->status === Application::STATUS_WAITING_SPECIAL;
+
+                // Re-check rentable / category caps at accept (concurrent pending apps, plan changes)
+                if (in_array($application->type, ['new_loan', 'exchange', 'resize', 'transfer'], true)
+                    && $application->employee_id) {
+                    $employee = \App\Models\Employee::find($application->employee_id);
+                    if ($employee) {
+                        $outbound = $application->items
+                            ->filter(fn ($i) => in_array($i->action ?: 'loan', ['loan', 'exchange_in', 'transfer_change'], true))
+                            ->map(fn ($i) => [
+                                'uniform_product_id' => (int) $i->uniform_product_id,
+                                'quantity' => (int) $i->quantity,
+                            ])
+                            ->values()
+                            ->all();
+                        $inbound = $application->items
+                            ->filter(fn ($i) => in_array($i->action, ['return', 'exchange_out'], true))
+                            ->map(fn ($i) => [
+                                'uniform_product_id' => (int) $i->uniform_product_id,
+                                'quantity' => (int) $i->quantity,
+                            ])
+                            ->values()
+                            ->all();
+
+                        $violation = app(\App\Services\EmployeePlanEligibilityService::class)
+                            ->loanLimitViolation(
+                                $employee,
+                                $outbound,
+                                $inbound,
+                                null,
+                                true,
+                                (int) $application->id
+                            );
+                        if ($violation) {
+                            $messageKey = ($violation['mode'] ?? '') === 'category'
+                                ? 'pages.rentable_category_limit_hard_block'
+                                : 'pages.rentable_limit_hard_block';
+                            throw new \Exception(__($messageKey, [
+                                'category' => isset($violation['category'])
+                                    ? \App\Models\UniformCategory::labelFor($violation['category'])
+                                    : '',
+                                'limit' => $violation['limit'],
+                                'projected' => $violation['projected'],
+                            ]));
+                        }
+                    }
+                }
 
                 match ($application->type) {
                     'return' => $this->processReturnApproval($application),
@@ -312,11 +403,12 @@ class ApplicationApprovalController extends Controller
     {
         $product = UniformProduct::lockForUpdate()->find($item->uniform_product_id);
         if ($product) {
-            // 特別承認時は負の在庫を許可（バックオーダー）
-            $product->stock_quantity = $product->stock_quantity - $item->quantity;
-            if (!$hasSpecialApproval && $product->stock_quantity < 0) {
+            $next = (int) $product->stock_quantity - (int) $item->quantity;
+            if (! $hasSpecialApproval && $next < 0) {
                 throw new \Exception("在庫不足: {$product->name}");
             }
+            // unsignedInteger cannot store negatives — clamp at 0 for special-approval backorder
+            $product->stock_quantity = max(0, $next);
             $product->save();
         }
 

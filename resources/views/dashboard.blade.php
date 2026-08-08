@@ -28,6 +28,9 @@
                                 @elseif($customer)
                                     <i data-lucide="building" class="w-3.5 h-3.5 text-slate-400"></i>
                                     <span class="font-medium text-slate-700">{{ $customer->medicalInstitution->name ?? '' }}</span>
+                                    @if($customer->medicalInstitution?->code)
+                                        <span class="text-slate-500 font-mono text-[12px]">{{ __('pages.customer_code_label') }}: {{ $customer->medicalInstitution->code }}</span>
+                                    @endif
                                     <span class="text-slate-500">{{ __('roles.' . $customer->role) }}</span>
                                 @endif
                             </p>
@@ -55,20 +58,28 @@
         {{-- ============================================ --}}
         @php
             $tab = in_array($dashTab ?? 'queue', ['queue', 'overview', 'history'], true) ? $dashTab : 'queue';
+            $canSeeOpsQueue = in_array($admin->role ?? '', ['system_admin', 'operation'], true);
+            if (! $canSeeOpsQueue && $tab === 'queue') {
+                $tab = 'overview';
+            }
         @endphp
 
         <nav class="dash-tabs" aria-label="{{ __('menu.dashboard') }}">
+            @if($canSeeOpsQueue)
             <a href="{{ route('dashboard', ['tab' => 'queue']) }}" class="{{ $tab === 'queue' ? 'is-active' : '' }}">
                 {{ __('pages.today_queue') }}
                 @if(($queueCounts['total'] ?? 0) > 0)
                     <span class="dash-tab-count">{{ $queueCounts['total'] }}</span>
                 @endif
             </a>
+            @endif
             <a href="{{ route('dashboard', ['tab' => 'overview']) }}" class="{{ $tab === 'overview' ? 'is-active' : '' }}">{{ __('pages.overview') }}</a>
+            @if($canSeeOpsQueue)
             <a href="{{ route('dashboard', ['tab' => 'history']) }}" class="{{ $tab === 'history' ? 'is-active' : '' }}">{{ __('pages.history_tab') }}</a>
+            @endif
         </nav>
 
-        @if($tab === 'queue')
+        @if($tab === 'queue' && $canSeeOpsQueue)
             <div class="mb-4 flex flex-wrap gap-2">
                 <span class="ui-status-pill ui-status-pill--warning">{{ __('pages.normal_pending') }} {{ $queueCounts['pending'] ?? 0 }}</span>
                 <span class="ui-status-pill ui-status-pill--warning">{{ __('pages.special_pending_short') }} {{ $queueCounts['special'] ?? 0 }}</span>
@@ -389,20 +400,6 @@
                         </div>
                         <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-primary-600"></i>
                     </a>
-                    
-                    {{-- Institution Admin Only: Departmental Application --}}
-                    @if($customer && $customerRole === 'institution_admin')
-                    <a href="{{ route('applications.create', ['mode' => 'departmental']) }}" class="flex items-center gap-2.5 p-2 xl:p-[1em] lg:p-[0.9em] rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all group">
-                        <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <i data-lucide="users" class="w-4 h-4 text-white"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-[13px] font-semibold text-slate-900">{{ __('pages.departmental_application') }}</p>
-                            <p class="text-[11px] text-slate-600">{{ __('pages.departmental_application_desc') }}</p>
-                        </div>
-                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:text-slate-600"></i>
-                    </a>
-                    @endif
                     
                     {{-- All Customer Roles: Employee Registration --}}
                     <a href="{{ route('employees.index') }}" class="flex items-center gap-2.5 p-2 xl:p-[1em] lg:p-[0.9em] rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 hover:border-emerald-400 hover:shadow-sm transition-all group">

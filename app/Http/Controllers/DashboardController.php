@@ -33,63 +33,81 @@ class DashboardController extends Controller
         $closingDay = null;
         
         if ($admin) {
-            // Kamatani Admin Dashboard
-            $stats = [
-                'total_applications' => Application::count(),
-                'pending_approvals' => Application::whereIn('status', ['pending', 'waiting_special_approval'])->count(),
-                'total_employees' => Employee::count(),
-                'inventory_alerts' => \App\Models\UniformProduct::where('stock_quantity', '<=', 0)->count(),
-            ];
-            
-            $recentApplications = Application::with(['employee', 'department', 'items.uniformProduct', 'medicalInstitution'])
-                ->orderByDesc('created_at')
-                ->limit(10)
-                ->get();
+            $opsRoles = ['system_admin', 'operation'];
+            $canSeeOps = in_array($admin->role, $opsRoles, true);
 
-            $queueApplications = Application::with(['employee', 'department', 'medicalInstitution'])
-                ->whereIn('status', ['pending', 'waiting_special_approval', 'cancel_request'])
-                ->orderByRaw("CASE status WHEN 'waiting_special_approval' THEN 0 WHEN 'cancel_request' THEN 1 ELSE 2 END")
-                ->orderBy('created_at')
-                ->limit(20)
-                ->get();
-
-            $queueCounts = [
-                'pending' => Application::where('status', 'pending')->count(),
-                'special' => Application::where('status', 'waiting_special_approval')->count(),
-                'cancel' => Application::where('status', 'cancel_request')->count(),
-            ];
-            $queueCounts['total'] = $queueCounts['pending'] + $queueCounts['special'] + $queueCounts['cancel'];
-                
-            // Application trend data (last 6 months) - Real data from database
-            $trendData = [];
-            for ($i = 5; $i >= 0; $i--) {
-                $month = now()->subMonths($i);
-                $monthStart = $month->copy()->startOfMonth();
-                $monthEnd = $month->copy()->endOfMonth();
-                
-                $trendData[] = [
-                    'month' => $month->format(app()->getLocale() === 'ja' ? 'n月' : 'M'),
-                    'month_full' => $month->format(app()->getLocale() === 'ja' ? 'Y年n月' : 'M Y'),
-                    'new_loan' => Application::where('type', 'new_loan')
-                        ->whereBetween('created_at', [$monthStart, $monthEnd])
-                        ->count(),
-                    'return' => Application::where('type', 'return')
-                        ->whereBetween('created_at', [$monthStart, $monthEnd])
-                        ->count(),
-                    'resize' => Application::where('type', 'resize')
-                        ->whereBetween('created_at', [$monthStart, $monthEnd])
-                        ->count(),
-                    'exchange' => Application::where('type', 'exchange')
-                        ->whereBetween('created_at', [$monthStart, $monthEnd])
-                        ->count(),
+            if ($canSeeOps) {
+                // Kamatani ops dashboard
+                $stats = [
+                    'total_applications' => Application::count(),
+                    'pending_approvals' => Application::whereIn('status', ['pending', 'waiting_special_approval'])->count(),
+                    'total_employees' => Employee::count(),
+                    'inventory_alerts' => \App\Models\UniformProduct::where('stock_quantity', '<=', 0)->count(),
                 ];
+
+                $recentApplications = Application::with(['employee', 'department', 'items.uniformProduct', 'medicalInstitution'])
+                    ->orderByDesc('created_at')
+                    ->limit(10)
+                    ->get();
+
+                $queueApplications = Application::with(['employee', 'department', 'medicalInstitution'])
+                    ->whereIn('status', ['pending', 'waiting_special_approval', 'cancel_request'])
+                    ->orderByRaw("CASE status WHEN 'waiting_special_approval' THEN 0 WHEN 'cancel_request' THEN 1 ELSE 2 END")
+                    ->orderBy('created_at')
+                    ->limit(20)
+                    ->get();
+
+                $queueCounts = [
+                    'pending' => Application::where('status', 'pending')->count(),
+                    'special' => Application::where('status', 'waiting_special_approval')->count(),
+                    'cancel' => Application::where('status', 'cancel_request')->count(),
+                ];
+                $queueCounts['total'] = $queueCounts['pending'] + $queueCounts['special'] + $queueCounts['cancel'];
+
+                $trendData = [];
+                for ($i = 5; $i >= 0; $i--) {
+                    $month = now()->subMonths($i);
+                    $monthStart = $month->copy()->startOfMonth();
+                    $monthEnd = $month->copy()->endOfMonth();
+
+                    $trendData[] = [
+                        'month' => $month->format(app()->getLocale() === 'ja' ? 'n月' : 'M'),
+                        'month_full' => $month->format(app()->getLocale() === 'ja' ? 'Y年n月' : 'M Y'),
+                        'new_loan' => Application::where('type', 'new_loan')
+                            ->whereBetween('created_at', [$monthStart, $monthEnd])
+                            ->count(),
+                        'return' => Application::where('type', 'return')
+                            ->whereBetween('created_at', [$monthStart, $monthEnd])
+                            ->count(),
+                        'resize' => Application::where('type', 'resize')
+                            ->whereBetween('created_at', [$monthStart, $monthEnd])
+                            ->count(),
+                        'exchange' => Application::where('type', 'exchange')
+                            ->whereBetween('created_at', [$monthStart, $monthEnd])
+                            ->count(),
+                    ];
+                }
+
+                $departmentStats = Department::withCount(['employees', 'applications'])
+                    ->limit(6)
+                    ->get();
+            } else {
+                // Non-ops admin roles: no application queue / inventory ops leakage
+                $stats = [
+                    'total_applications' => null,
+                    'pending_approvals' => null,
+                    'total_employees' => in_array($admin->role, ['system_admin', 'sales', 'accounting'], true)
+                        ? Employee::count()
+                        : null,
+                    'inventory_alerts' => null,
+                    'restricted_dashboard' => true,
+                ];
+                $recentApplications = collect();
+                $queueApplications = collect();
+                $queueCounts = ['pending' => 0, 'special' => 0, 'cancel' => 0, 'total' => 0];
+                $trendData = [];
+                $departmentStats = collect();
             }
-            
-            // Department stats
-            $departmentStats = Department::withCount(['employees', 'applications'])
-                ->limit(6)
-                ->get();
-                
         } elseif ($customer) {
             // Customer (Medical Institution) Dashboard
             $medicalInstitution = $customer->medicalInstitution;
@@ -97,14 +115,22 @@ class DashboardController extends Controller
             
             $baseQuery = Application::where('medical_institution_id', $customer->medical_institution_id);
             
-            if ($customer->role === 'department_admin' && $customer->department_id) {
-                $baseQuery->where('department_id', $customer->department_id);
+            if ($customer->isDepartmentAdmin()) {
+                if (! $customer->department_id) {
+                    $baseQuery->whereRaw('0 = 1');
+                } else {
+                    $baseQuery->where('department_id', $customer->department_id);
+                }
             }
             
             // Employee stats
             $employeeQuery = Employee::where('medical_institution_id', $customer->medical_institution_id);
-            if ($customer->role === 'department_admin' && $customer->department_id) {
-                $employeeQuery->inDepartment((int) $customer->department_id);
+            if ($customer->isDepartmentAdmin()) {
+                if (! $customer->department_id) {
+                    $employeeQuery->whereRaw('0 = 1');
+                } else {
+                    $employeeQuery->inDepartment((int) $customer->department_id);
+                }
             }
             
             $totalEmployees = $employeeQuery->count();
@@ -234,7 +260,10 @@ class DashboardController extends Controller
             'recentApplications' => $recentApplications,
             'queueApplications' => $queueApplications ?? collect(),
             'queueCounts' => $queueCounts ?? ['pending' => 0, 'special' => 0, 'cancel' => 0, 'total' => 0],
-            'dashTab' => $admin ? $request->string('tab')->toString() ?: 'queue' : 'overview',
+            'dashTab' => $admin
+                ? ($request->string('tab')->toString()
+                    ?: (in_array($admin->role, ['system_admin', 'operation'], true) ? 'queue' : 'overview'))
+                : 'overview',
             'departmentStats' => $departmentStats,
             'medicalInstitution' => $medicalInstitution,
             'closingDay' => $closingDay,

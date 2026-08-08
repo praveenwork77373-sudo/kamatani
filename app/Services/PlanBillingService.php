@@ -116,6 +116,7 @@ class PlanBillingService
                     'reference_date' => $asOfStr,
                     'hospital_name' => $institution->name,
                     'hospital_code' => $institution->code,
+                    'onoe_code' => $institution->onoe_code,
                     'staff_no' => $employee->staff_no,
                     'person_name' => $employee->name,
                     'department_name' => $employee->primaryDepartment?->name,
@@ -213,6 +214,7 @@ class PlanBillingService
                 'id' => $institution->id,
                 'name' => $institution->name,
                 'code' => $institution->code,
+                'onoe_code' => $institution->onoe_code,
             ],
             'summary' => [
                 'billing_model' => 'plan_based',
