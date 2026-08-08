@@ -4,15 +4,17 @@
     <meta charset="UTF-8">
     <title>{{ $formTitle }} — {{ $applicationNo }}</title>
     <style>
+        @if(!empty($fontPath))
         @font-face {
             font-family: 'ipaexg';
             font-style: normal;
             font-weight: normal;
             src: url('{{ str_replace('\\', '/', $fontPath) }}') format('truetype');
         }
+        @endif
         * { box-sizing: border-box; }
         body {
-            font-family: 'ipaexg', DejaVu Sans, sans-serif;
+            font-family: '{{ $fontFamily ?? 'ipaexg' }}', DejaVu Sans, sans-serif;
             font-size: 11px;
             color: #111;
             margin: 24px;

@@ -91,6 +91,8 @@ return new class extends Migration {
         });
 
         // Add contract_plan_manager to admin_users.role
+        // Fresh installs (incl. sqlite tests): create migration already includes the role.
+        // Existing MySQL/Postgres DBs: expand ENUM / CHECK here.
         $driver = Schema::getConnection()->getDriverName();
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE admin_users MODIFY COLUMN role ENUM('system_admin','operation','sales','accounting','contract_plan_manager') NOT NULL");

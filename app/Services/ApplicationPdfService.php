@@ -65,9 +65,11 @@ class ApplicationPdfService
         }
 
         $payload = $this->buildPayload($application, $formType);
+        // Tests: skip embedding the ~6MB Japanese TTF (DomPDF OOM on default 128M).
+        $defaultFont = app()->environment('testing') ? 'DejaVu Sans' : 'ipaexg';
         $pdf = Pdf::loadView('pdfs.application-form', $payload)
             ->setPaper('a4', 'portrait')
-            ->setOption('defaultFont', 'ipaexg')
+            ->setOption('defaultFont', $defaultFont)
             ->setOption('isRemoteEnabled', false)
             ->setOption('isHtml5ParserEnabled', true);
 
@@ -123,7 +125,8 @@ class ApplicationPdfService
         return [
             'formType' => $formType,
             'formTitle' => $this->formLabel($formType),
-            'fontPath' => resource_path('fonts/ipaexg.ttf'),
+            'fontPath' => app()->environment('testing') ? null : resource_path('fonts/ipaexg.ttf'),
+            'fontFamily' => app()->environment('testing') ? 'DejaVu Sans' : 'ipaexg',
             'application' => $application,
             'applicationNo' => sprintf('APP-%04d', $application->id),
             'orderDate' => optional($application->accepted_at ?? $application->approved_at ?? $application->created_at)->format('Y-m-d'),
