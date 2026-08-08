@@ -54,17 +54,17 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-            <label class="ui-label">{{ __('pages.start_date_label') }} <span class="text-red-500 confirmed-date-required hidden">*</span></label>
-            <input type="date" name="start_date" value="{{ old('start_date', optional($plan->start_date ?? null)->format('Y-m-d')) }}" class="ui-input">
+            <label class="ui-label">{{ __('pages.start_date_label') }} <span class="text-red-500">*</span></label>
+            <input type="date" name="start_date" value="{{ old('start_date', optional($plan->start_date ?? null)->format('Y-m-d')) }}" required class="ui-input">
             @error('start_date')<p class="ui-error">{{ $message }}</p>@enderror
         </div>
         <div>
-            <label class="ui-label">{{ __('pages.end_date') }} <span class="text-red-500 confirmed-date-required hidden">*</span></label>
-            <input type="date" name="end_date" value="{{ old('end_date', optional($plan->end_date ?? null)->format('Y-m-d')) }}" class="ui-input">
+            <label class="ui-label">{{ __('pages.end_date') }} <span class="text-red-500">*</span></label>
+            <input type="date" name="end_date" value="{{ old('end_date', optional($plan->end_date ?? null)->format('Y-m-d')) }}" required class="ui-input">
             @error('end_date')<p class="ui-error">{{ $message }}</p>@enderror
         </div>
     </div>
-    <p class="ui-hint -mt-2">{{ __('pages.ccp_dates_required_when_confirmed') }}</p>
+    <p class="ui-hint -mt-2">{{ __('pages.ccp_dates_always_required') }}</p>
 
     <div>
         <label class="ui-label">{{ __('pages.status') }} <span class="text-red-500">*</span></label>

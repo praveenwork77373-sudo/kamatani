@@ -76,17 +76,16 @@ class PlanBillingExportService
             'B5' => 'プランコード',
             'C5' => '職種',
             'D5' => '貸与セット枚数',
-            'E5' => '勤務体制',
-            'F5' => '契約口数（契約数）',
-            'G5' => '割当人数（割り当て数）',
-            'H5' => '月額単価（税抜）',
-            'I5' => '請求金額（割当×単価・税抜）',
-            'J5' => '契約口数×単価（参考）',
+            'E5' => '契約口数（契約数）',
+            'F5' => '割当人数（割り当て数）',
+            'G5' => '月額単価（税抜）',
+            'H5' => '請求金額（割当×単価・税抜）',
+            'I5' => '契約口数×単価（参考）',
         ];
         foreach ($headers as $cell => $label) {
             $sheet->setCellValue($cell, $label);
         }
-        $this->styleHeaderRow($sheet, 'A5:J5');
+        $this->styleHeaderRow($sheet, 'A5:I5');
 
         $row = 6;
         foreach ($data['plan_summary'] ?? [] as $plan) {
@@ -94,26 +93,25 @@ class PlanBillingExportService
             $sheet->setCellValue("B{$row}", $plan['plan_code'] ?? '');
             $sheet->setCellValue("C{$row}", $plan['job_type_label'] ?? '');
             $sheet->setCellValue("D{$row}", $plan['rentable_points'] ?? '');
-            $sheet->setCellValue("E{$row}", $plan['work_style'] ?? '');
-            $sheet->setCellValue("F{$row}", $plan['contracted_slots'] ?? 0);
-            $sheet->setCellValue("G{$row}", $plan['assigned_count'] ?? 0);
-            $sheet->setCellValue("H{$row}", $plan['unit_price_ex_tax'] ?? 0);
-            $sheet->setCellValue("I{$row}", $plan['amount_ex_tax'] ?? 0);
-            $sheet->setCellValue("J{$row}", $plan['amount_by_contract_slots'] ?? 0);
+            $sheet->setCellValue("E{$row}", $plan['contracted_slots'] ?? 0);
+            $sheet->setCellValue("F{$row}", $plan['assigned_count'] ?? 0);
+            $sheet->setCellValue("G{$row}", $plan['unit_price_ex_tax'] ?? 0);
+            $sheet->setCellValue("H{$row}", $plan['amount_ex_tax'] ?? 0);
+            $sheet->setCellValue("I{$row}", $plan['amount_by_contract_slots'] ?? 0);
             $row++;
         }
 
         $sheet->setCellValue("A{$row}", '合計');
-        $sheet->setCellValue("F{$row}", $data['summary']['total_contract_slots'] ?? 0);
-        $sheet->setCellValue("G{$row}", $data['summary']['total_assigned'] ?? $data['summary']['total_targets'] ?? 0);
-        $sheet->setCellValue("I{$row}", $data['summary']['billing_amount'] ?? 0);
-        $sheet->setCellValue("J{$row}", $data['summary']['contract_capacity_amount'] ?? 0);
-        $sheet->getStyle("A{$row}:J{$row}")->getFont()->setBold(true);
+        $sheet->setCellValue("E{$row}", $data['summary']['total_contract_slots'] ?? 0);
+        $sheet->setCellValue("F{$row}", $data['summary']['total_assigned'] ?? $data['summary']['total_targets'] ?? 0);
+        $sheet->setCellValue("H{$row}", $data['summary']['billing_amount'] ?? 0);
+        $sheet->setCellValue("I{$row}", $data['summary']['contract_capacity_amount'] ?? 0);
+        $sheet->getStyle("A{$row}:I{$row}")->getFont()->setBold(true);
 
         $noteRow = $row + 2;
         $sheet->setCellValue("A{$noteRow}", '【出力項目】請求金額／締め日時点の契約口数（契約数）／割当人数（割り当て数）を明記。消費税は外部計算。オノエコードは帳票・基幹連携用。');
 
-        foreach (range('A', 'J') as $col) {
+        foreach (range('A', 'I') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
     }

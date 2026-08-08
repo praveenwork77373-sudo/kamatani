@@ -134,7 +134,6 @@ class PlanBillingService
                     'amount_ex_tax' => $amount,
                     'job_type_label' => $plan->job_type_label,
                     'rentable_points' => $plan->rentable_points,
-                    'work_style' => $plan->work_style,
                 ];
 
                 $key = (string) $ccp->id;
@@ -145,7 +144,6 @@ class PlanBillingService
                         'plan_code' => $plan->code,
                         'job_type_label' => $plan->job_type_label,
                         'rentable_points' => $plan->rentable_points,
-                        'work_style' => $plan->work_style,
                         'contract_start_date' => optional($ccp->start_date)->format('Y-m-d'),
                         'contract_end_date' => optional($ccp->end_date)->format('Y-m-d'),
                         'contracted_slots' => (int) $ccp->contract_count,
@@ -186,7 +184,6 @@ class PlanBillingService
                 'plan_code' => $plan->code,
                 'job_type_label' => $plan->job_type_label,
                 'rentable_points' => $plan->rentable_points,
-                'work_style' => $plan->work_style,
                 'contract_start_date' => optional($ccp->start_date)->format('Y-m-d'),
                 'contract_end_date' => optional($ccp->end_date)->format('Y-m-d'),
                 'contracted_slots' => $slots,

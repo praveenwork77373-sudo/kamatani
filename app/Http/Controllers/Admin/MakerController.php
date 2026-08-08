@@ -29,13 +29,13 @@ class MakerController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50', 'unique:makers,code'],
             'tel' => ['nullable', 'string', 'max:50'],
             'fax' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-        $data['code'] = MasterCodeGenerator::next('maker');
+        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'maker');
         $data['is_active'] = $request->boolean('is_active', true);
 
         Maker::create($data);

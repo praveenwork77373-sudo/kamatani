@@ -10,6 +10,7 @@ use App\Support\MasterCodeGenerator;
 use App\Support\Pagination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class MasterController extends Controller
@@ -63,13 +64,20 @@ class MasterController extends Controller
         $customer = $user->customerUser;
         
         $data = $request->validate([
-            'code' => ['nullable', 'string', 'max:50'],
+            'code' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('departments', 'code')->where(
+                    fn ($q) => $q->where('medical_institution_id', $customer->medical_institution_id)
+                ),
+            ],
             'name' => ['required', 'string', 'max:255'],
         ]);
 
         $institutionId = $customer->medical_institution_id;
         $data['medical_institution_id'] = $institutionId;
-        $data['code'] = MasterCodeGenerator::next('department', $institutionId);
+        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'department', $institutionId);
 
         Department::create($data);
         
@@ -225,13 +233,20 @@ class MasterController extends Controller
         $customer = $user->customerUser;
         
         $data = $request->validate([
-            'code' => ['nullable', 'string', 'max:50'],
+            'code' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('job_types', 'code')->where(
+                    fn ($q) => $q->where('medical_institution_id', $customer->medical_institution_id)
+                ),
+            ],
             'name' => ['required', 'string', 'max:255'],
         ]);
 
         $institutionId = $customer->medical_institution_id;
         $data['medical_institution_id'] = $institutionId;
-        $data['code'] = MasterCodeGenerator::next('job_type', $institutionId);
+        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'job_type', $institutionId);
 
         JobType::create($data);
         

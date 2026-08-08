@@ -142,8 +142,9 @@ class ApplicationPdfService
             'items' => $application->items,
             'issuedAt' => now()->format('Y-m-d H:i'),
             'audienceNote' => match ($formType) {
-                ApplicationDocument::TYPE_SHIPPING_SALES => __('pages.pdf_note_sales'),
-                ApplicationDocument::TYPE_SHIPPING_WAREHOUSE => __('pages.pdf_note_warehouse'),
+                ApplicationDocument::TYPE_SHIPPING_INSTRUCTION,
+                ApplicationDocument::TYPE_SHIPPING_SALES,
+                ApplicationDocument::TYPE_SHIPPING_WAREHOUSE => __('pages.pdf_note_shipping'),
                 ApplicationDocument::TYPE_DELIVERY_NOTICE => __('pages.pdf_note_delivery'),
                 ApplicationDocument::TYPE_WORK_SLIP => __('pages.pdf_note_work'),
                 default => '※受注（準備）用',

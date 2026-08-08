@@ -8,8 +8,7 @@ use Illuminate\Support\Str;
 class MasterCodeGenerator
 {
     /**
-     * Always generate the next unique code for a master type.
-     * Manual codes are not accepted — uniqueness is system-owned.
+     * Always generate the next unique code for a master type when none is supplied.
      *
      * @param  array{table: string, column?: string, prefix: string, pad?: int, institution_id?: int|null}  $config
      */
@@ -101,7 +100,7 @@ class MasterCodeGenerator
     }
 
     /**
-     * Next auto code for type (always). Ignores any user-submitted value.
+     * Next auto code for type when the user left the field blank.
      */
     public static function next(string $type, ?int $institutionId = null): string
     {
@@ -120,13 +119,16 @@ class MasterCodeGenerator
     }
 
     /**
-     * Assign code for create (always auto) or keep existing on update.
-     * $submitted is ignored — codes are system-owned.
+     * Prefer typed Excel/client code; keep existing on update; otherwise auto-generate.
      */
     public static function ensure(?string $submitted, string $type, ?int $institutionId = null, ?string $existing = null): string
     {
         if (is_string($existing) && trim($existing) !== '') {
             return trim($existing);
+        }
+
+        if (is_string($submitted) && trim($submitted) !== '') {
+            return trim($submitted);
         }
 
         return self::next($type, $institutionId);

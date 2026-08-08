@@ -123,4 +123,76 @@ class MultiAffiliationTest extends TestCase
         $this->assertSame(2, $employee->positions()->count());
         $this->assertTrue($employee->isAffiliatedWithDepartment((int) $deptB->id));
     }
+
+    public function test_department_admin_sees_affiliate_applications_on_index(): void
+    {
+        $institution = MedicalInstitution::create([
+            'code' => 'H-APP',
+            'name' => '申請兼務病院',
+            'notification_email' => 'a@example.com',
+            'billing_closing_day' => 1,
+        ]);
+        $deptA = Department::create([
+            'medical_institution_id' => $institution->id,
+            'code' => 'A',
+            'name' => '内科',
+        ]);
+        $deptB = Department::create([
+            'medical_institution_id' => $institution->id,
+            'code' => 'B',
+            'name' => '外科',
+        ]);
+        $job = JobType::create([
+            'medical_institution_id' => $institution->id,
+            'code' => 'J1',
+            'name' => '看護師',
+        ]);
+        $delivery = \App\Models\DeliveryLocation::create([
+            'medical_institution_id' => $institution->id,
+            'name' => 'Locker',
+        ]);
+
+        $employee = Employee::create([
+            'medical_institution_id' => $institution->id,
+            'primary_department_id' => $deptA->id,
+            'staff_no' => 'AFF-APP-1',
+            'name' => '兼務申請者',
+            'status' => 'employed',
+        ]);
+        EmployeePosition::create([
+            'employee_id' => $employee->id,
+            'department_id' => $deptA->id,
+            'job_type_id' => $job->id,
+        ]);
+        EmployeePosition::create([
+            'employee_id' => $employee->id,
+            'department_id' => $deptB->id,
+            'job_type_id' => $job->id,
+        ]);
+
+        $user = User::factory()->create(['type' => 'customer']);
+        CustomerUser::create([
+            'user_id' => $user->id,
+            'medical_institution_id' => $institution->id,
+            'department_id' => $deptB->id,
+            'role' => 'department_admin',
+        ]);
+
+        // Application stamped with primary dept A — dept-B admin must still see via 兼務
+        \App\Models\Application::create([
+            'medical_institution_id' => $institution->id,
+            'department_id' => $deptA->id,
+            'employee_id' => $employee->id,
+            'type' => 'new_loan',
+            'status' => 'pending',
+            'start_date' => now()->toDateString(),
+            'delivery_location_id' => $delivery->id,
+            'requested_by_user_id' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('applications.index'))
+            ->assertOk()
+            ->assertSee('兼務申請者');
+    }
 }

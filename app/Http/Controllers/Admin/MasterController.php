@@ -278,10 +278,21 @@ class MasterController extends Controller
         $data = $request->validate([
             'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:50'],
+            'code' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('departments', 'code')->where(
+                    fn ($q) => $q->where('medical_institution_id', $request->input('medical_institution_id'))
+                ),
+            ],
         ]);
 
-        $data['code'] = MasterCodeGenerator::next('department', (int) $data['medical_institution_id']);
+        $data['code'] = MasterCodeGenerator::ensure(
+            $data['code'] ?? null,
+            'department',
+            (int) $data['medical_institution_id']
+        );
 
         Department::create($data);
 
@@ -384,10 +395,21 @@ class MasterController extends Controller
         $data = $request->validate([
             'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:50'],
+            'code' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('job_types', 'code')->where(
+                    fn ($q) => $q->where('medical_institution_id', $request->input('medical_institution_id'))
+                ),
+            ],
         ]);
 
-        $data['code'] = MasterCodeGenerator::next('job_type', (int) $data['medical_institution_id']);
+        $data['code'] = MasterCodeGenerator::ensure(
+            $data['code'] ?? null,
+            'job_type',
+            (int) $data['medical_institution_id']
+        );
 
         JobType::create($data);
 

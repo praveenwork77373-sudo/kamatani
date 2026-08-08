@@ -33,10 +33,6 @@
             <input type="text" name="job_type_label" value="{{ old('job_type_label', $plan->job_type_label ?? '') }}" class="ui-input" placeholder="{{ __('pages.example_nurse_female') }}">
             <p class="ui-hint mt-1">{{ __('pages.position_display_hint') }}</p>
         </div>
-        <div>
-            <label class="ui-label">{{ __('pages.ui_180b08a5dd') }}</label>
-            <input type="text" name="work_style" value="{{ old('work_style', $plan->work_style ?? '') }}" placeholder="{{ __('pages.example_employment_type') }}" class="ui-input">
-        </div>
     </div>
 
     <div class="border border-slate-200 rounded-lg p-4 space-y-3 bg-slate-50/40">

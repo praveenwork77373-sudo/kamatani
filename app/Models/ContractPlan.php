@@ -23,7 +23,6 @@ class ContractPlan extends Model
         'unit_price_ex_tax',
         'partner_unit_price_ex_tax',
         'job_type_label',
-        'work_style',
         'notes',
         'is_active',
     ];

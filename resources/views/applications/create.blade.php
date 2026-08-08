@@ -61,7 +61,7 @@
                         {{ __('pages.individual_applications_only_hint') }}
                     </div>
 
-                    {{-- Department Selection (for both modes) --}}
+                    {{-- Department Selection (filter for individual employee pick) --}}
                     <div id="department-selection-field">
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
                             <i data-lucide="building-2" class="w-4 h-4 text-slate-500"></i>
@@ -78,18 +78,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <p class="text-[12px] text-slate-500 mt-1">{{ __('pages.ui_6ffe42def8') }}</p>
-                        
-                        {{-- Department Employees List (for departmental mode) --}}
-                        <div id="department-employees-list" class="mt-4 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg border border-slate-200 hidden">
-                            <div class="flex items-center gap-2 mb-3">
-                                <i data-lucide="users" class="w-5 h-5 text-primary-600"></i>
-                                <h3 class="text-[14px] font-semibold text-slate-900">{{ __('pages.employee_list_label') }}</h3>
-                            </div>
-                            <div id="department-employees-content" class="space-y-2 max-h-60 overflow-y-auto">
-                                <p class="text-[13px] text-slate-500 text-center py-4">{{ __('pages.select_department') }} {{ __('pages.to_view_employees') }}</p>
-                            </div>
-                        </div>
+                        <p class="text-[12px] text-slate-500 mt-1">{{ __('pages.department_filter_individual_hint') }}</p>
                         
                         @error('department_id')
                             <p class="text-[13px] text-red-600 mt-1.5">{{ $message }}</p>
@@ -353,6 +342,29 @@
                     <p class="text-[12px] sm:text-[13px] text-slate-600 mt-1">{{ __('pages.ui_913298c989') }}</p>
                 </div>
 
+                @if(($recommendationHints ?? collect())->isNotEmpty())
+                    <div class="px-4 sm:px-6 pt-4">
+                        <div class="rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3">
+                            <p class="text-[13px] font-semibold text-amber-900 mb-2">{{ __('pages.recommendation_hints_title') }}</p>
+                            <ul class="space-y-1.5 text-[13px] text-amber-950">
+                                @foreach($recommendationHints as $hint)
+                                    <li class="flex items-start gap-2">
+                                        <span class="mt-0.5 inline-flex shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium {{ $hint->is_required ? 'bg-red-100 text-red-800' : 'bg-slate-200 text-slate-700' }}">
+                                            {{ $hint->is_required ? __('pages.recommendation_required') : __('pages.recommendation_suggested') }}
+                                        </span>
+                                        <span>
+                                            {{ $hint->uniformProduct?->name ?? ('#'.$hint->uniform_product_id) }}
+                                            @if($hint->uniformProduct?->product_code)
+                                                <span class="text-slate-500">({{ $hint->uniformProduct->product_code }})</span>
+                                            @endif
+                                        </span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="p-4 sm:p-6">
                     {{-- Category Tabs --}}
                     <div class="flex flex-wrap gap-1 sm:gap-2 mb-4 sm:mb-6 border-b-2 border-slate-200 -mx-1 px-1 overflow-x-auto">
@@ -475,8 +487,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let filteredEmployeesData = [];
     const departmentSelect = document.getElementById('department-select');
     const departmentSelectionField = document.getElementById('department-selection-field');
-    const departmentEmployeesList = document.getElementById('department-employees-list');
-    const departmentEmployeesContent = document.getElementById('department-employees-content');
     const employeeSearchField = document.getElementById('employee-search-field');
     const categoryTabs = document.querySelectorAll('.category-tab');
     const productsContainer = document.getElementById('products-container');
@@ -912,60 +922,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Application category toggle
-    document.querySelectorAll('.application-category-option').forEach(option => {
-        option.addEventListener('click', function() {
-            const category = this.dataset.category;
-            applicationModeInput.value = category;
-            
-            document.querySelectorAll('.application-category-option').forEach(opt => {
-                opt.classList.remove('border-primary-500', 'bg-primary-50');
-                opt.classList.add('border-slate-300', 'bg-white');
-            });
-            
-            this.classList.remove('border-slate-300', 'bg-white');
-            this.classList.add('border-primary-500', 'bg-primary-50');
-            
-            if (category === 'individual') {
-                departmentSelectionField.classList.remove('hidden');
-                departmentEmployeesList.classList.add('hidden');
-                // Individual: department is filter-only (server uses employee primary dept)
-                departmentSelect.required = false;
-                const deptMark = document.getElementById('department-required-mark');
-                if (deptMark) deptMark.classList.add('hidden');
-                // Clear employee selection when switching modes
-                selectedEmployeeCard.classList.add('hidden');
-                selectedEmployeeId.value = '';
-                resetEmployeeSelect();
-                filteredUniforms = [];
-                employeePlanFilterActive = false;
-                // Show employee search field only if department is already selected
-                if (departmentSelect.value) {
-                    employeeSearchField.classList.remove('hidden');
-                    loadEmployeesForSelect(departmentSelect.value);
-                } else {
-                    employeeSearchField.classList.remove('hidden');
-                    loadEmployeesForSelect('');
-                }
-            } else {
-                employeeSearchField.classList.add('hidden');
-                departmentSelectionField.classList.remove('hidden');
-                departmentSelect.required = true;
-                const deptMark = document.getElementById('department-required-mark');
-                if (deptMark) deptMark.classList.remove('hidden');
-                selectedEmployeeCard.classList.add('hidden');
-                selectedEmployeeId.value = '';
-                resetEmployeeSelect();
-                filteredUniforms = [];
-                employeePlanFilterActive = false;
-                // Load employees when switching to departmental mode if department is already selected
-                if (departmentSelect.value) {
-                    loadDepartmentEmployees(departmentSelect.value);
-                }
-            }
-        });
-    });
-
     // Dashboard deep-link ?mode= ignored — individual only
     (function initIndividualMode() {
         applicationModeInput.value = 'individual';
@@ -980,290 +936,29 @@ document.addEventListener('DOMContentLoaded', () => {
         loadEmployeesForSelect(departmentSelect?.value || '');
     })();
 
-    // Department selection handler
+    // Department selection handler (individual apply only — filter employee list)
     departmentSelect?.addEventListener('change', async function() {
         const departmentId = this.value;
-        const mode = applicationModeInput.value;
-        
-            if (mode === 'individual') {
-            // Individual mode: products only after employee + plan — department only narrows the employee list
-            if (departmentId) {
-                employeeSearchField.classList.remove('hidden');
-                await loadEmployeesForSelect(departmentId);
-            } else {
-                employeeSearchField.classList.remove('hidden');
-                await loadEmployeesForSelect('');
-            }
-            selectedEmployeeCard.classList.add('hidden');
-            selectedEmployeeId.value = '';
-            resetEmployeeSelect();
-            selectedEmployeeSizes = {};
-            selectedEmployeeInfo = {
-                department_id: null,
-                job_type_id: null,
-                gender: null,
-                medical_institution_id: null
-            };
-            filteredUniforms = [];
-            employeePlanFilterActive = false;
-            loadProducts();
-        } else {
-            // For departmental mode, show all employees in department
-            if (departmentId) {
-                await loadDepartmentEmployees(departmentId);
-                
-                // If employee is already selected, filter by employee's department, job type, and gender
-                if (selectedEmployeeId.value && selectedEmployeeInfo.gender) {
-                    const jobId = selectedEmployeeInfo.job_type_id;
-                    const gender = selectedEmployeeInfo.gender;
-                    await filterUniformsByEmployee(departmentId, jobId, gender);
-                } else {
-                    // Filter uniforms by department plan products (no full-catalog fallback)
-                    await filterUniformsByDepartment(departmentId);
-                }
-            } else {
-                departmentEmployeesList.classList.add('hidden');
-                filteredUniforms = [];
-                employeePlanFilterActive = false;
-                loadProducts();
-            }
-        }
+        employeeSearchField?.classList.remove('hidden');
+        await loadEmployeesForSelect(departmentId || '');
+        selectedEmployeeCard.classList.add('hidden');
+        selectedEmployeeId.value = '';
+        resetEmployeeSelect();
+        selectedEmployeeSizes = {
+            top_size: null,
+            bottom_size: null,
+            shoe_size: null
+        };
+        selectedEmployeeInfo = {
+            department_id: null,
+            job_type_id: null,
+            gender: null,
+            medical_institution_id: null
+        };
+        filteredUniforms = [];
+        employeePlanFilterActive = false;
+        loadProducts();
     });
-
-    // Load department employees
-    async function loadDepartmentEmployees(departmentId) {
-        try {
-            const response = await fetch(`{{ route('api.employees_by_department') }}?department_id=${departmentId}`);
-            const employees = await response.json();
-            
-            // Store employees data for filtering
-            departmentEmployeesData = employees;
-            
-            // Reset aggregated data
-            departmentEmployeesAggregated = {
-                sizes: {
-                    top: new Set(),
-                    bottom: new Set(),
-                    shoe: new Set()
-                },
-                genders: new Set(),
-                job_types: new Set()
-            };
-            
-            // Aggregate all employees' sizes, genders, and job types
-            employees.forEach(emp => {
-                // Collect sizes
-                if (emp.top_size) departmentEmployeesAggregated.sizes.top.add(String(emp.top_size).trim());
-                if (emp.bottom_size) departmentEmployeesAggregated.sizes.bottom.add(String(emp.bottom_size).trim());
-                if (emp.shoe_size) departmentEmployeesAggregated.sizes.shoe.add(String(emp.shoe_size).trim());
-                
-                // Collect genders
-                if (emp.gender) departmentEmployeesAggregated.genders.add(String(emp.gender).trim());
-                
-                // Collect job types
-                if (emp.positions && emp.positions[0] && emp.positions[0].job_type_id) {
-                    departmentEmployeesAggregated.job_types.add(emp.positions[0].job_type_id);
-                }
-            });
-            
-            if (employees.length === 0) {
-                departmentEmployeesContent.innerHTML = `
-                    <div class="text-center py-4">
-                        <i data-lucide="users-x" class="w-8 h-8 mx-auto mb-2 text-slate-400"></i>
-                        <p class="text-[13px] text-slate-500">{{ __('pages.no_employees_found') }}</p>
-                    </div>
-                `;
-                departmentEmployeesList.classList.remove('hidden');
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-                
-                // Filter products based on empty department
-                await filterUniformsByDepartment(departmentId);
-                return;
-            }
-
-            let html = '';
-            employees.forEach(emp => {
-                const jobType = emp.positions && emp.positions[0] && emp.positions[0].job_type ? emp.positions[0].job_type.name : '-';
-                html += `
-                    <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 hover:shadow-sm transition-shadow">
-                        <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="user" class="w-5 h-5 text-primary-600"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="font-medium text-slate-900 text-[13px]">${emp.name}</p>
-                            <div class="flex items-center gap-3 mt-1">
-                                <p class="text-[12px] text-slate-600">
-                                    <span class="font-medium">{{ __('pages.employee_id_label') }}:</span> ${emp.staff_no}
-                                </p>
-                                <p class="text-[12px] text-slate-600">
-                                    <span class="font-medium">{{ __('pages.job_type_label') }}:</span> ${jobType}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `
-                <div class="mt-3 pt-3 border-t border-slate-200">
-                    <p class="text-[12px] text-slate-600 text-center">
-                        <i data-lucide="info" class="w-4 h-4 inline-block mr-1"></i>
-                        {{ __('pages.total_employees') }}: <span class="font-semibold text-slate-900">${employees.length}</span> {{ __('pages.per_person') }}
-                    </p>
-                </div>
-            `;
-            
-            departmentEmployeesContent.innerHTML = html;
-            departmentEmployeesList.classList.remove('hidden');
-            
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-            
-            // Filter products based on all employees' conditions
-            await filterUniformsByDepartmentForAllEmployees(departmentId);
-        } catch (error) {
-            console.error('Department employees fetch error:', error);
-            departmentEmployeesContent.innerHTML = `
-                <div class="text-center py-4">
-                    <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-2 text-red-400"></i>
-                    <p class="text-[13px] text-red-600">{{ __('pages.error_loading_employees') }}</p>
-                </div>
-            `;
-            departmentEmployeesList.classList.remove('hidden');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-    }
-    
-    // Filter uniforms by department considering ALL employees' sizes, genders, and job types
-    async function filterUniformsByDepartmentForAllEmployees(departmentId) {
-        if (!departmentId || departmentEmployeesData.length === 0) {
-            filteredUniforms = [];
-            employeePlanFilterActive = false;
-            loadProducts();
-            return;
-        }
-        
-        try {
-            // Get uniforms for this department
-            const response = await fetch(`{{ route('api.uniforms_by_plan') }}?department_id=${departmentId}`);
-            
-            if (!response.ok) {
-                console.error('API response not OK:', response.status, response.statusText);
-                filteredUniforms = [];
-                employeePlanFilterActive = true;
-                loadProducts();
-                return;
-            }
-            
-            const uniforms = await response.json();
-            
-            if (!Array.isArray(uniforms) || uniforms.length === 0) {
-                filteredUniforms = [];
-                employeePlanFilterActive = true;
-                loadProducts();
-                return;
-            }
-            
-            // Filter uniforms based on ALL employees' conditions:
-            // - Product gender must match at least one employee's gender (or be unisex)
-            // - Product must be available for at least one employee's job type
-            let filtered = uniforms.filter(u => {
-                // Check gender: product must be unisex OR match at least one employee's gender
-                const genderMatches = !u.gender || 
-                                     u.gender === 'unisex' || 
-                                     departmentEmployeesAggregated.genders.has(u.gender) ||
-                                     departmentEmployeesAggregated.genders.size === 0;
-                
-                // Check job type: if product has job type restriction, it should match at least one employee's job type
-                // (This depends on your API response structure - adjust as needed)
-                const jobTypeMatches = true; // Assuming API already filters by department
-            
-                return genderMatches && jobTypeMatches;
-            });
-            
-            // Group uniforms by base product_code
-            const grouped = {};
-            filtered.forEach(u => {
-                let baseKey = u.product_code || u.id;
-                
-                // Extract base product code by removing size suffix
-                if (u.product_code && u.size) {
-                    const sizeSuffixes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-                    const sizePattern = new RegExp(`[-_](${sizeSuffixes.join('|')})$`, 'i');
-                    baseKey = u.product_code.replace(sizePattern, '').trim();
-                }
-                
-                if (!grouped[baseKey]) {
-                    grouped[baseKey] = {
-                        ...u,
-                        sizes: [],
-                        sizes_with_ids: [],
-                        available_sizes: [],
-                        product_code: baseKey,
-                        base_product_code: baseKey
-                    };
-                }
-                
-                // Add size information
-                const existingSize = grouped[baseKey].sizes_with_ids.find(s => s.size === u.size);
-                if (!existingSize) {
-                    grouped[baseKey].sizes_with_ids.push({
-                        size: u.size,
-                        product_id: u.id,
-                        stock_quantity: u.stock_quantity || 0,
-                        available: (u.stock_quantity || 0) > 0
-                    });
-                    grouped[baseKey].sizes.push(u.size);
-                } else {
-                    existingSize.stock_quantity += (u.stock_quantity || 0);
-                    existingSize.available = existingSize.stock_quantity > 0;
-                }
-                
-                if ((u.stock_quantity || 0) > 0 && !grouped[baseKey].available_sizes.includes(u.size)) {
-                    grouped[baseKey].available_sizes.push(u.size);
-                }
-            });
-            
-            // Convert grouped object to array and sort sizes
-            filteredUniforms = Object.values(grouped).map(product => {
-                // Sort sizes: XS, S, M, L, XL, XXL for top/bottom, numeric for shoes
-                if (product.category === 'top' || product.category === 'bottom') {
-                    product.sizes.sort((a, b) => {
-                        const order = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-                        const aIndex = order.indexOf(String(a).toUpperCase());
-                        const bIndex = order.indexOf(String(b).toUpperCase());
-                        return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
-                    });
-                    product.sizes_with_ids.sort((a, b) => {
-                        const order = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-                        const aIndex = order.indexOf(String(a.size).toUpperCase());
-                        const bIndex = order.indexOf(String(b.size).toUpperCase());
-                        return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
-                    });
-                } else if (productSizeScheme(product) === 'shoe') {
-                    product.sizes.sort((a, b) => parseFloat(a) - parseFloat(b));
-                    product.sizes_with_ids.sort((a, b) => parseFloat(a.size) - parseFloat(b.size));
-                }
-                
-                return product;
-            });
-            
-            loadProducts();
-        } catch (error) {
-            console.error('Uniform fetch error:', error);
-            filteredUniforms = [];
-            employeePlanFilterActive = true;
-            loadProducts();
-        }
-    }
-
-    // Filter employees by department (for individual mode)
-    async function filterEmployeesByDepartment(departmentId) {
-        if (!departmentId) {
-            employeeSearchResults.classList.add('hidden');
-            return;
-        }
-        await loadEmployeesForSelect(departmentId);
-    }
 
     // Store selected employee sizes
     let selectedEmployeeSizes = {
@@ -1279,18 +974,6 @@ document.addEventListener('DOMContentLoaded', () => {
         medical_institution_id: null
     };
     
-    // Store all department employees data for departmental mode
-    let departmentEmployeesData = [];
-    let departmentEmployeesAggregated = {
-        sizes: {
-            top: new Set(),
-            bottom: new Set(),
-            shoe: new Set()
-        },
-        genders: new Set(),
-        job_types: new Set()
-    };
-
     // Select employee
     function selectEmployee(data) {
         selectedEmployeeId.value = data.employeeId;
@@ -1491,160 +1174,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadProducts();
     }
     
-    // Filter uniforms by department (plan products only — never reopen full catalog)
-    async function filterUniformsByDepartment(departmentId) {
-        if (!departmentId) {
-            filteredUniforms = [];
-            employeePlanFilterActive = false;
-            loadProducts();
-            return;
-        }
-        
-        try {
-            // Get uniforms for this department
-            const response = await fetch(`{{ route('api.uniforms_by_plan') }}?department_id=${departmentId}`);
-            
-            if (!response.ok) {
-                console.error('API response not OK:', response.status, response.statusText);
-                filteredUniforms = [];
-                employeePlanFilterActive = true;
-                loadProducts();
-                return;
-            }
-            
-            const uniforms = await response.json();
-            
-            // Check if uniforms is an array
-            if (!Array.isArray(uniforms)) {
-                console.error('API did not return an array:', uniforms);
-                filteredUniforms = [];
-                employeePlanFilterActive = true;
-                loadProducts();
-                return;
-            }
-            
-            // Empty plan catalog — show nothing (do not fall back to all products)
-            if (uniforms.length === 0) {
-                filteredUniforms = [];
-                employeePlanFilterActive = true;
-                loadProducts();
-                return;
-            }
-            
-            // Group uniforms by base product_code (extract base code by removing size suffix)
-            // Products are stored as BASE_CODE-SIZE (e.g., "TOP-F-1-M" where "TOP-F-1" is base, "M" is size)
-            const grouped = {};
-            uniforms.forEach(u => {
-                // Extract base product code by removing size suffix
-                let baseKey = u.product_code || u.id;
-                if (u.product_code && u.size) {
-                    const lastDashPos = u.product_code.lastIndexOf('-');
-                    if (lastDashPos !== -1) {
-                        const suffix = u.product_code.substring(lastDashPos + 1);
-                        // Check if suffix matches the size (S, M, L, XL, XXL, or numeric)
-                        if (suffix === u.size || ['S', 'M', 'L', 'XL', 'XXL'].includes(suffix) || !isNaN(suffix)) {
-                            baseKey = u.product_code.substring(0, lastDashPos);
-                        }
-                    }
-                }
-                
-                if (!grouped[baseKey]) {
-                    grouped[baseKey] = {
-                        id: u.id,
-                        name: u.name,
-                        product_code: baseKey, // Use base product code
-                        category: u.category,
-                        gender: u.gender,
-                        sizes: [],
-                        sizes_with_ids: [],
-                        stock_quantity: 0,
-                        image_path: u.image_path || ''
-                    };
-                }
-                if (u.size) {
-                    // Add size with product ID
-                    const existingSize = grouped[baseKey].sizes_with_ids.find(s => s.size === u.size);
-                    if (!existingSize) {
-                        grouped[baseKey].sizes_with_ids.push({
-                            size: u.size,
-                            product_id: u.id,
-                            stock_quantity: u.stock_quantity || 0,
-                            available: (u.stock_quantity || 0) > 0
-                        });
-                        grouped[baseKey].sizes.push(u.size);
-                    } else {
-                        // Update stock if this product has more stock
-                        existingSize.stock_quantity += (u.stock_quantity || 0);
-                        existingSize.available = existingSize.stock_quantity > 0;
-                    }
-                }
-                grouped[baseKey].stock_quantity += (u.stock_quantity || 0);
-            });
-            
-            filteredUniforms = Object.values(grouped).map(u => ({
-                ...u,
-                sizes: u.sizes.sort((a, b) => {
-                    const sizeOrder = { 'S': 1, 'M': 2, 'L': 3, 'XL': 4, 'XXL': 5 };
-                    if (sizeOrder[a] && sizeOrder[b]) return sizeOrder[a] - sizeOrder[b];
-                    return a.localeCompare(b);
-                }),
-                sizes_with_ids: u.sizes_with_ids.sort((a, b) => {
-                    const sizeOrder = { 'S': 1, 'M': 2, 'L': 3, 'XL': 4, 'XXL': 5 };
-                    if (sizeOrder[a.size] && sizeOrder[b.size]) return sizeOrder[a.size] - sizeOrder[b.size];
-                    if (u.category === 'shoe') return parseFloat(a.size) - parseFloat(b.size);
-                    return a.size.localeCompare(b.size);
-                })
-            }));
-            employeePlanFilterActive = true;
-            
-            loadProducts();
-        } catch (error) {
-            console.error('Department filter error:', error);
-            filteredUniforms = [];
-            employeePlanFilterActive = true;
-            loadProducts();
-        }
-    }
-
-    // Category tabs
-    categoryTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            // Remove active state from all tabs
-            categoryTabs.forEach(t => {
-                t.classList.remove('active', 'border-primary-600', 'text-primary-600', 'bg-primary-50');
-                t.classList.add('text-slate-600', 'border-transparent');
-            });
-            
-            // Add active state to clicked tab
-            this.classList.add('active', 'border-primary-600', 'text-primary-600', 'bg-primary-50');
-            this.classList.remove('text-slate-600', 'border-transparent');
-            
-            currentCategory = this.dataset.category;
-            loadProducts();
-        });
-    });
-
-    // Initialize active category tab styling on page load
-    function initializeActiveTab() {
-        const activeTab = document.querySelector('.category-tab.active');
-        if (activeTab) {
-            activeTab.classList.add('border-primary-600', 'text-primary-600', 'bg-primary-50');
-            activeTab.classList.remove('text-slate-600', 'border-transparent');
-        } else {
-            // If no active tab found, set first tab as active
-            const firstTab = categoryTabs[0];
-            if (firstTab) {
-                firstTab.classList.add('active', 'border-primary-600', 'text-primary-600', 'bg-primary-50');
-                firstTab.classList.remove('text-slate-600', 'border-transparent');
-                currentCategory = firstTab.dataset.category;
-            }
-        }
-    }
-    
-    // Initialize on page load
-    initializeActiveTab();
-
-    // Load products
     function loadProducts() {
         // Catalog is plan-gated: only show products after an employee plan filter ran
         // (or temporary department fetch). Never dump the full unfiltered catalog.
@@ -1664,20 +1193,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Apply gender filter if employee is selected (individual mode) or departmental mode
-        const isDepartmentalMode = applicationModeInput.value === 'departmental';
-        
-        if (isDepartmentalMode && departmentEmployeesAggregated.genders.size > 0) {
-            // Departmental mode: filter by all employees' genders
-            productsToShow = productsToShow.filter(u => {
-                // Product must be unisex OR match at least one employee's gender OR have no gender specified
-                return !u.gender || 
-                       u.gender === 'unisex' || 
-                       departmentEmployeesAggregated.genders.has(u.gender) ||
-                       departmentEmployeesAggregated.genders.size === 0;
-            });
-        } else if (selectedEmployeeId.value && selectedEmployeeInfo.gender) {
-            // Individual mode: filter plan products by gender only (never reopen full catalog)
+        // Individual apply: optional gender filter on plan products
+        if (selectedEmployeeId.value && selectedEmployeeInfo.gender) {
             productsToShow = productsToShow.filter(u => 
                 u.gender === 'unisex' || u.gender === selectedEmployeeInfo.gender || !u.gender
             );
@@ -1711,65 +1228,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 stock_quantity: 0,
                 available: (product.available_sizes || []).includes(size)
             }));
-            
-            // Check if we're in departmental mode
-            const isDepartmentalMode = applicationModeInput.value === 'departmental';
-            
-            // If employee is selected (individual mode) or departmental mode, mark sizes that match employees' registered sizes
-            // We'll show all sizes but disable/highlight non-matching ones
+
+            // Mark sizes that match the selected employee's registered sizes (reference only)
             const sizesData = availableSizes.map(sizeData => {
                 let matchesEmployeeSize = false;
-                let employeeCountForSize = 0; // Count of employees who need this size
-                
-                if (isDepartmentalMode && departmentEmployeesData.length > 0) {
-                    // Departmental mode: check if size matches ANY employee's size
+                let employeeCountForSize = 0;
+
+                if (selectedEmployeeId.value) {
                     const sizeStr = String(sizeData.size || sizeData).trim();
-                    
-                    departmentEmployeesData.forEach(emp => {
-                        if (product.category === 'top' && emp.top_size) {
-                            const employeeSize = String(emp.top_size).trim();
-                            if (sizeStr === employeeSize || sizeStr.toLowerCase() === employeeSize.toLowerCase()) {
-                                matchesEmployeeSize = true;
-                                employeeCountForSize++;
-                            }
-                        } else if (product.category === 'bottom' && emp.bottom_size) {
-                            const employeeSize = String(emp.bottom_size).trim();
-                            if (sizeStr === employeeSize || sizeStr.toLowerCase() === employeeSize.toLowerCase()) {
-                                matchesEmployeeSize = true;
-                                employeeCountForSize++;
-                            }
-                        } else if (productSizeScheme(product) === 'shoe' && emp.shoe_size) {
-                            const employeeShoeSize = parseFloat(emp.shoe_size);
-                            const sizeNum = parseFloat(sizeStr);
-                            if (!isNaN(sizeNum) && !isNaN(employeeShoeSize)) {
-                                if (Math.abs(sizeNum - employeeShoeSize) <= 0.5) {
-                                    matchesEmployeeSize = true;
-                                    employeeCountForSize++;
-                                }
-                            } else {
-                                const empSizeStr = String(emp.shoe_size).trim();
-                                if (sizeStr === empSizeStr || sizeStr.toLowerCase() === empSizeStr.toLowerCase()) {
-                                    matchesEmployeeSize = true;
-                                    employeeCountForSize++;
-                                }
-                            }
-                        }
-                    });
-                    
-                    // If no employees have sizes registered, allow all sizes
-                    const hasAnySizes = departmentEmployeesData.some(emp => 
-                        (product.category === 'top' && emp.top_size) ||
-                        (product.category === 'bottom' && emp.bottom_size) ||
-                        (productSizeScheme(product) === 'shoe' && emp.shoe_size)
-                    );
-                    if (!hasAnySizes) {
-                        matchesEmployeeSize = true;
-                        employeeCountForSize = departmentEmployeesData.length;
-                    }
-                } else if (selectedEmployeeId.value) {
-                    // Individual mode: check single employee's size
-                    const sizeStr = String(sizeData.size || sizeData).trim();
-                    
+
                     if (product.category === 'top' && selectedEmployeeSizes.top_size) {
                         const employeeSize = String(selectedEmployeeSizes.top_size).trim();
                         matchesEmployeeSize = sizeStr === employeeSize || sizeStr.toLowerCase() === employeeSize.toLowerCase();
@@ -1785,7 +1252,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             matchesEmployeeSize = Math.abs(sizeNum - employeeShoeSize) <= 0.5;
                             if (matchesEmployeeSize) employeeCountForSize = 1;
                         } else {
-                            matchesEmployeeSize = sizeStr === String(selectedEmployeeSizes.shoe_size).trim() || 
+                            matchesEmployeeSize = sizeStr === String(selectedEmployeeSizes.shoe_size).trim() ||
                                                   sizeStr.toLowerCase() === String(selectedEmployeeSizes.shoe_size).trim().toLowerCase();
                             if (matchesEmployeeSize) employeeCountForSize = 1;
                         }
@@ -1794,9 +1261,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         employeeCountForSize = 1;
                     }
                 } else {
-                    // No employee selected and not departmental mode, allow all sizes
                     matchesEmployeeSize = true;
                 }
+
                 
                 return {
                     ...sizeData,
@@ -1896,7 +1363,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                                     <div class="text-[12px] sm:text-[13px] font-medium leading-snug break-words text-slate-700">
                                                         <span class="font-semibold">${sizeData.size}</span>
                                                         ${sizeMatches ? ` <span class="text-[10px] sm:text-[11px] font-normal text-primary-600">(${window.__i18nAppCreate.registered_size_hint || '{{ __('pages.registered_size_hint') }}'})</span>` : ''}
-                                                        ${isDepartmentalMode && sizeData.employeeCount > 0 ? ` <span class="text-[10px] sm:text-[11px] text-primary-600 font-semibold">(${sizeData.employeeCount})</span>` : ''}
                                                     </div>
                                                     ${sizeData.product_id ? `<div class="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">${window.__i18nAppCreate.stock}: ${sizeData.stock_quantity || 0}</div>` : ''}
                                                 </div>
@@ -1945,29 +1411,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         let shouldAutoCheck = false;
                                         let defaultQuantity = 0;
                                         
-                                        if (isDepartmentalMode && departmentSelected) {
-                                            // Departmental mode: auto-check based on employee count for this size
-                                            const genderMatches = !product.gender || 
-                                                                  product.gender === 'unisex' || 
-                                                                  departmentEmployeesAggregated.genders.has(product.gender) ||
-                                                                  departmentEmployeesAggregated.genders.size === 0;
-                                            const sizeMatches = sizeData.matchesEmployeeSize;
-                                            const isAvailable = sizeData.available && sizeData.stock_quantity > 0;
-                                            const notAlreadySelected = !selectedItems.has(itemKey);
-                                            
-                                            defaultQuantity = sizeData.employeeCount || 0;
-                                            
-                                            const wouldExceedLimit = wouldExceedLimitIfAdd(product.category, defaultQuantity);
-                                            const wouldExceedReturn = wouldExceedReturnQtyIfAdd(defaultQuantity);
-                                            
-                                            shouldAutoCheck = genderMatches && 
-                                                             sizeMatches && 
-                                                             isAvailable && 
-                                                             notAlreadySelected && 
-                                                             !wouldExceedLimit &&
-                                                             !wouldExceedReturn &&
-                                                             defaultQuantity > 0;
-                                        } else if (selectedEmployeeId.value && departmentSelected) {
+                                        if (selectedEmployeeId.value && departmentSelected) {
                                             // Individual mode
                                             const departmentMatches = !selectedEmployeeInfo.department_id || 
                                                                       !departmentSelected || 
@@ -2033,7 +1477,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                                     <div class="text-[12px] sm:text-[13px] font-medium leading-snug break-words">
                                                         <span class="font-semibold">${sizeData.size}</span>
                                                         ${statusNote ? ` <span class="text-[10px] sm:text-[11px] font-normal ${sizeData.matchesEmployeeSize && isAvailableRow ? 'text-primary-600' : ''}">(${statusNote})</span>` : ''}
-                                                        ${isDepartmentalMode && sizeData.employeeCount > 0 ? ` <span class="text-[10px] sm:text-[11px] text-primary-600 font-semibold">(${sizeData.employeeCount})</span>` : ''}
                                                     </div>
                                                     ${sizeData.product_id ? `<div class="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">${window.__i18nAppCreate.stock}: ${sizeData.stock_quantity || 0}</div>` : ''}
                                                 </label>
@@ -2834,14 +2277,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Reset all form fields
     function resetApplicationForm() {
-        // Reset application mode
         applicationModeInput.value = 'individual';
-        document.querySelectorAll('.application-category-option').forEach(opt => {
-            opt.classList.remove('border-primary-500', 'bg-primary-50');
-            opt.classList.add('border-slate-300', 'bg-white');
-        });
-        document.querySelector('.application-category-option[data-category="individual"]')?.classList.add('border-primary-500', 'bg-primary-50');
-        
+
         // Reset employee selection
         selectedEmployeeId.value = '';
         selectedEmployeeCard.classList.add('hidden');
@@ -2859,7 +2296,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const deptMark = document.getElementById('department-required-mark');
         if (deptMark) deptMark.classList.add('hidden');
-        departmentEmployeesList?.classList.add('hidden');
         employeeSearchField?.classList.remove('hidden');
         loadEmployeesForSelect('');
         
@@ -2945,20 +2381,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update form fields before validation
         updateFormFields();
         
-        const mode = applicationModeInput.value;
-        
-        if (mode === 'individual' && !selectedEmployeeId.value) {
+        if (!selectedEmployeeId.value) {
             e.preventDefault();
             if (window.showToast) {
                 window.showToast('{{ __('pages.select_employee') }}', 'error');
-            }
-            return false;
-        }
-        
-        if (mode === 'departmental' && !departmentSelect.value) {
-            e.preventDefault();
-            if (window.showToast) {
-                window.showToast('{{ __('pages.select_department') }}', 'error');
             }
             return false;
         }

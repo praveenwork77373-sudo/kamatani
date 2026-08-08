@@ -33,12 +33,26 @@ Use this before go-live. Local email uses `MAIL_MAILER=log` (writes to Laravel l
 | Approved / rejected / cancel result | `Application*Mail` / `Cancel*Mail` | Requester |
 | Contract plan confirmed | `ContractPlanConfirmedMail` | Institution notification email |
 
-Ops:
+Ops (SendGrid SMTP — recommended):
 
-1. Set `MAIL_MAILER=smtp` (or SES / failover) and from-address.
-2. `QUEUE_CONNECTION=database` (default) — all app Mailables implement `ShouldQueue`.
-3. Run a worker: `php artisan queue:work` (or supervisor / Railway worker).
-4. Until SMTP exists, keep `MAIL_MAILER=log` and verify flows in `storage/logs/laravel.log`.
+1. In SendGrid: create an API key with **Mail Send**; verify a Single Sender or domain.
+2. Set in `.env` (see `.env.example`):
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.sendgrid.net
+MAIL_PORT=587
+MAIL_SCHEME=tls
+MAIL_USERNAME=apikey
+MAIL_PASSWORD=SG.your_sendgrid_api_key
+MAIL_FROM_ADDRESS=noreply@your-verified-domain.com
+MAIL_FROM_NAME="${APP_NAME}"
+QUEUE_CONNECTION=database
+```
+
+3. `php artisan config:clear` then run a worker: `php artisan queue:work` (or supervisor / Railway worker). All app Mailables implement `ShouldQueue`.
+4. Smoke test: institution **Welcome email**, or trigger password reset / create an application and confirm inbox + SendGrid Activity.
+5. Until SendGrid is ready, keep `MAIL_MAILER=log` and verify flows in `storage/logs/laravel.log`.
 
 ## Ops
 

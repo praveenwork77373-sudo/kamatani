@@ -206,6 +206,63 @@ class ExcelClientRulesTest extends TestCase
                 // missing dates
             ])
             ->assertSessionHasErrors(['start_date', 'end_date']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.customer-contract-plans.store'), [
+                'medical_institution_id' => $institution->id,
+                'contract_plan_id' => $plan->id,
+                'contract_count' => 1,
+                'status' => 'draft',
+                // missing dates — also required (no 無期限)
+            ])
+            ->assertSessionHasErrors(['start_date', 'end_date']);
+    }
+
+    public function test_typed_staff_no_is_preserved_on_create(): void
+    {
+        $institution = MedicalInstitution::create([
+            'code' => 'H-CODE',
+            'name' => 'Code Hospital',
+            'notification_email' => 'code@example.com',
+            'billing_closing_day' => 1,
+        ]);
+        $department = Department::create([
+            'medical_institution_id' => $institution->id,
+            'code' => 'D1',
+            'name' => 'Dept',
+        ]);
+
+        $user = User::factory()->create(['type' => 'customer']);
+        CustomerUser::create([
+            'user_id' => $user->id,
+            'medical_institution_id' => $institution->id,
+            'role' => 'institution_admin',
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('employees.store'), [
+                'staff_no' => 'CLIENT-99',
+                'name' => 'Coded Staff',
+                'status' => 'employed',
+                'primary_department_id' => $department->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('employees', [
+            'medical_institution_id' => $institution->id,
+            'staff_no' => 'CLIENT-99',
+            'name' => 'Coded Staff',
+        ]);
+    }
+
+    public function test_null_end_date_confirmed_ccp_is_not_active(): void
+    {
+        $ccp = new CustomerContractPlan([
+            'status' => 'confirmed',
+            'start_date' => now()->subMonth()->toDateString(),
+            'end_date' => null,
+        ]);
+        $this->assertFalse($ccp->isActiveOn(now()));
     }
 
     public function test_base_import_stores_category_caps(): void

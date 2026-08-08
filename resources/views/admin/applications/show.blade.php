@@ -226,7 +226,7 @@
                             @csrf
                             <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 text-[13px] font-medium">
                                 <i class="ph ph-file-pdf text-base"></i>
-                                {{ ($latestDocuments ?? collect())->isEmpty() ? __('pages.issue_five_types') : __('pages.reissue_five_types') }}
+                                {{ ($latestDocuments ?? collect())->isEmpty() ? __('pages.issue_four_types') : __('pages.reissue_four_types') }}
                             </button>
                         </form>
                     </div>
@@ -235,8 +235,7 @@
                             $types = [
                                 'order_slip' => __('pages.doc_order_slip'),
                                 'delivery_notice' => __('pages.doc_delivery_notice'),
-                                'shipping_sales' => __('pages.doc_shipping_sales'),
-                                'shipping_warehouse' => __('pages.doc_shipping_warehouse'),
+                                'shipping_instruction' => __('pages.doc_shipping_instruction'),
                                 'work_slip' => __('pages.doc_work_slip'),
                             ];
                             $latestDocuments = $latestDocuments ?? collect();

@@ -57,13 +57,25 @@ class CustomerContractPlan extends Model
 
     public function isActiveOn($date): bool
     {
+        if (! $this->isConfirmed()) {
+            return false;
+        }
+
         $date = \Carbon\Carbon::parse($date)->toDateString();
-        if ($this->start_date && $this->start_date->toDateString() > $date) {
+
+        // Client 8/7 Q6: no open-ended (無期限) contracts — start and end required
+        if (! $this->start_date || ! $this->end_date) {
             return false;
         }
-        if ($this->end_date && $this->end_date->toDateString() < $date) {
+
+        if ($this->start_date->toDateString() > $date) {
             return false;
         }
-        return $this->isConfirmed();
+
+        if ($this->end_date->toDateString() < $date) {
+            return false;
+        }
+
+        return true;
     }
 }

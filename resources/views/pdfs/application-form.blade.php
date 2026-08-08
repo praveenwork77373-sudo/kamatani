@@ -169,10 +169,8 @@
             受注伝票：準備・発注手配の基準帳票です。
         @elseif($formType === 'delivery_notice')
             納入予定ご連絡書：納入スケジュール共有用です。
-        @elseif($formType === 'shipping_sales')
-            出荷指示書（営業所用）：営業所での出荷確認用です。
-        @elseif($formType === 'shipping_warehouse')
-            出荷指示書（倉庫用）：倉庫ピッキング・出荷用です。
+        @elseif(in_array($formType, ['shipping_instruction', 'shipping_sales', 'shipping_warehouse'], true))
+            出荷指示書：出荷・準備作業の指示用です。
         @else
             作業用伝票：社内作業指示用です。
         @endif

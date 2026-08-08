@@ -33,13 +33,13 @@ class UniformCategoryController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:50'],
+            'code' => ['nullable', 'string', 'max:50', 'unique:uniform_categories,code'],
             'size_scheme' => ['required', Rule::in([UniformCategory::SIZE_LETTER, UniformCategory::SIZE_SHOE, UniformCategory::SIZE_NONE])],
             'employee_size_field' => ['nullable', Rule::in(['top_size', 'bottom_size', 'shoe_size'])],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $data['code'] = MasterCodeGenerator::next('uniform_category');
+        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'uniform_category');
         $data['is_active'] = $request->boolean('is_active', true);
         $data['employee_size_field'] = $data['employee_size_field'] ?: null;
 

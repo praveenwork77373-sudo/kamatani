@@ -86,4 +86,27 @@ class BaseDataImportTest extends TestCase
         $this->assertNotNull($institution);
         $this->assertSame('99999', $institution->onoe_code);
     }
+
+    public function test_import_empty_product_size_becomes_f_not_dash(): void
+    {
+        $matches = glob(base_path('clientdocs/260805*.xlsx')) ?: [];
+        $this->assertNotEmpty($matches);
+
+        app(BaseDataImportService::class)->import($matches[0]);
+
+        $this->assertSame(
+            0,
+            UniformProduct::query()
+                ->where('size', '-')
+                ->where('name', 'not like', '%(import stub)%')
+                ->count(),
+            'Non-stub imported products must not use size "-"'
+        );
+
+        $freeSized = UniformProduct::query()
+            ->where('size', 'F')
+            ->where('product_code', 'like', '%-F')
+            ->exists();
+        $this->assertTrue($freeSized || UniformProduct::where('size', 'F')->exists());
+    }
 }

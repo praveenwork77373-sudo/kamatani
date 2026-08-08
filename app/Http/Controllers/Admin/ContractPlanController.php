@@ -33,7 +33,7 @@ class ContractPlanController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validatedPlan($request);
-        $data['code'] = MasterCodeGenerator::next('contract_plan');
+        $data['code'] = MasterCodeGenerator::ensure($data['code'] ?? null, 'contract_plan');
         $data['is_active'] = $request->boolean('is_active', true);
         $productIds = $data['uniform_product_ids'] ?? [];
         unset($data['uniform_product_ids']);
@@ -113,7 +113,6 @@ class ContractPlanController extends Controller
             'unit_price_ex_tax' => ['required', 'numeric', 'min:0'],
             'partner_unit_price_ex_tax' => ['nullable', 'numeric', 'min:0'],
             'job_type_label' => ['nullable', 'string', 'max:255'],
-            'work_style' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
             'uniform_product_ids' => ['nullable', 'array'],

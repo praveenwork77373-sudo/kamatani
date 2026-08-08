@@ -117,15 +117,13 @@ class CustomerContractPlanController extends Controller
      */
     private function validatedCcp(Request $request): array
     {
-        $status = $request->input('status');
-        $dateRequired = $status === 'confirmed' ? 'required' : 'nullable';
-
+        // Client: no 無期限 — always require period on create/update (draft or confirmed)
         return $request->validate([
             'medical_institution_id' => ['required', 'exists:medical_institutions,id'],
             'contract_plan_id' => ['required', 'exists:contract_plans,id'],
             'contract_count' => ['required', 'integer', 'min:0'],
-            'start_date' => [$dateRequired, 'date'],
-            'end_date' => [$dateRequired, 'date', 'after_or_equal:start_date'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'status' => ['required', 'in:draft,confirmed'],
             'notes' => ['nullable', 'string'],
         ]);

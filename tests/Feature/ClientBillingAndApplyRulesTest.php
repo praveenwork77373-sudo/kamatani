@@ -93,6 +93,7 @@ class ClientBillingAndApplyRulesTest extends TestCase
             'contract_plan_id' => $plan->id,
             'contract_count' => 10,
             'start_date' => now()->subMonth()->toDateString(),
+            'end_date' => now()->addYear()->toDateString(),
             'status' => 'confirmed',
             'confirmed_at' => now(),
         ]);
@@ -181,6 +182,7 @@ class ClientBillingAndApplyRulesTest extends TestCase
             'contract_plan_id' => $plan->id,
             'contract_count' => 10,
             'start_date' => now()->subMonth()->toDateString(),
+            'end_date' => now()->addYear()->toDateString(),
             'status' => 'confirmed',
             'confirmed_at' => now(),
         ]);

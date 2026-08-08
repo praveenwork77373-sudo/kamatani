@@ -21,7 +21,7 @@ return new class extends Migration
             Schema::create('application_documents', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('application_id')->constrained()->cascadeOnDelete();
-                $table->string('form_type', 50); // order_slip, delivery_notice, shipping_sales, shipping_warehouse, work_slip
+                $table->string('form_type', 50); // order_slip, delivery_notice, shipping_instruction, work_slip (+ legacy shipping_sales / shipping_warehouse)
                 $table->unsignedInteger('version')->default(1);
                 $table->boolean('is_latest')->default(true);
                 $table->string('file_path');

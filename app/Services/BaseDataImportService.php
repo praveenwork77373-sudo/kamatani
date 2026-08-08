@@ -160,32 +160,43 @@ class BaseDataImportService
             $gender = $this->inferGender($name);
 
             if ($sizes === []) {
+                // Client 8/7 Q5: empty size → register as free-size "F" (never "-")
                 $this->upsertProductRow(
-                    productCode: $baseCode,
+                    productCode: $baseCode.'-F',
                     name: $name,
                     makerId: $makerId,
                     makerProductCode: $makerProductCode,
                     colorName: $color,
                     category: $category,
                     gender: $gender,
-                    size: '-',
+                    size: 'F',
                 );
                 continue;
             }
 
             foreach ($sizes as $size) {
+                $normalized = strtoupper($size) === 'F' ? 'F' : $size;
+                if ($normalized === '-') {
+                    $normalized = 'F';
+                }
                 $this->upsertProductRow(
-                    productCode: $baseCode.'-'.$size,
+                    productCode: $baseCode.'-'.$normalized,
                     name: $name,
                     makerId: $makerId,
                     makerProductCode: $makerProductCode,
                     colorName: $color,
                     category: $category,
                     gender: $gender,
-                    size: $size,
+                    size: $normalized,
                 );
             }
         }
+
+        // Cleanup legacy import rows that used "-" for free/empty size (keep stubs hidden)
+        UniformProduct::query()
+            ->where('size', '-')
+            ->where('name', 'not like', '%(import stub)%')
+            ->update(['size' => 'F']);
     }
 
     private function upsertProductRow(
