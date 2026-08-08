@@ -16,15 +16,9 @@
                 <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{{ __('pages.new_application') }}</h1>
                 <p class="text-[13px] sm:text-[14px] text-slate-600 mt-1 sm:mt-1.5">{{ __('pages.application_description') }}</p>
             </div>
-            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                <a href="{{ route('applications.index') }}" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] sm:text-[14px] font-medium transition-all text-center">
-                    {{ __('pages.cancel') }}
-                </a>
-                <button type="submit" class="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[13px] sm:text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
-                    <i data-lucide="send" class="w-4 h-4"></i>
-                    {{ __('pages.submit_application') }}
-                </button>
-            </div>
+            <a href="{{ route('applications.index') }}" class="sm:shrink-0 px-4 sm:px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] sm:text-[14px] font-medium transition-all text-center">
+                {{ __('pages.cancel') }}
+            </a>
         </div>
 
         {{-- Vertical layout: application info, then product selection --}}
@@ -374,6 +368,17 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        {{-- Submit at the end (after application info + product selection) --}}
+        <div class="mt-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 border-t border-slate-200 pt-5">
+            <a href="{{ route('applications.index') }}" class="px-4 sm:px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[13px] sm:text-[14px] font-medium transition-all text-center">
+                {{ __('pages.cancel') }}
+            </a>
+            <button type="submit" class="px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-[14px] sm:text-[15px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                {{ __('pages.submit_application') }}
+            </button>
         </div>
 
         {{-- Hidden form fields for selected items --}}
@@ -2454,43 +2459,45 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateFormFields() {
         selectedItemsContainer.innerHTML = '';
         let index = 0;
-        selectedItems.forEach((item, key) => {
-            if (item.quantity > 0) {
-                let productId = item.product_id;
-                
-                if (!productId) {
-                    let product = filteredUniforms.find(u => 
-                        (u.product_code || u.id) === item.product_key
-                    );
-                    
-                    if (product && product.sizes_with_ids && Array.isArray(product.sizes_with_ids)) {
-                        const sizeData = product.sizes_with_ids.find(s => s.size === item.size);
-                        if (sizeData && sizeData.product_id) {
-                            productId = sizeData.product_id;
-                        }
-                    }
+        const appType = applicationTypeSelect?.value || '';
+        // Pure return posts only return_items[] — posting items[] too duplicated lines
+        if (appType !== 'return') {
+            selectedItems.forEach((item, key) => {
+                if (item.quantity > 0) {
+                    let productId = item.product_id;
                     
                     if (!productId) {
-                        product = allUniforms.find(u => 
-                            (u.product_code || u.id) === item.product_key && u.size === item.size
+                        let product = filteredUniforms.find(u => 
+                            (u.product_code || u.id) === item.product_key
                         );
-                        if (product) {
-                            productId = product.id;
+                        
+                        if (product && product.sizes_with_ids && Array.isArray(product.sizes_with_ids)) {
+                            const sizeData = product.sizes_with_ids.find(s => s.size === item.size);
+                            if (sizeData && sizeData.product_id) {
+                                productId = sizeData.product_id;
+                            }
+                        }
+                        
+                        if (!productId) {
+                            product = allUniforms.find(u => 
+                                (u.product_code || u.id) === item.product_key && u.size === item.size
+                            );
+                            if (product) {
+                                productId = product.id;
+                            }
                         }
                     }
+                    
+                    if (productId) {
+                        selectedItemsContainer.innerHTML += `
+                            <input type="hidden" name="items[${index}][uniform_product_id]" value="${productId}">
+                            <input type="hidden" name="items[${index}][quantity]" value="${item.quantity}">
+                        `;
+                        index++;
+                    }
                 }
-                
-                if (productId) {
-                    selectedItemsContainer.innerHTML += `
-                        <input type="hidden" name="items[${index}][uniform_product_id]" value="${productId}">
-                        <input type="hidden" name="items[${index}][quantity]" value="${item.quantity}">
-                    `;
-                    index++;
-                }
-            }
-        });
-
-        const appType = applicationTypeSelect?.value || '';
+            });
+        }
 
         if (returnItemsHidden) {
             returnItemsHidden.innerHTML = '';
@@ -2547,6 +2554,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 移管時はカート＝移管対象。返却時はカート非表示寄りだが既存UIを維持し return_items を主に使う
+        if (type === 'return') {
+            selectedItems.clear();
+            updateFormFields();
+            if (typeof updateContractLimit === 'function') updateContractLimit();
+        }
         const employeeId = document.getElementById('selected-employee-id')?.value;
         if (needsLoans && employeeId) {
             loadEmployeeLoans(employeeId);

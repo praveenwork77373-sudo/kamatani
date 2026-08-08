@@ -101,9 +101,25 @@
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">{{ __('pages.size') }}</th>
                                 <th class="px-4 py-3 text-right font-semibold text-slate-700">{{ __('pages.quantity') }}</th>
                                 <th class="px-4 py-3 text-right font-semibold text-slate-700">{{ __('pages.current_stock') }}</th>
+                                @if(in_array($application->status, ['pending', 'waiting_special_approval'], true))
+                                    <th class="px-4 py-3 text-right font-semibold text-slate-700">{{ __('pages.stock_after_accept') }}</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
+                            @php
+                                $stockDeltaByProduct = [];
+                                foreach ($application->items as $deltaItem) {
+                                    $pid = (int) $deltaItem->uniform_product_id;
+                                    $action = $deltaItem->action ?: 'loan';
+                                    $qty = (int) $deltaItem->quantity;
+                                    if (in_array($action, ['return', 'exchange_out'], true)) {
+                                        $stockDeltaByProduct[$pid] = ($stockDeltaByProduct[$pid] ?? 0) + $qty;
+                                    } elseif (in_array($action, ['loan', 'exchange_in', 'transfer_change'], true)) {
+                                        $stockDeltaByProduct[$pid] = ($stockDeltaByProduct[$pid] ?? 0) - $qty;
+                                    }
+                                }
+                            @endphp
                             @forelse($application->items as $item)
                                 @php
                                     $action = $item->action ?: 'loan';
@@ -113,6 +129,8 @@
                                         default => __('pages.item_action_new_loan'),
                                     };
                                     $isOutbound = in_array($action, ['loan', 'exchange_in', 'transfer_change'], true);
+                                    $currentStock = (int) ($item->uniformProduct?->stock_quantity ?? 0);
+                                    $projectedStock = $currentStock + (int) ($stockDeltaByProduct[(int) $item->uniform_product_id] ?? 0);
                                 @endphp
                                 <tr class="hover:bg-slate-50/50">
                                     <td class="px-4 py-3">
@@ -125,14 +143,22 @@
                                     <td class="px-4 py-3 text-slate-600">{{ $item->uniformProduct?->size ?? '-' }}</td>
                                     <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ $item->quantity }}</td>
                                     <td class="px-4 py-3 text-right text-slate-600">{{ $item->uniformProduct?->stock_quantity ?? '-' }}</td>
+                                    @if(in_array($application->status, ['pending', 'waiting_special_approval'], true))
+                                        <td class="px-4 py-3 text-right font-semibold {{ $projectedStock < 0 ? 'text-red-600' : 'text-emerald-700' }}">
+                                            {{ $projectedStock }}
+                                        </td>
+                                    @endif
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-4 py-8 text-center text-slate-500">{{ __('pages.no_data') }}</td>
+                                    <td colspan="{{ in_array($application->status, ['pending', 'waiting_special_approval'], true) ? 7 : 6 }}" class="px-4 py-8 text-center text-slate-500">{{ __('pages.no_data') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
+                    @if(in_array($application->status, ['pending', 'waiting_special_approval'], true))
+                        <p class="text-[12px] text-slate-500 mt-3">{{ __('pages.stock_timing_hint') }}</p>
+                    @endif
                 </div>
             </div>
 
@@ -326,14 +352,16 @@
                                 <dd class="font-semibold text-slate-900">{{ $planLimitGlance['held_total'] ?? 0 }}</dd>
                             </div>
                             @if(!($planLimitGlance['already_accepted'] ?? false))
-                                <div class="flex items-center justify-between gap-2">
-                                    <dt class="text-slate-500">{{ __('pages.this_app_outbound_qty') }}</dt>
-                                    <dd class="font-semibold text-primary-700">+{{ $planLimitGlance['this_app_new'] ?? 0 }}</dd>
-                                </div>
+                                @if(($planLimitGlance['this_app_new'] ?? 0) > 0)
+                                    <div class="flex items-center justify-between gap-2">
+                                        <dt class="text-slate-500">{{ __('pages.this_app_outbound_qty') }}</dt>
+                                        <dd class="font-semibold text-primary-700">+{{ $planLimitGlance['this_app_new'] }}</dd>
+                                    </div>
+                                @endif
                                 @if(($planLimitGlance['this_app_return'] ?? 0) > 0)
                                     <div class="flex items-center justify-between gap-2">
                                         <dt class="text-slate-500">{{ __('pages.this_app_return_qty') }}</dt>
-                                        <dd class="font-semibold text-slate-900">−{{ $planLimitGlance['this_app_return'] }}</dd>
+                                        <dd class="font-semibold text-amber-800">−{{ $planLimitGlance['this_app_return'] }}</dd>
                                     </div>
                                 @endif
                                 @if(($planLimitGlance['other_pending_outbound'] ?? 0) > 0)
@@ -343,10 +371,17 @@
                                     </div>
                                 @endif
                             @else
-                                <div class="flex items-center justify-between gap-2">
-                                    <dt class="text-slate-500">{{ __('pages.this_app_already_in_held') }}</dt>
-                                    <dd class="font-semibold text-slate-600">{{ $planLimitGlance['this_app_new'] ?? 0 }}</dd>
-                                </div>
+                                @if(($planLimitGlance['this_app_return'] ?? 0) > 0)
+                                    <div class="flex items-center justify-between gap-2">
+                                        <dt class="text-slate-500">{{ __('pages.this_app_return_already_applied') }}</dt>
+                                        <dd class="font-semibold text-slate-600">{{ $planLimitGlance['this_app_return'] }}</dd>
+                                    </div>
+                                @elseif(($planLimitGlance['this_app_new'] ?? 0) > 0)
+                                    <div class="flex items-center justify-between gap-2">
+                                        <dt class="text-slate-500">{{ __('pages.this_app_already_in_held') }}</dt>
+                                        <dd class="font-semibold text-slate-600">{{ $planLimitGlance['this_app_new'] }}</dd>
+                                    </div>
+                                @endif
                             @endif
                             @if(($planLimitGlance['total_limit'] ?? null) !== null)
                                 <div class="border-t border-slate-200/80 pt-1.5 flex items-center justify-between gap-2">
@@ -397,8 +432,9 @@
                                                 <span class="text-[11px] font-medium text-slate-500 ml-1">({{ __('pages.room_left') }} {{ $hp['slots_remaining'] }})</span>
                                             </span>
                                         </div>
+                                        <p class="text-[10px] text-slate-400">{{ __('pages.contract_slots_do_not_change_hint') }}</p>
                                         @if(($hp['employee_piece_limit'] ?? 0) > 0)
-                                            <div class="flex items-center justify-between gap-2 text-[12px] text-slate-700">
+                                            <div class="flex items-center justify-between gap-2 text-[12px] text-slate-700 pt-1 border-t border-slate-100">
                                                 <span>{{ __('pages.hospital_pieces_usage') }}</span>
                                                 <span class="font-semibold tabular-nums">
                                                     {{ ($hp['hospital_pieces_held'] ?? 0) + ($hp['hospital_pieces_pending'] ?? 0) }} / {{ $hp['hospital_piece_capacity'] }}
@@ -411,6 +447,7 @@
                                                     'limit' => $hp['employee_piece_limit'],
                                                 ]) }}
                                             </p>
+                                            <p class="text-[10px] text-slate-400">{{ __('pages.hospital_pieces_change_hint') }}</p>
                                         @endif
                                     </div>
                                 @endforeach
@@ -447,6 +484,23 @@
                                         {{ __('pages.item_action_new_loan') }}
                                     @endif
                                     · {{ __('pages.current_stock') }} {{ $item->uniformProduct?->stock_quantity ?? '-' }}
+                                    @if(in_array($application->status, ['pending', 'waiting_special_approval'], true))
+                                        @php
+                                            $pid = (int) $item->uniform_product_id;
+                                            $act = $item->action ?: 'loan';
+                                            $delta = 0;
+                                            foreach ($application->items->where('uniform_product_id', $pid) as $si) {
+                                                $sa = $si->action ?: 'loan';
+                                                if (in_array($sa, ['return', 'exchange_out'], true)) {
+                                                    $delta += (int) $si->quantity;
+                                                } elseif (in_array($sa, ['loan', 'exchange_in', 'transfer_change'], true)) {
+                                                    $delta -= (int) $si->quantity;
+                                                }
+                                            }
+                                            $proj = (int) ($item->uniformProduct?->stock_quantity ?? 0) + $delta;
+                                        @endphp
+                                        · {{ __('pages.stock_after_accept') }} {{ $proj }}
+                                    @endif
                                 </p>
                             </li>
                         @empty

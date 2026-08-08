@@ -147,6 +147,34 @@ class ApplicationLifecycleFixTest extends TestCase
         $this->assertSame('return', $app->items->first()->action);
     }
 
+    public function test_return_ignores_duplicate_items_payload(): void
+    {
+        // Bug: form posted both return_items and items with action=return → duplicate lines
+        $this->actingAs($this->customer)
+            ->post(route('applications.store'), [
+                'application_mode' => 'individual',
+                'employee_id' => $this->employee->id,
+                'department_id' => $this->department->id,
+                'type' => 'return',
+                'start_date' => now()->toDateString(),
+                'end_date' => now()->addDay()->toDateString(),
+                'delivery_location_id' => $this->delivery->id,
+                'return_items' => [
+                    ['uniform_product_id' => $this->product->id, 'quantity' => 1],
+                ],
+                'items' => [
+                    ['uniform_product_id' => $this->product->id, 'quantity' => 1],
+                ],
+            ])
+            ->assertRedirect(route('applications.create'));
+
+        $app = Application::where('type', 'return')->latest('id')->first();
+        $this->assertNotNull($app);
+        $this->assertCount(1, $app->items);
+        $this->assertSame(1, (int) $app->items->sum('quantity'));
+        $this->assertSame('return', $app->items->first()->action);
+    }
+
     public function test_transfer_create_same_employee_partial_change(): void
     {
         $this->actingAs($this->customer)

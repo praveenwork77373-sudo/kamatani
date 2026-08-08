@@ -608,10 +608,18 @@ class ApplicationController extends Controller
         $data['items'] = $data['items'] ?? [];
         $data['return_items'] = $data['return_items'] ?? [];
 
-        // 返却のみ: return_items が空なら items を返却扱い
-        if ($data['type'] === 'return' && empty($data['return_items']) && ! empty($data['items'])) {
-            $data['return_items'] = $data['items'];
+        // 返却のみ: return_items が空なら items を返却扱い。常に items は空にし二重登録を防ぐ
+        if ($data['type'] === 'return') {
+            if (empty($data['return_items']) && ! empty($data['items'])) {
+                $data['return_items'] = $data['items'];
+            }
             $data['items'] = [];
+            $data['return_items'] = $this->mergeItemsByProduct($data['return_items']);
+        } elseif (in_array($data['type'], ['exchange', 'resize', 'transfer'], true)) {
+            $data['return_items'] = $this->mergeItemsByProduct($data['return_items']);
+            $data['items'] = $this->mergeItemsByProduct($data['items']);
+        } else {
+            $data['items'] = $this->mergeItemsByProduct($data['items']);
         }
 
         // 種別ごとの明細必須チェック
@@ -817,15 +825,17 @@ class ApplicationController extends Controller
                 }
             }
 
-            // 新品
-            $newAction = $this->itemActionForType($data['type']);
-            foreach ($data['items'] as $item) {
-                ApplicationItem::create([
-                    'application_id' => $application->id,
-                    'uniform_product_id' => $item['uniform_product_id'],
-                    'quantity' => $item['quantity'],
-                    'action' => $newAction,
-                ]);
+            // 新品 — pure return never writes items[] (avoids duplicate return lines)
+            if ($data['type'] !== 'return') {
+                $newAction = $this->itemActionForType($data['type']);
+                foreach ($data['items'] as $item) {
+                    ApplicationItem::create([
+                        'application_id' => $application->id,
+                        'uniform_product_id' => $item['uniform_product_id'],
+                        'quantity' => $item['quantity'],
+                        'action' => $newAction,
+                    ]);
+                }
             }
 
             \App\Services\NotificationService::notifyApplicationCreated($application);
@@ -994,14 +1004,16 @@ class ApplicationController extends Controller
                     $itemCount++;
                 }
 
-                foreach ($data['items'] as $item) {
-                    ApplicationItem::create([
-                        'application_id' => $application->id,
-                        'uniform_product_id' => $item['uniform_product_id'],
-                        'quantity' => $item['quantity'],
-                        'action' => $itemAction,
-                    ]);
-                    $itemCount++;
+                if ($data['type'] !== 'return') {
+                    foreach ($data['items'] as $item) {
+                        ApplicationItem::create([
+                            'application_id' => $application->id,
+                            'uniform_product_id' => $item['uniform_product_id'],
+                            'quantity' => $item['quantity'],
+                            'action' => $itemAction,
+                        ]);
+                        $itemCount++;
+                    }
                 }
 
                 if ($itemCount === 0) {
@@ -1042,6 +1054,33 @@ class ApplicationController extends Controller
             ->route('applications.create')
             ->with('status', $message)
             ->with('success', true);
+    }
+
+    /**
+     * Collapse duplicate product lines so the same SKU is not stored twice.
+     *
+     * @param  array<int, array{uniform_product_id?: mixed, quantity?: mixed}>  $items
+     * @return list<array{uniform_product_id: int, quantity: int}>
+     */
+    private function mergeItemsByProduct(array $items): array
+    {
+        $merged = [];
+        foreach ($items as $item) {
+            $productId = (int) ($item['uniform_product_id'] ?? 0);
+            $qty = (int) ($item['quantity'] ?? 0);
+            if ($productId <= 0 || $qty <= 0) {
+                continue;
+            }
+            if (! isset($merged[$productId])) {
+                $merged[$productId] = [
+                    'uniform_product_id' => $productId,
+                    'quantity' => 0,
+                ];
+            }
+            $merged[$productId]['quantity'] += $qty;
+        }
+
+        return array_values($merged);
     }
 
     public function show(Application $application): View
