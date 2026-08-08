@@ -149,6 +149,8 @@ class ApplicationApprovalController extends Controller
             ->limit(8)
             ->get();
 
+        $planLimitGlance = $this->buildEmployeePlanLimitGlance($application);
+
         return view('admin.applications.show', [
             'application' => $application,
             'latestDocuments' => $application->documents->where('is_latest', true)->keyBy('form_type'),
@@ -159,7 +161,300 @@ class ApplicationApprovalController extends Controller
             'thisAppOutboundQty' => $thisAppOutboundQty,
             'thisAppReturnQty' => $thisAppReturnQty,
             'otherPendingApps' => $otherPendingApps,
+            'planLimitGlance' => $planLimitGlance,
         ]);
+    }
+
+    /**
+     * Employee plan-limit snapshot for Kamatani before accept.
+     *
+     * @return array{
+     *   has_employee: bool,
+     *   has_plan: bool,
+     *   plan_names: list<string>,
+     *   mode: 'category'|'total'|null,
+     *   total_limit: int|null,
+     *   held_total: int,
+     *   this_app_new: int,
+     *   this_app_return: int,
+     *   other_pending_outbound: int,
+     *   projected_total: int,
+     *   room: int|null,
+     *   over_limit: bool,
+     *   categories: list<array{key: string, label: string, limit: int, held: int, this_new: int, this_return: int, projected: int, room: int, over: bool}>
+     * }|null
+     */
+    private function buildEmployeePlanLimitGlance(Application $application): ?array
+    {
+        $employee = $application->employee;
+        if (! $employee) {
+            return [
+                'has_employee' => false,
+                'has_plan' => false,
+                'plan_names' => [],
+                'mode' => null,
+                'total_limit' => null,
+                'held_total' => 0,
+                'this_app_new' => 0,
+                'this_app_return' => 0,
+                'other_pending_outbound' => 0,
+                'projected_total' => 0,
+                'room' => null,
+                'over_limit' => false,
+                'already_accepted' => false,
+                'categories' => [],
+                'hospital_plans' => [],
+            ];
+        }
+
+        $eligibility = app(\App\Services\EmployeePlanEligibilityService::class);
+        $asOf = $application->start_date ?? now();
+        $alreadyAccepted = $application->accepted_at !== null
+            || in_array($application->status, [
+                Application::STATUS_IN_PROGRESS,
+                Application::STATUS_COMPLETED,
+            ], true);
+
+        $assignments = $eligibility->activeAssignments($employee, $asOf);
+        $planNames = $assignments
+            ->map(fn ($a) => $a->customerContractPlan?->contractPlan?->name)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $loanItems = [];
+        $returnItems = [];
+        foreach ($application->items as $item) {
+            $row = [
+                'uniform_product_id' => (int) $item->uniform_product_id,
+                'quantity' => (int) $item->quantity,
+            ];
+            $action = $item->action ?: 'loan';
+            if (in_array($action, ['loan', 'exchange_in', 'transfer_change'], true)) {
+                $loanItems[] = $row;
+            } elseif (in_array($action, ['return', 'exchange_out'], true)) {
+                $returnItems[] = $row;
+            }
+        }
+
+        $thisAppNew = (int) array_sum(array_column($loanItems, 'quantity'));
+        $thisAppReturn = (int) array_sum(array_column($returnItems, 'quantity'));
+        // After accept, loans already include this application — do not project +this app again
+        $otherPendingOutbound = $alreadyAccepted
+            ? 0
+            : $eligibility->pendingOutboundQuantity($employee, (int) $application->id);
+
+        $heldByCategory = $eligibility->projectedQuantitiesByCategory($employee, [], [], $asOf, false);
+        $projectedWithThisApp = $alreadyAccepted
+            ? $heldByCategory
+            : $eligibility->projectedQuantitiesByCategory(
+                $employee,
+                $loanItems,
+                $returnItems,
+                $asOf,
+                true,
+                (int) $application->id
+            );
+
+        $categoryLabels = [
+            'top' => __('pages.cap_top'),
+            'bottom' => __('pages.cap_bottom'),
+            'other' => __('pages.cap_other'),
+            'other2' => __('pages.cap_other2'),
+            'other3' => __('pages.cap_other3'),
+        ];
+
+        $caps = $eligibility->categoryCaps($employee, $asOf);
+        $categories = [];
+        $overLimit = false;
+        $hospitalPlans = $this->buildHospitalPlanCapacityRows($assignments, $eligibility, $asOf);
+
+        if ($caps !== null) {
+            foreach (\App\Services\EmployeePlanEligibilityService::POINT_CATEGORIES as $key) {
+                $limit = (int) ($caps[$key] ?? 0);
+                $held = (int) ($heldByCategory[$key] ?? 0);
+                $projected = (int) ($projectedWithThisApp[$key] ?? 0);
+                $thisNew = 0;
+                $thisReturn = 0;
+                if (! $alreadyAccepted) {
+                    foreach ($loanItems as $row) {
+                        if ($eligibility->limitCategoryForProduct($employee, (int) $row['uniform_product_id'], $asOf) === $key) {
+                            $thisNew += (int) $row['quantity'];
+                        }
+                    }
+                    foreach ($returnItems as $row) {
+                        if ($eligibility->limitCategoryForProduct($employee, (int) $row['uniform_product_id'], $asOf) === $key) {
+                            $thisReturn += (int) $row['quantity'];
+                        }
+                    }
+                }
+                $room = max(0, $limit - $projected);
+                $over = $projected > $limit;
+                if ($over) {
+                    $overLimit = true;
+                }
+                if ($limit <= 0 && $held <= 0 && $thisNew <= 0 && $thisReturn <= 0 && $projected <= 0) {
+                    continue;
+                }
+                $categories[] = [
+                    'key' => $key,
+                    'label' => $categoryLabels[$key] ?? $key,
+                    'limit' => $limit,
+                    'held' => $held,
+                    'this_new' => $thisNew,
+                    'this_return' => $thisReturn,
+                    'projected' => $projected,
+                    'room' => $room,
+                    'over' => $over,
+                ];
+            }
+
+            $totalLimit = (int) array_sum($caps);
+            $heldTotal = (int) array_sum($heldByCategory);
+            $projectedTotal = (int) array_sum($projectedWithThisApp);
+
+            return [
+                'has_employee' => true,
+                'has_plan' => $assignments->isNotEmpty(),
+                'plan_names' => $planNames,
+                'mode' => 'category',
+                'already_accepted' => $alreadyAccepted,
+                'total_limit' => $totalLimit,
+                'held_total' => $heldTotal,
+                'this_app_new' => $thisAppNew,
+                'this_app_return' => $thisAppReturn,
+                'other_pending_outbound' => $otherPendingOutbound,
+                'projected_total' => $projectedTotal,
+                'room' => max(0, $totalLimit - $projectedTotal),
+                'over_limit' => $overLimit,
+                'categories' => $categories,
+                'hospital_plans' => $hospitalPlans,
+            ];
+        }
+
+        $totalLimit = $eligibility->rentableLimit($employee, $asOf);
+        $heldTotal = (int) EmployeeLoan::query()
+            ->where('employee_id', $employee->id)
+            ->where('status', 'in_use')
+            ->sum('quantity');
+        $projectedTotal = $alreadyAccepted
+            ? $heldTotal
+            : ($heldTotal - $thisAppReturn + $thisAppNew + $otherPendingOutbound);
+        $overLimit = $totalLimit !== null && $totalLimit > 0 && $projectedTotal > $totalLimit;
+
+        return [
+            'has_employee' => true,
+            'has_plan' => $assignments->isNotEmpty(),
+            'plan_names' => $planNames,
+            'mode' => $totalLimit !== null ? 'total' : null,
+            'already_accepted' => $alreadyAccepted,
+            'total_limit' => $totalLimit,
+            'held_total' => $heldTotal,
+            'this_app_new' => $thisAppNew,
+            'this_app_return' => $thisAppReturn,
+            'other_pending_outbound' => $otherPendingOutbound,
+            'projected_total' => $projectedTotal,
+            'room' => $totalLimit !== null ? max(0, $totalLimit - $projectedTotal) : null,
+            'over_limit' => $overLimit,
+            'categories' => [],
+            'hospital_plans' => $hospitalPlans,
+        ];
+    }
+
+    /**
+     * Hospital-wide remaining capacity for the employee's customer contract plans.
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Models\EmployeeContractPlan>  $assignments
+     * @return list<array{
+     *   plan_name: string,
+     *   contract_count: int,
+     *   assigned_count: int,
+     *   slots_remaining: int,
+     *   over_slots: bool,
+     *   employee_piece_limit: int,
+     *   hospital_piece_capacity: int,
+     *   hospital_pieces_held: int,
+     *   hospital_pieces_pending: int,
+     *   hospital_pieces_room: int
+     * }>
+     */
+    private function buildHospitalPlanCapacityRows($assignments, \App\Services\EmployeePlanEligibilityService $eligibility, $asOf): array
+    {
+        $rows = [];
+        $seenCcpIds = [];
+
+        foreach ($assignments as $assignment) {
+            $ccp = $assignment->customerContractPlan;
+            if (! $ccp || isset($seenCcpIds[$ccp->id])) {
+                continue;
+            }
+            $seenCcpIds[$ccp->id] = true;
+
+            $plan = $ccp->contractPlan;
+            $planName = $plan?->name ?? ('#'.$ccp->id);
+            $contractCount = (int) ($ccp->contract_count ?? 0);
+
+            $assignedEmployeeIds = $ccp->employeeAssignments()
+                ->get()
+                ->filter(fn ($a) => $a->isActiveOn($asOf))
+                ->pluck('employee_id')
+                ->unique()
+                ->values()
+                ->all();
+
+            $assignedCount = count($assignedEmployeeIds);
+            $slotsRemaining = max(0, $contractCount - $assignedCount);
+
+            $employeePieceLimit = 0;
+            if ($plan) {
+                if ($plan->hasCategoryCaps()) {
+                    $employeePieceLimit = (int) $plan->rentable_points_top
+                        + (int) $plan->rentable_points_bottom
+                        + (int) $plan->rentable_points_other
+                        + (int) $plan->rentable_points_other2
+                        + (int) $plan->rentable_points_other3;
+                } else {
+                    $employeePieceLimit = (int) ($plan->rentable_points ?? 0);
+                }
+            }
+
+            // Reference hospital piece capacity = contracted headcount slots × per-employee limit
+            $hospitalPieceCapacity = $contractCount * $employeePieceLimit;
+
+            $hospitalPiecesHeld = 0;
+            $hospitalPiecesPending = 0;
+            if (! empty($assignedEmployeeIds)) {
+                $hospitalPiecesHeld = (int) EmployeeLoan::query()
+                    ->whereIn('employee_id', $assignedEmployeeIds)
+                    ->where('status', 'in_use')
+                    ->sum('quantity');
+
+                foreach ($assignedEmployeeIds as $empId) {
+                    $emp = \App\Models\Employee::query()->find($empId);
+                    if ($emp) {
+                        $hospitalPiecesPending += $eligibility->pendingOutboundQuantity($emp);
+                    }
+                }
+            }
+
+            $hospitalPiecesRoom = max(0, $hospitalPieceCapacity - $hospitalPiecesHeld - $hospitalPiecesPending);
+
+            $rows[] = [
+                'plan_name' => $planName,
+                'contract_count' => $contractCount,
+                'assigned_count' => $assignedCount,
+                'slots_remaining' => $slotsRemaining,
+                'over_slots' => $assignedCount > $contractCount && $contractCount > 0,
+                'employee_piece_limit' => $employeePieceLimit,
+                'hospital_piece_capacity' => $hospitalPieceCapacity,
+                'hospital_pieces_held' => $hospitalPiecesHeld,
+                'hospital_pieces_pending' => $hospitalPiecesPending,
+                'hospital_pieces_room' => $hospitalPiecesRoom,
+            ];
+        }
+
+        return $rows;
     }
 
     public function updateMemos(Request $request, Application $application): RedirectResponse

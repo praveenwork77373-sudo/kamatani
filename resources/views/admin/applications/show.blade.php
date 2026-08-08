@@ -291,6 +291,134 @@
                     </dl>
                 </div>
 
+                @if(!empty($planLimitGlance))
+                    <div class="rounded-lg border {{ ($planLimitGlance['over_limit'] ?? false) ? 'border-red-200 bg-red-50/60' : 'border-slate-200 bg-slate-50' }} p-3.5 space-y-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <h3 class="text-[13px] font-semibold text-slate-900">{{ __('pages.employee_plan_limit_glance') }}</h3>
+                                <p class="text-[11px] text-slate-500 mt-0.5">
+                                    @if($planLimitGlance['already_accepted'] ?? false)
+                                        {{ __('pages.employee_plan_limit_glance_hint_accepted') }}
+                                    @else
+                                        {{ __('pages.employee_plan_limit_glance_hint') }}
+                                    @endif
+                                </p>
+                            </div>
+                            @if($planLimitGlance['over_limit'] ?? false)
+                                <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[11px] font-semibold">{{ __('pages.over_plan_limit') }}</span>
+                            @elseif(!($planLimitGlance['has_plan'] ?? false))
+                                <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold">{{ __('pages.no_active_plan') }}</span>
+                            @elseif($planLimitGlance['already_accepted'] ?? false)
+                                <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-semibold">{{ __('pages.limit_after_accept') }}</span>
+                            @endif
+                        </div>
+
+                        @if(!empty($planLimitGlance['plan_names']))
+                            <p class="text-[12px] text-slate-700">
+                                <span class="font-medium text-slate-500">{{ __('pages.contract_plan_colon') }}</span>
+                                {{ implode(' / ', $planLimitGlance['plan_names']) }}
+                            </p>
+                        @endif
+
+                        <dl class="space-y-1.5 text-[12px]">
+                            <div class="flex items-center justify-between gap-2">
+                                <dt class="text-slate-500">{{ __('pages.currently_held') }}</dt>
+                                <dd class="font-semibold text-slate-900">{{ $planLimitGlance['held_total'] ?? 0 }}</dd>
+                            </div>
+                            @if(!($planLimitGlance['already_accepted'] ?? false))
+                                <div class="flex items-center justify-between gap-2">
+                                    <dt class="text-slate-500">{{ __('pages.this_app_outbound_qty') }}</dt>
+                                    <dd class="font-semibold text-primary-700">+{{ $planLimitGlance['this_app_new'] ?? 0 }}</dd>
+                                </div>
+                                @if(($planLimitGlance['this_app_return'] ?? 0) > 0)
+                                    <div class="flex items-center justify-between gap-2">
+                                        <dt class="text-slate-500">{{ __('pages.this_app_return_qty') }}</dt>
+                                        <dd class="font-semibold text-slate-900">−{{ $planLimitGlance['this_app_return'] }}</dd>
+                                    </div>
+                                @endif
+                                @if(($planLimitGlance['other_pending_outbound'] ?? 0) > 0)
+                                    <div class="flex items-center justify-between gap-2">
+                                        <dt class="text-slate-500">{{ __('pages.other_pending_employee_outbound') }}</dt>
+                                        <dd class="font-semibold text-amber-700">+{{ $planLimitGlance['other_pending_outbound'] }}</dd>
+                                    </div>
+                                @endif
+                            @else
+                                <div class="flex items-center justify-between gap-2">
+                                    <dt class="text-slate-500">{{ __('pages.this_app_already_in_held') }}</dt>
+                                    <dd class="font-semibold text-slate-600">{{ $planLimitGlance['this_app_new'] ?? 0 }}</dd>
+                                </div>
+                            @endif
+                            @if(($planLimitGlance['total_limit'] ?? null) !== null)
+                                <div class="border-t border-slate-200/80 pt-1.5 flex items-center justify-between gap-2">
+                                    <dt class="text-slate-600 font-medium">
+                                        @if($planLimitGlance['already_accepted'] ?? false)
+                                            {{ __('pages.held_vs_limit') }}
+                                        @else
+                                            {{ __('pages.projected_vs_limit') }}
+                                        @endif
+                                    </dt>
+                                    <dd class="font-bold {{ ($planLimitGlance['over_limit'] ?? false) ? 'text-red-700' : 'text-slate-900' }}">
+                                        {{ $planLimitGlance['projected_total'] ?? 0 }} / {{ $planLimitGlance['total_limit'] }}
+                                        <span class="text-[11px] font-medium text-slate-500 ml-1">({{ __('pages.room_left') }} {{ $planLimitGlance['room'] ?? 0 }})</span>
+                                    </dd>
+                                </div>
+                            @endif
+                        </dl>
+
+                        @if(!empty($planLimitGlance['categories']))
+                            <div class="space-y-1.5 border-t border-slate-200/80 pt-2">
+                                <p class="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">{{ __('pages.category_caps_breakdown') }}</p>
+                                @foreach($planLimitGlance['categories'] as $cat)
+                                    <div class="flex items-center justify-between gap-2 text-[12px] {{ ($cat['over'] ?? false) ? 'text-red-700' : 'text-slate-700' }}">
+                                        <span>{{ $cat['label'] }}</span>
+                                        <span class="font-semibold tabular-nums">
+                                            {{ $cat['held'] }} + {{ $cat['this_new'] }}
+                                            @if(($cat['this_return'] ?? 0) > 0) − {{ $cat['this_return'] }}@endif
+                                            = {{ $cat['projected'] }} / {{ $cat['limit'] }}
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if(!empty($planLimitGlance['hospital_plans']))
+                            <div class="space-y-2.5 border-t border-slate-200/80 pt-2">
+                                <div>
+                                    <p class="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">{{ __('pages.hospital_plan_capacity') }}</p>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">{{ __('pages.hospital_plan_capacity_hint') }}</p>
+                                </div>
+                                @foreach($planLimitGlance['hospital_plans'] as $hp)
+                                    <div class="rounded-md bg-white border border-slate-200 px-2.5 py-2 space-y-1">
+                                        <p class="text-[12px] font-semibold text-slate-900 truncate">{{ $hp['plan_name'] }}</p>
+                                        <div class="flex items-center justify-between gap-2 text-[12px] {{ ($hp['over_slots'] ?? false) ? 'text-red-700' : 'text-slate-700' }}">
+                                            <span>{{ __('pages.contract_slots_usage') }}</span>
+                                            <span class="font-semibold tabular-nums">
+                                                {{ $hp['assigned_count'] }} / {{ $hp['contract_count'] }}
+                                                <span class="text-[11px] font-medium text-slate-500 ml-1">({{ __('pages.room_left') }} {{ $hp['slots_remaining'] }})</span>
+                                            </span>
+                                        </div>
+                                        @if(($hp['employee_piece_limit'] ?? 0) > 0)
+                                            <div class="flex items-center justify-between gap-2 text-[12px] text-slate-700">
+                                                <span>{{ __('pages.hospital_pieces_usage') }}</span>
+                                                <span class="font-semibold tabular-nums">
+                                                    {{ ($hp['hospital_pieces_held'] ?? 0) + ($hp['hospital_pieces_pending'] ?? 0) }} / {{ $hp['hospital_piece_capacity'] }}
+                                                    <span class="text-[11px] font-medium text-slate-500 ml-1">({{ __('pages.room_left') }} {{ $hp['hospital_pieces_room'] }})</span>
+                                                </span>
+                                            </div>
+                                            <p class="text-[10px] text-slate-400">
+                                                {{ __('pages.hospital_pieces_formula', [
+                                                    'slots' => $hp['contract_count'],
+                                                    'limit' => $hp['employee_piece_limit'],
+                                                ]) }}
+                                            </p>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
                 <div>
                     <h3 class="text-[13px] font-semibold text-slate-800 mb-2">{{ __('pages.ordered_items_glance') }}</h3>
                     <ul class="max-h-56 overflow-y-auto space-y-2 border border-slate-100 rounded-lg p-2 bg-slate-50">
@@ -331,7 +459,11 @@
                     <h2 class="text-lg font-semibold text-slate-900 mb-3">{{ __('common.actions') }}</h2>
                     <div class="space-y-3">
                     @if(in_array($application->status, ['pending', 'waiting_special_approval']))
-                        <form method="POST" action="{{ route('admin.applications.approve', $application) }}" class="inline-block w-full">
+                        <form method="POST" action="{{ route('admin.applications.approve', $application) }}" class="inline-block w-full"
+                              data-ui-confirm="{{ __('pages.confirm_accept_application') }}"
+                              data-ui-confirm-title="{{ __('pages.confirm_accept_title') }}"
+                              data-ui-confirm-tone="brand"
+                              data-ui-confirm-ok="{{ __('pages.accept_in_progress') }}">
                             @csrf
                             <button type="submit" class="w-full px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[14px] font-semibold shadow-md transition-all flex items-center justify-center gap-2">
                                 <i class="ph ph-check-circle text-base"></i>
