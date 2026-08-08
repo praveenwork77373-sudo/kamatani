@@ -519,9 +519,52 @@ class ApplicationController extends Controller
                     'category' => $loan->uniformProduct?->category,
                     'limit_category' => $eligibility->limitCategoryForProduct($employee, (int) $loan->uniform_product_id),
                 ];
-            });
+            })
+            ->values();
 
-        return response()->json($loans);
+        $pendingApps = Application::query()
+            ->with('items')
+            ->where('employee_id', $employee->id)
+            ->whereIn('status', [
+                Application::STATUS_PENDING,
+                Application::STATUS_WAITING_SPECIAL,
+            ])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $pendingByCategory = array_fill_keys(\App\Services\EmployeePlanEligibilityService::POINT_CATEGORIES, 0);
+        $pendingOutboundTotal = 0;
+        $pendingSummaries = [];
+
+        foreach ($pendingApps as $app) {
+            $outboundQty = 0;
+            foreach ($app->items as $item) {
+                $action = $item->action ?: 'loan';
+                if (! in_array($action, ['loan', 'exchange_in', 'transfer_change'], true)) {
+                    continue;
+                }
+                $qty = (int) $item->quantity;
+                $outboundQty += $qty;
+                $pendingOutboundTotal += $qty;
+                $cat = $eligibility->limitCategoryForProduct($employee, (int) $item->uniform_product_id);
+                $pendingByCategory[$cat] = ($pendingByCategory[$cat] ?? 0) + $qty;
+            }
+            $pendingSummaries[] = [
+                'id' => $app->id,
+                'type' => $app->type,
+                'status' => $app->status,
+                'outbound_qty' => $outboundQty,
+                'created_at' => optional($app->created_at)->format('Y-m-d H:i'),
+                'show_url' => route('applications.show', $app),
+            ];
+        }
+
+        return response()->json([
+            'loans' => $loans,
+            'pending_applications' => $pendingSummaries,
+            'pending_outbound_by_category' => $pendingByCategory,
+            'pending_outbound_total' => $pendingOutboundTotal,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -750,9 +793,15 @@ class ApplicationController extends Controller
                 true
             );
             if ($violation) {
+                $pendingQty = $eligibility->pendingOutboundQuantity($employee);
                 $messageKey = ($violation['mode'] ?? '') === 'category'
                     ? 'pages.rentable_category_limit_hard_block'
                     : 'pages.rentable_limit_hard_block';
+                if ($pendingQty > 0) {
+                    $messageKey = ($violation['mode'] ?? '') === 'category'
+                        ? 'pages.rentable_category_limit_pending_block'
+                        : 'pages.rentable_limit_pending_block';
+                }
 
                 return redirect()->back()
                     ->withInput()
@@ -762,6 +811,7 @@ class ApplicationController extends Controller
                             : '',
                         'limit' => $violation['limit'],
                         'projected' => $violation['projected'],
+                        'pending' => $pendingQty,
                     ]));
             }
         }

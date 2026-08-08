@@ -180,6 +180,18 @@
                         @enderror
                     </div>
 
+                    {{-- Open applications already counting toward this employee's plan limit --}}
+                    <div id="employee-pending-apps-banner" class="hidden rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+                        <div class="flex items-start gap-2">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 mt-0.5 shrink-0"></i>
+                            <div class="min-w-0 space-y-1">
+                                <p class="text-[13px] font-semibold text-amber-900" id="employee-pending-apps-title"></p>
+                                <p class="text-[12px] text-amber-800" id="employee-pending-apps-detail"></p>
+                                <ul id="employee-pending-apps-list" class="text-[12px] text-amber-900 space-y-0.5"></ul>
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- 現在の貸与（返却・交換・異動用） --}}
                     <div id="current-loans-panel" class="hidden">
                         <label class="block text-slate-700 text-[14px] font-semibold mb-2 flex items-center gap-2">
@@ -510,6 +522,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 qty[cat] = (qty[cat] || 0) + (window.__heldLoansByCategory[cat] || 0);
             });
         }
+        // Pending outbound applications also consume the plan limit until accepted/rejected
+        if (window.__pendingOutboundByCategory) {
+            Object.keys(window.__pendingOutboundByCategory).forEach((cat) => {
+                qty[cat] = (qty[cat] || 0) + (window.__pendingOutboundByCategory[cat] || 0);
+            });
+        }
         if (typeof returnItems !== 'undefined') {
             returnItems.forEach((item) => {
                 const cat = productLimitCategory(item);
@@ -544,6 +562,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 total += window.__heldLoansByCategory[cat] || 0;
             });
         }
+        if (window.__pendingOutboundByCategory) {
+            Object.keys(window.__pendingOutboundByCategory).forEach((cat) => {
+                total += window.__pendingOutboundByCategory[cat] || 0;
+            });
+        }
         return total;
     }
 
@@ -565,8 +588,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toastPlanLimit() {
-        const msg = window.__i18nAppCreate?.rentable_limit_hard_block_short
-            || @json(__('pages.rentable_limit_hard_block_short'));
+        const pendingTotal = window.__pendingOutboundByCategory
+            ? Object.values(window.__pendingOutboundByCategory).reduce((s, n) => s + (n || 0), 0)
+            : 0;
+        const msg = pendingTotal > 0
+            ? (@json(__('pages.rentable_limit_pending_block_short')))
+            : (window.__i18nAppCreate?.rentable_limit_hard_block_short
+                || @json(__('pages.rentable_limit_hard_block_short')));
         if (window.showToast) window.showToast(msg, 'error');
         else alert(msg);
     }
@@ -1358,6 +1386,11 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         filteredUniforms = [];
         employeePlanFilterActive = false;
+        window.__heldLoansByCategory = { top: 0, bottom: 0, other: 0, other2: 0, other3: 0 };
+        window.__pendingOutboundByCategory = { top: 0, bottom: 0, other: 0, other2: 0, other3: 0 };
+        if (typeof renderEmployeePendingAppsBanner === 'function') {
+            renderEmployeePendingAppsBanner([], {});
+        }
         loadProducts();
     });
 
@@ -2565,35 +2598,100 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function renderEmployeePendingAppsBanner(pendingApps, pendingByCategory) {
+        const banner = document.getElementById('employee-pending-apps-banner');
+        const titleEl = document.getElementById('employee-pending-apps-title');
+        const detailEl = document.getElementById('employee-pending-apps-detail');
+        const listEl = document.getElementById('employee-pending-apps-list');
+        if (!banner || !titleEl || !detailEl || !listEl) return;
+
+        const apps = Array.isArray(pendingApps) ? pendingApps : [];
+        if (apps.length === 0) {
+            banner.classList.add('hidden');
+            titleEl.textContent = '';
+            detailEl.textContent = '';
+            listEl.innerHTML = '';
+            return;
+        }
+
+        const categoryLabels = {
+            top: @json(__('pages.cap_top')),
+            bottom: @json(__('pages.cap_bottom')),
+            other: @json(__('pages.cap_other')),
+            other2: @json(__('pages.cap_other2')),
+            other3: @json(__('pages.cap_other3')),
+        };
+        const parts = Object.keys(categoryLabels)
+            .filter((cat) => (pendingByCategory?.[cat] || 0) > 0)
+            .map((cat) => `${categoryLabels[cat]} ${pendingByCategory[cat]}`);
+
+        titleEl.textContent = @json(__('pages.employee_pending_apps_title'))
+            .replace(':count', String(apps.length));
+        detailEl.textContent = parts.length
+            ? @json(__('pages.employee_pending_apps_limit_detail')).replace(':breakdown', parts.join(' · '))
+            : @json(__('pages.employee_pending_apps_detail'));
+
+        const typeLabels = {
+            new_loan: @json(__('pages.new_loan')),
+            resize: @json(__('pages.size_exchange')),
+            exchange: @json(__('pages.exchange')),
+            return: @json(__('pages.return')),
+            transfer: @json(__('pages.transfer')),
+        };
+        listEl.innerHTML = apps.map((app) => {
+            const label = typeLabels[app.type] || app.type;
+            const link = app.show_url
+                ? `<a href="${app.show_url}" class="underline font-medium hover:text-amber-950">#APP-${String(app.id).padStart(4, '0')}</a>`
+                : `#APP-${String(app.id).padStart(4, '0')}`;
+            return `<li>${link} · ${label} · ${app.outbound_qty || 0} ${@json(__('pages.items'))} · ${app.created_at || ''}</li>`;
+        }).join('');
+
+        banner.classList.remove('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
     async function loadEmployeeLoans(employeeId) {
-        if (!currentLoansList || !employeeId) return;
-        currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">{{ __('common.loading') }}</p>';
+        if (!employeeId) return;
+        if (currentLoansList) {
+            currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">{{ __('common.loading') }}</p>';
+        }
         try {
             const res = await fetch(`{{ url('/api/employees') }}/${employeeId}/loans`, {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
             });
             if (!res.ok) throw new Error('load failed');
-            const loans = await res.json();
+            const payload = await res.json();
+            const loans = Array.isArray(payload) ? payload : (payload.loans || []);
+            const pendingApps = Array.isArray(payload?.pending_applications) ? payload.pending_applications : [];
+            const pendingByCategory = payload?.pending_outbound_by_category || { top: 0, bottom: 0, other: 0, other2: 0, other3: 0 };
+
             window.__heldLoansByCategory = { top: 0, bottom: 0, other: 0, other2: 0, other3: 0 };
-            if (Array.isArray(loans)) {
-                loans.forEach((loan) => {
-                    const cat = normalizeLimitCategory(loan.limit_category || loan.category);
-                    window.__heldLoansByCategory[cat] = (window.__heldLoansByCategory[cat] || 0) + (loan.quantity || 0);
-                });
-            }
+            window.__pendingOutboundByCategory = { top: 0, bottom: 0, other: 0, other2: 0, other3: 0 };
+            Object.keys(window.__pendingOutboundByCategory).forEach((cat) => {
+                window.__pendingOutboundByCategory[cat] = pendingByCategory[cat] || 0;
+            });
+
+            loans.forEach((loan) => {
+                const cat = normalizeLimitCategory(loan.limit_category || loan.category);
+                window.__heldLoansByCategory[cat] = (window.__heldLoansByCategory[cat] || 0) + (loan.quantity || 0);
+            });
+
+            renderEmployeePendingAppsBanner(pendingApps, window.__pendingOutboundByCategory);
+
             if (typeof updateContractLimit === 'function') {
                 updateContractLimit();
             }
             clampSelectedItemsToPlanLimit();
+
+            if (!currentLoansList) return;
+
             if (!Array.isArray(loans) || loans.length === 0) {
-                if (currentLoansList) {
-                    currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">{{ __('pages.no_active_loans') }}</p>';
-                }
+                currentLoansList.innerHTML = '<p class="text-[13px] text-slate-500">{{ __('pages.no_active_loans') }}</p>';
                 returnItems.clear();
                 updateFormFields();
                 return;
             }
-            if (!currentLoansList) return;
+
             currentLoansList.innerHTML = loans.map(loan => {
                 const checked = returnItems.has(String(loan.uniform_product_id)) ? 'checked' : '';
                 const qty = returnItems.get(String(loan.uniform_product_id))?.quantity || 1;
@@ -2623,7 +2721,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof lucide !== 'undefined') lucide.createIcons();
         } catch (e) {
             console.error(e);
-            currentLoansList.innerHTML = '<p class="text-[13px] text-red-600">{{ __('pages.ui_7cffc9ba1a') }}</p>';
+            window.__pendingOutboundByCategory = { top: 0, bottom: 0, other: 0, other2: 0, other3: 0 };
+            renderEmployeePendingAppsBanner([], {});
+            if (currentLoansList) {
+                currentLoansList.innerHTML = '<p class="text-[13px] text-red-600">{{ __('pages.ui_7cffc9ba1a') }}</p>';
+            }
         }
     }
 

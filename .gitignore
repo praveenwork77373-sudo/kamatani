@@ -31,3 +31,6 @@ Thumbs.db
 /storage/app/private/application-pdfs/
 
 
+
+# Local walkthrough / screenshot packs (keep out of git for now)
+/docs/
